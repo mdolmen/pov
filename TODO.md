@@ -2,11 +2,11 @@
 
 ## Phase 1 — Project scaffold
 
-- [ ] Init Tauri v2 project with Vite + React + TypeScript
-- [ ] Configure TailwindCSS + Shadcn
-- [ ] Configure `activation_policy = "Accessory"` (no Dock icon)
-- [ ] Set up system tray icon with right-click menu (Show, Quit)
-- [ ] Configure floating panel window (click away to hide)
+- [x] Init Tauri v2 project with Vite + React + TypeScript
+- [x] Configure TailwindCSS + Shadcn
+- [x] Configure `activation_policy = "Accessory"` (no Dock icon)
+- [x] Set up system tray icon with right-click menu (Show, Quit)
+- [x] Configure floating panel window (click away to hide)
 - [ ] Init Python FastAPI project structure (`backend/`)
 - [ ] Configure Tauri sidecar to bundle and launch the Python backend
 - [ ] Port negotiation: Tauri picks a free port, passes it to the frontend via env
