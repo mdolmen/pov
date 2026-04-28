@@ -52,9 +52,9 @@ Tauri (.app)
 ```
 
 The frontend talks to the FastAPI sidecar over localhost. Tauri handles:
-- System tray icon (menu bar, top-right) — no Dock icon (`activation_policy = "Accessory"`)
-- Click tray icon → floating panel appears near the icon; click away → hides
-- Right-click tray icon → context menu: Show, Quit
+- Regular app with Dock icon (standard macOS window, movable and resizable)
+- System tray icon (menu bar, top-right) — satellite display: shows up to 3 selected tasks even when the main window is closed; left-click brings the window to front
+- Right-click tray icon → context menu: Show pov, Quit
 - Native file browser dialog (to pick a TODO.md when adding a project)
 - App lifecycle (start/stop the sidecar)
 

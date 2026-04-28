@@ -16,35 +16,35 @@
 
 ## Phase 2 — Backend: projects
 
-- [ ] Test setup: pytest + pytest-asyncio, in-memory SQLite, temp dir fixtures
-- [ ] `GET /projects` — list all projects with metadata (name, status, task count, selected count, last activity)
-- [ ] Test: `GET /projects` returns correct metadata
-- [ ] `POST /projects` — add a project: create hardlink, git add, initial commit, write config.json
-- [ ] Test: `POST /projects` creates hardlink, writes config.json, makes initial git commit
-- [ ] Test: `POST /projects` falls back gracefully when hardlink fails (different filesystem)
-- [ ] `DELETE /projects/:id` — remove a project: delete hardlink, remove from config.json (original file untouched)
-- [ ] Test: `DELETE /projects/:id` removes hardlink and config entry, original file untouched
-- [ ] `PATCH /projects/:id` — update name, status (open / paused / done / canceled)
-- [ ] Test: `PATCH /projects/:id` updates name and status correctly
-- [ ] Activity computation: read `git log` on the hardlinked file, classify as this week / this month / older / none
-- [ ] Fallback to mtime for files that couldn't be hardlinked (different filesystem)
-- [ ] Test: activity classifies correctly as this week / this month / older / none from git log output
-- [ ] Test: activity falls back to mtime when git log is unavailable
-- [ ] watchdog: watch `~/.local/share/pov/projects/` and `learning/` — on file change, `git add + git commit`
-- [ ] Test: file change triggers git add + commit (mock subprocess)
+- [x] Test setup: pytest + pytest-asyncio, in-memory SQLite, temp dir fixtures
+- [x] `GET /projects` — list all projects with metadata (name, status, task count, selected count, last activity)
+- [x] Test: `GET /projects` returns correct metadata
+- [x] `POST /projects` — add a project: create hardlink, git add, initial commit, write config.json
+- [x] Test: `POST /projects` creates hardlink, writes config.json, makes initial git commit
+- [x] Test: `POST /projects` falls back gracefully when hardlink fails (different filesystem)
+- [x] `DELETE /projects/:id` — remove a project: delete hardlink, remove from config.json (original file untouched)
+- [x] Test: `DELETE /projects/:id` removes hardlink and config entry, original file untouched
+- [x] `PATCH /projects/:id` — update name, status (open / paused / done / canceled)
+- [x] Test: `PATCH /projects/:id` updates name and status correctly
+- [x] Activity computation: read `git log` on the hardlinked file, classify as this week / this month / older / none
+- [x] Fallback to mtime for files that couldn't be hardlinked (different filesystem)
+- [x] Test: activity classifies correctly as this week / this month / older / none from git log output
+- [x] Test: activity falls back to mtime when git log is unavailable
+- [x] watchdog: watch `~/.local/share/pov/projects/` and `learning/` — on file change, `git add + git commit`
+- [x] Test: file change triggers git add + commit (mock subprocess)
 
 ## Phase 3 — Backend: tasks
 
-- [ ] `GET /projects/:id/tasks` — parse TODO.md, return list of tasks (text, checked, line number, content hash)
-- [ ] Test: parser handles checked, unchecked, nested subtasks, plain headings, mixed content
-- [ ] Test: content hash is stable across line number shifts (insert a line above)
-- [ ] `PATCH /projects/:id/tasks/:hash` — toggle checkbox: rewrite the correct line in the file, update git
-- [ ] Test: toggle checkbox rewrites the correct line in the file
-- [ ] Test: a task with all subtasks checked is considered done
-- [ ] `POST /projects/:id/tasks/:hash/select` — mark task as selected (handle next), persist in SQLite
-- [ ] `DELETE /projects/:id/tasks/:hash/select` — unmark selected
-- [ ] Test: select persists in SQLite; unselect removes it
-- [ ] Task identity keyed by content hash (robust to line number shifts from external edits)
+- [x] `GET /projects/:id/tasks` — parse TODO.md, return list of tasks (text, checked, line number, content hash)
+- [x] Test: parser handles checked, unchecked, nested subtasks, plain headings, mixed content
+- [x] Test: content hash is stable across line number shifts (insert a line above)
+- [x] `PATCH /projects/:id/tasks/:hash` — toggle checkbox: rewrite the correct line in the file, update git
+- [x] Test: toggle checkbox rewrites the correct line in the file
+- [x] Test: a task with all subtasks checked is considered done
+- [x] `POST /projects/:id/tasks/:hash/select` — mark task as selected (handle next), persist in SQLite
+- [x] `DELETE /projects/:id/tasks/:hash/select` — unmark selected
+- [x] Test: select persists in SQLite; unselect removes it
+- [x] Task identity keyed by content hash (robust to line number shifts from external edits)
 
 ## Phase 4 — Frontend: project list
 

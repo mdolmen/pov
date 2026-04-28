@@ -8,18 +8,14 @@ export default function App() {
 
   return (
     <div
-      className="flex flex-col h-screen rounded-xl overflow-hidden select-none"
+      className="flex flex-col h-screen select-none"
       style={{ background: "#f7f6f2" }}
     >
       <header
-        data-tauri-drag-region
         className="flex items-center justify-between px-4 py-3 shrink-0"
         style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}
       >
-        <span
-          className="text-[10px] font-semibold tracking-widest uppercase text-stone-400"
-          data-tauri-drag-region
-        >
+        <span className="text-[10px] font-semibold tracking-widest uppercase text-stone-400">
           pov
         </span>
         <div className="flex items-center gap-1">

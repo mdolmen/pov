@@ -15,14 +15,14 @@
       {
         "label": "main",
         "title": "pov",
-        "width": 420,
+        "width": 900,
         "height": 600,
-        "resizable": false,
-        "decorations": false,
-        "transparent": true,
-        "alwaysOnTop": false,
-        "visible": false,
-        "skipTaskbar": true
+        "minWidth": 600,
+        "minHeight": 400,
+        "resizable": true,
+        "decorations": true,
+        "transparent": false,
+        "visible": true
       }
     ],
     "security": {
