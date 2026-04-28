@@ -8,7 +8,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from pov.db import init_db
+from pov.routers import projects
 from pov.storage import init_storage
+from pov.watcher import start_watcher
 
 app = FastAPI(title="pov")
 
@@ -18,6 +20,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(projects.router)
 
 
 @app.get("/health")
@@ -42,4 +46,9 @@ if __name__ == "__main__":
     print(json.dumps({"port": port}), flush=True)
 
     asyncio.run(startup())
-    uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    observer = start_watcher()
+    try:
+        uvicorn.run(app, host="127.0.0.1", port=port, log_level="warning")
+    finally:
+        observer.stop()
+        observer.join()
