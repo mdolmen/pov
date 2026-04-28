@@ -53,7 +53,7 @@ export function ProjectCard({ project, onClick }: Props) {
             </span>
           )}
         </div>
-        <p className="text-xs text-stone-400 mt-0.5 tabular-nums">
+        <p className="text-[10px] text-stone-400 mt-0.5 tabular-nums">
           {project.task_count} {project.task_count === 1 ? "task" : "tasks"}
           {project.status === "archived" && project.sub_status && (
             <span className="ml-2 text-stone-300">· {project.sub_status}</span>
