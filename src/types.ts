@@ -1,4 +1,13 @@
 export type ActivityLevel = "this_week" | "this_month" | "older" | "none";
+
+export interface Filters {
+  open: boolean;
+  archived: boolean;
+  maths: boolean;
+  papers: boolean;
+  books: boolean;
+  videos: boolean;
+}
 export type Status = "open" | "archived";
 export type SubStatus = "paused" | "done" | "canceled" | null;
 
