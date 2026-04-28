@@ -16,7 +16,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiFetch } from "@/lib/backend";
-import type { Status, SubStatus } from "@/types";
+
+type ProjectStatus = "open" | "paused" | "done" | "canceled";
+
+const STATUS_MAP: Record<ProjectStatus, { status: string; sub_status: string | null }> = {
+  open:     { status: "open",     sub_status: null },
+  paused:   { status: "archived", sub_status: "paused" },
+  done:     { status: "archived", sub_status: "done" },
+  canceled: { status: "archived", sub_status: "canceled" },
+};
 
 interface Props {
   open: boolean;
@@ -27,8 +35,7 @@ interface Props {
 export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
   const [filePath, setFilePath] = useState("");
   const [name, setName] = useState("");
-  const [status, setStatus] = useState<Status>("open");
-  const [subStatus, setSubStatus] = useState<SubStatus>(null);
+  const [projectStatus, setProjectStatus] = useState<ProjectStatus>("open");
   const [loading, setLoading] = useState(false);
 
   async function pickFile() {
@@ -50,15 +57,11 @@ export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
     if (!filePath || !name) return;
     setLoading(true);
     try {
+      const { status, sub_status } = STATUS_MAP[projectStatus];
       const r = await apiFetch("/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          file_path: filePath,
-          status,
-          sub_status: subStatus,
-        }),
+        body: JSON.stringify({ name, file_path: filePath, status, sub_status }),
       });
       if (!r.ok) throw new Error(await r.text());
       onCreated();
@@ -71,8 +74,7 @@ export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
   function handleClose() {
     setFilePath("");
     setName("");
-    setStatus("open");
-    setSubStatus(null);
+    setProjectStatus("open");
     onClose();
   }
 
@@ -104,31 +106,17 @@ export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
             className="bg-white border-stone-200 text-sm text-stone-800 placeholder:text-stone-400 focus-visible:ring-stone-300"
           />
 
-          <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
+          <Select value={projectStatus} onValueChange={(v) => setProjectStatus(v as ProjectStatus)}>
             <SelectTrigger className="bg-white border-stone-200 text-sm text-stone-700">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
+              <SelectItem value="paused">Paused</SelectItem>
+              <SelectItem value="done">Done</SelectItem>
+              <SelectItem value="canceled">Canceled</SelectItem>
             </SelectContent>
           </Select>
-
-          {status === "archived" && (
-            <Select
-              value={subStatus ?? ""}
-              onValueChange={(v) => setSubStatus(v as SubStatus)}
-            >
-              <SelectTrigger className="bg-white border-stone-200 text-sm text-stone-700">
-                <SelectValue placeholder="Reason…" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="done">Done</SelectItem>
-                <SelectItem value="paused">Paused</SelectItem>
-                <SelectItem value="canceled">Canceled</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
 
           <div className="flex justify-end gap-2 pt-1">
             <Button
