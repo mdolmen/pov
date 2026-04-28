@@ -1,51 +1,54 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { ProjectList } from "@/views/ProjectList";
+import type { Project } from "@/types";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+export default function App() {
+  const [_selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
+    <div
+      className="flex flex-col h-screen rounded-xl overflow-hidden select-none"
+      style={{ background: "#f7f6f2" }}
+    >
+      <header
+        data-tauri-drag-region
+        className="flex items-center justify-between px-4 py-3 shrink-0"
+        style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}
       >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+        <span
+          className="text-[10px] font-semibold tracking-widest uppercase text-stone-400"
+          data-tauri-drag-region
+        >
+          pov
+        </span>
+        <div className="flex items-center gap-1">
+          {/* sidebar toggle — Phase 5 */}
+          <button
+            className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded"
+            aria-label="Menu"
+          >
+            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+              <rect width="13" height="1.5" rx="0.75" fill="currentColor" />
+              <rect y="4.25" width="13" height="1.5" rx="0.75" fill="currentColor" />
+              <rect y="8.5" width="13" height="1.5" rx="0.75" fill="currentColor" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setAddOpen(true)}
+            className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded text-lg leading-none pb-0.5"
+            aria-label="Add project"
+          >
+            +
+          </button>
+        </div>
+      </header>
+
+      <ProjectList
+        onSelectProject={setSelectedProject}
+        addOpen={addOpen}
+        onAddClose={() => setAddOpen(false)}
+      />
+    </div>
   );
 }
-
-export default App;
