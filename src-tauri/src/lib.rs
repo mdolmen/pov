@@ -35,12 +35,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![get_backend_port])
         .setup(|app| {
             // Spawn the Python backend and wait for the port line on stdout.
-            let (mut rx, _child) = app
-                .shell()
-                .command("uv")
-                .args(["--directory", BACKEND_DIR, "run", "python", "main.py"])
-                .spawn()
-                .expect("failed to spawn Python backend");
+            let mut cmd = app.shell().command("uv");
+            cmd = cmd.args(["--directory", BACKEND_DIR, "run", "python", "main.py"]);
+            #[cfg(debug_assertions)]
+            { cmd = cmd.env("POV_ENV", "dev"); }
+            let (mut rx, _child) = cmd.spawn().expect("failed to spawn Python backend");
 
             tauri::async_runtime::block_on(async {
                 while let Some(event) = rx.recv().await {

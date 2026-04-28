@@ -1,9 +1,11 @@
 """Manages ~/.local/share/pov/ — folder structure, hardlinks, git repo."""
 
+import os
 import subprocess
 from pathlib import Path
 
-POV_DIR = Path.home() / ".local" / "share" / "pov"
+_dir_name = "pov-dev" if os.environ.get("POV_ENV") == "dev" else "pov"
+POV_DIR = Path.home() / ".local" / "share" / _dir_name
 PROJECTS_DIR = POV_DIR / "projects"
 LEARNING_DIR = POV_DIR / "learning"
 CONFIG_FILE = POV_DIR / "config.json"

@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 FIXTURES = Path(__file__).parent.parent.parent / "fixtures"
-POV_DIR = Path.home() / ".local" / "share" / "pov"
+POV_DIR = Path.home() / ".local" / "share" / "pov-dev"
 DB_PATH = POV_DIR / "pov.db"
 CONFIG_FILE = POV_DIR / "config.json"
 
@@ -102,8 +102,30 @@ SEED = [
 
 
 def main() -> None:
+    (POV_DIR / "projects").mkdir(parents=True, exist_ok=True)
+    if not CONFIG_FILE.exists():
+        CONFIG_FILE.write_text('{"projects": [], "learning": {}}')
     db = sqlite3.connect(DB_PATH)
     db.execute("PRAGMA foreign_keys = ON")
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY, name TEXT NOT NULL, file_path TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'open', sub_status TEXT,
+            type TEXT NOT NULL DEFAULT 'project', has_hardlink INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE IF NOT EXISTS selected_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            task_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(project_id, task_hash)
+        );
+        CREATE TABLE IF NOT EXISTS activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            occurred_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+    """)
     db.execute("DELETE FROM projects")
     db.commit()
 
