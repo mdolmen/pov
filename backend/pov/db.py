@@ -8,13 +8,14 @@ DB_PATH = POV_DIR / "pov.db"
 
 CREATE_PROJECTS = """
 CREATE TABLE IF NOT EXISTS projects (
-    id          TEXT PRIMARY KEY,
-    name        TEXT NOT NULL,
-    file_path   TEXT NOT NULL UNIQUE,
-    status      TEXT NOT NULL DEFAULT 'open',
-    sub_status  TEXT,
-    type        TEXT NOT NULL DEFAULT 'project',
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    file_path    TEXT NOT NULL UNIQUE,
+    status       TEXT NOT NULL DEFAULT 'open',
+    sub_status   TEXT,
+    type         TEXT NOT NULL DEFAULT 'project',
+    has_hardlink INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 )
 """
 

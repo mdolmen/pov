@@ -7,12 +7,12 @@
 - [x] Configure `activation_policy = "Accessory"` (no Dock icon)
 - [x] Set up system tray icon with right-click menu (Show, Quit)
 - [x] Configure floating panel window (click away to hide)
-- [ ] Init Python FastAPI project structure (`backend/`)
-- [ ] Configure Tauri sidecar to bundle and launch the Python backend
-- [ ] Port negotiation: Tauri picks a free port, passes it to the frontend via env
-- [ ] Init SQLite schema (projects, tasks_selected, activity)
-- [ ] Init `~/.local/share/pov/` folder structure on first launch
-- [ ] Init git repo in `~/.local/share/pov/` on first launch
+- [x] Init Python FastAPI project structure (`backend/`)
+- [x] Configure Tauri sidecar to bundle and launch the Python backend
+- [x] Port negotiation: Tauri picks a free port, passes it to the frontend via env
+- [x] Init SQLite schema (projects, tasks_selected, activity)
+- [x] Init `~/.local/share/pov/` folder structure on first launch
+- [x] Init git repo in `~/.local/share/pov/` on first launch
 
 ## Phase 2 — Backend: projects
 
