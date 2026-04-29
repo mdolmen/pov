@@ -11,9 +11,25 @@ interface Props {
   filters: Filters;
 }
 
+function Chevron({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="8"
+      height="8"
+      viewBox="0 0 8 8"
+      fill="none"
+      className="text-stone-300 group-hover:text-stone-400 transition-colors shrink-0"
+      style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 150ms" }}
+    >
+      <path d="M2 1l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: Props) {
   const { projects, loading, refresh } = useProjects();
   const [activeTab, setActiveTab] = useState<Tab>("projects");
+  const [archivedExpanded, setArchivedExpanded] = useState(false);
 
   const tabType = activeTab === "projects" ? "project" : "learning";
   const tabFilters = filters[activeTab];
@@ -26,7 +42,7 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
       <div className="flex flex-col h-full">
         {/* Tabs */}
         <div
-          className="flex gap-4 px-4 pt-3 shrink-0"
+          className="flex justify-center gap-6 pt-3 shrink-0"
           style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}
         >
           {(["projects", "learning"] as Tab[]).map((tab) => (
@@ -59,30 +75,30 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
                   </p>
                   <div className="flex flex-col gap-1.5">
                     {open.map((p) => (
-                      <ProjectCard
-                        key={p.id}
-                        project={p}
-                        onClick={() => onSelectProject(p)}
-                      />
+                      <ProjectCard key={p.id} project={p} onClick={() => onSelectProject(p)} />
                     ))}
                   </div>
                 </section>
               )}
 
-              {tabFilters.archived && archived.length > 0 && (
+              {tabFilters.archived && (
                 <section>
-                  <p className="text-[10px] font-semibold tracking-widest uppercase text-stone-400 mb-2 px-0.5">
-                    Archived
-                  </p>
-                  <div className="flex flex-col gap-1.5">
-                    {archived.map((p) => (
-                      <ProjectCard
-                        key={p.id}
-                        project={p}
-                        onClick={() => onSelectProject(p)}
-                      />
-                    ))}
-                  </div>
+                  <button
+                    onClick={() => setArchivedExpanded((v) => !v)}
+                    className="flex items-center gap-1.5 mb-2 px-0.5 group"
+                  >
+                    <Chevron expanded={archivedExpanded} />
+                    <span className="text-[10px] font-semibold tracking-widest uppercase text-stone-400 group-hover:text-stone-500 transition-colors">
+                      Archived{archived.length > 0 ? ` (${archived.length})` : ""}
+                    </span>
+                  </button>
+                  {archivedExpanded && archived.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      {archived.map((p) => (
+                        <ProjectCard key={p.id} project={p} onClick={() => onSelectProject(p)} />
+                      ))}
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -96,11 +112,7 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
         </div>
       </div>
 
-      <AddProjectModal
-        open={addOpen}
-        onClose={onAddClose}
-        onCreated={refresh}
-      />
+      <AddProjectModal open={addOpen} onClose={onAddClose} onCreated={refresh} />
     </>
   );
 }
