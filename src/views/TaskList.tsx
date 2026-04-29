@@ -25,21 +25,22 @@ function CheckboxIcon({ checked }: { checked: boolean }) {
   );
 }
 
-function SubtaskRow({
-  subtask,
-  onToggle,
-}: {
-  subtask: Subtask;
-  onToggle: () => void;
-}) {
+function SubtaskRow({ subtask, onToggle }: { subtask: Subtask; onToggle: () => void }) {
   return (
-    <div className="flex items-start gap-2 ml-5 py-0.5">
-      <button onClick={onToggle} className="mt-0.5">
+    <div className="flex items-start gap-2.5 px-3 pb-1">
+      <div className="w-3.5 shrink-0" />
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className="mt-0.5 cursor-pointer"
+      >
         <CheckboxIcon checked={subtask.checked} />
       </button>
       <span
-        className="text-[13px] leading-5"
-        style={{ color: subtask.checked ? "#a8a29e" : "#57534e", textDecoration: subtask.checked ? "line-through" : "none" }}
+        className="text-[12px] leading-5"
+        style={{
+          color: subtask.checked ? "#a8a29e" : "#78716c",
+          textDecoration: subtask.checked ? "line-through" : "none",
+        }}
       >
         {subtask.text}
       </span>
@@ -62,23 +63,27 @@ function TaskRow({
 
   return (
     <div
-      className="group"
-      onDoubleClick={() => !done && (task.is_selected ? onUnselect(task.hash) : onSelect(task.hash))}
+      className="group bg-white rounded-lg overflow-hidden"
+      style={
+        task.is_selected && !done
+          ? { border: "1.5px solid #3b82f6" }
+          : { border: "1px solid rgba(0,0,0,0.07)" }
+      }
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        if (!done) task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
+      }}
     >
-      <div
-        className="flex items-start gap-2 px-2 py-1.5 rounded-lg"
-        style={
-          task.is_selected
-            ? { background: "#f5f4ef", borderLeft: "2px solid #44403c" }
-            : { borderLeft: "2px solid transparent" }
-        }
-      >
-        <button onClick={() => onToggle(task.hash)} className="mt-0.5">
+      <div className="flex items-start gap-2.5 px-3 py-2.5">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(task.hash); }}
+          className="mt-0.5 cursor-pointer"
+        >
           <CheckboxIcon checked={done} />
         </button>
 
         <span
-          className="flex-1 text-[13px] leading-5 min-w-0"
+          className="flex-1 text-sm leading-5 min-w-0"
           style={{
             color: done ? "#a8a29e" : "#292524",
             textDecoration: done ? "line-through" : "none",
@@ -93,7 +98,7 @@ function TaskRow({
               e.stopPropagation();
               task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
             }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-700 shrink-0"
+            className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-700 shrink-0 cursor-pointer"
           >
             {task.is_selected ? (
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -109,13 +114,21 @@ function TaskRow({
       </div>
 
       {task.subtasks.length > 0 && (
-        <div className="mb-1">
+        <div className="pb-2">
           {task.subtasks.map((s) => (
             <SubtaskRow key={s.hash} subtask={s} onToggle={() => onToggle(s.hash)} />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-[9px] font-semibold tracking-widest uppercase text-stone-400 mb-2 px-1">
+      {children}
+    </p>
   );
 }
 
@@ -147,7 +160,7 @@ export function TaskList({ project, onBack }: Props) {
       >
         <button
           onClick={onBack}
-          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded shrink-0"
+          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded shrink-0 cursor-pointer"
           aria-label="Back"
         >
           <svg width="8" height="13" viewBox="0 0 8 13" fill="none">
@@ -164,7 +177,7 @@ export function TaskList({ project, onBack }: Props) {
 
         <button
           onClick={openInEditor}
-          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded shrink-0"
+          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded shrink-0 cursor-pointer"
           aria-label="Edit in vim"
         >
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
@@ -189,10 +202,8 @@ export function TaskList({ project, onBack }: Props) {
           <>
             {selected.length > 0 && (
               <>
-                <p className="text-[9px] font-semibold tracking-widest uppercase text-stone-400 mb-2 px-2">
-                  Handle next
-                </p>
-                <div className="flex flex-col gap-0.5 mb-1">
+                <SectionLabel>Handle next</SectionLabel>
+                <div className="flex flex-col gap-1.5 mb-1">
                   {selected.map((t) => (
                     <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
                   ))}
@@ -201,7 +212,7 @@ export function TaskList({ project, onBack }: Props) {
               </>
             )}
 
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1.5">
               {pending.map((t) => (
                 <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
               ))}
@@ -210,10 +221,9 @@ export function TaskList({ project, onBack }: Props) {
             {done.length > 0 && (
               <>
                 <Divider />
-                <p className="text-[9px] font-semibold tracking-widest uppercase text-stone-400 mb-2 px-2">
-                  Done
-                </p>
-                <div className="flex flex-col gap-0.5">
+                <SectionLabel>Done</SectionLabel>
+                {/* scrollable, shows ~5 cards max */}
+                <div className="flex flex-col gap-1.5 overflow-y-auto" style={{ maxHeight: "268px" }}>
                   {done.map((t) => (
                     <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
                   ))}
