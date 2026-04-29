@@ -19,6 +19,18 @@ fn get_backend_port() -> u16 {
     *BACKEND_PORT.get().expect("backend port not set")
 }
 
+#[tauri::command]
+fn open_in_editor(path: String) {
+    let script = format!(
+        "tell application \"Terminal\" to do script \"vim '{}'; exit\"",
+        path.replace('\'', "'\\''")
+    );
+    std::process::Command::new("osascript")
+        .args(["-e", &script])
+        .spawn()
+        .ok();
+}
+
 fn bring_to_front(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
@@ -32,7 +44,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_backend_port])
+        .invoke_handler(tauri::generate_handler![get_backend_port, open_in_editor])
         .setup(|app| {
             // Spawn the Python backend and wait for the port line on stdout.
             let mut cmd = app.shell().command("uv");

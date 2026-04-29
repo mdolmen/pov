@@ -13,6 +13,23 @@ export interface Filters {
   learning: SectionFilters;
 }
 
+export interface Subtask {
+  hash: string;
+  text: string;
+  checked: boolean;
+  line_number: number;
+}
+
+export interface Task {
+  hash: string;
+  text: string;
+  checked: boolean;
+  line_number: number;
+  subtasks: Subtask[];
+  is_done: boolean;
+  is_selected: boolean;
+}
+
 export interface Project {
   id: string;
   name: string;

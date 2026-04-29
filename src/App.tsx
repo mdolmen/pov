@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ProjectList } from "@/views/ProjectList";
+import { TaskList } from "@/views/TaskList";
 import { Sidebar } from "@/components/Sidebar";
 import type { Filters, Project } from "@/types";
 
@@ -9,7 +10,7 @@ const DEFAULT_FILTERS: Filters = {
 };
 
 export default function App() {
-  const [_selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -19,6 +20,17 @@ export default function App() {
       ...f,
       [section]: { ...f[section], [key]: !f[section][key] },
     }));
+  }
+
+  if (selectedProject) {
+    return (
+      <div
+        className="flex flex-col h-screen select-none overflow-hidden"
+        style={{ background: "#f7f6f2" }}
+      >
+        <TaskList project={selectedProject} onBack={() => setSelectedProject(null)} />
+      </div>
+    );
   }
 
   return (
@@ -56,10 +68,7 @@ export default function App() {
             className="absolute inset-0 z-10 flex"
             onClick={() => setSidebarOpen(false)}
           >
-            <div
-              className="h-full w-48 shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="h-full w-48 shrink-0" onClick={(e) => e.stopPropagation()}>
               <Sidebar filters={filters} onToggle={toggleFilter} />
             </div>
             <div className="flex-1" style={{ background: "rgba(0,0,0,0.08)" }} />

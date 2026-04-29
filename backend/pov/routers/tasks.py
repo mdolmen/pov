@@ -104,6 +104,11 @@ async def toggle_task(
     selected = await _selected_hashes(project_id, db)
     tasks = parse_tasks(file_path)
     task = next((t for t in tasks if t.hash == task_hash), None)
+    if task is None:
+        task = next(
+            (t for t in tasks if any(s.hash == task_hash for s in t.subtasks)),
+            None,
+        )
     if not task:
         raise HTTPException(status_code=404, detail="task not found after toggle")
     return _task_to_response(task, selected)
