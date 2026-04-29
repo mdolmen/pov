@@ -3,13 +3,23 @@
 ## API
 
 - [x] Set up database schema
-- [x] Add authentication endpoints
-- [ ] Implement rate limiting
+- [ ] Add authentication endpoints
+- [x] Implement rate limiting
 - [ ] Add request logging middleware
 
 ## Frontend
 
 - [x] Create login page
 - [ ] Build user dashboard
-- [ ] Add error boundaries
+- [x] Add error boundaries
 - [ ] Write integration tests
+
+## Done (older)
+
+- [x] Bootstrap project repository
+- [x] Configure CI pipeline
+- [x] Write API specification
+- [x] Set up staging environment
+- [x] Migrate legacy data
+- [x] Load testing and benchmarks
+- [x] Security audit

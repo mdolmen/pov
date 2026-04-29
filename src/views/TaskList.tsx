@@ -202,7 +202,7 @@ export function TaskList({ project, onBack }: Props) {
           <>
             {selected.length > 0 && (
               <>
-                <SectionLabel>Handle next</SectionLabel>
+                <SectionLabel>TODO</SectionLabel>
                 <div className="flex flex-col gap-1.5 mb-1">
                   {selected.map((t) => (
                     <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
