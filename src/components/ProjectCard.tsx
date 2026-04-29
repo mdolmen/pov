@@ -31,7 +31,7 @@ export function ProjectCard({ project, onClick }: Props) {
   return (
     <button
       onClick={onClick}
-      className="group w-full flex items-stretch bg-white rounded-lg overflow-hidden text-left transition-shadow duration-150 hover:shadow-sm"
+      className="group w-full flex items-stretch bg-white rounded-lg overflow-hidden text-left transition-shadow duration-150 hover:shadow-sm cursor-pointer"
       style={{ border: "1px solid rgba(0,0,0,0.07)" }}
     >
       <div className="w-[3px] shrink-0" style={{ backgroundColor: strip }} />

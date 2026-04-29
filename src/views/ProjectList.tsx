@@ -49,7 +49,7 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className="pb-2.5 text-[11px] font-semibold tracking-widest uppercase transition-colors"
+              className="pb-2.5 text-[11px] font-semibold tracking-widest uppercase transition-colors cursor-pointer"
               style={{
                 color: activeTab === tab ? "#292524" : "#a8a29e",
                 borderBottom: activeTab === tab ? "2px solid #292524" : "2px solid transparent",
@@ -85,7 +85,7 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
                 <section>
                   <button
                     onClick={() => setArchivedExpanded((v) => !v)}
-                    className="flex items-center gap-1.5 mb-2 px-0.5 group"
+                    className="flex items-center gap-1.5 mb-2 px-0.5 group cursor-pointer"
                   >
                     <Chevron expanded={archivedExpanded} />
                     <span className="text-[10px] font-semibold tracking-widest uppercase text-stone-400 group-hover:text-stone-500 transition-colors">
