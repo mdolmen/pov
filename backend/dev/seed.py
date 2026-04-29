@@ -98,6 +98,43 @@ SEED = [
         "mtime_days_ago": 5,
         "select_tasks": 0,
     },
+    # Learning entries
+    {
+        "name": "Maths",
+        "file": "maths.md",
+        "type": "learning",
+        "status": "open",
+        "sub_status": None,
+        "mtime_days_ago": 3,
+        "select_tasks": 1,
+    },
+    {
+        "name": "Papers",
+        "file": "papers.md",
+        "type": "learning",
+        "status": "open",
+        "sub_status": None,
+        "mtime_days_ago": 12,
+        "select_tasks": 0,
+    },
+    {
+        "name": "Books",
+        "file": "books.md",
+        "type": "learning",
+        "status": "open",
+        "sub_status": None,
+        "mtime_days_ago": 4,
+        "select_tasks": 0,
+    },
+    {
+        "name": "Videos",
+        "file": "videos.md",
+        "type": "learning",
+        "status": "open",
+        "sub_status": None,
+        "mtime_days_ago": 45,
+        "select_tasks": 0,
+    },
 ]
 
 
@@ -143,10 +180,11 @@ def main() -> None:
                 t = days_ago(spec["mtime_days_ago"])
                 os.utime(src, (t, t))
 
+        project_type = spec.get("type", "project")
         db.execute(
-            "INSERT INTO projects (id, name, file_path, status, sub_status, has_hardlink)"
-            " VALUES (?,?,?,?,?,?)",
-            (project_id, spec["name"], file_path, spec["status"], spec["sub_status"], 0),
+            "INSERT INTO projects (id, name, file_path, status, sub_status, type, has_hardlink)"
+            " VALUES (?,?,?,?,?,?,?)",
+            (project_id, spec["name"], file_path, spec["status"], spec["sub_status"], project_type, 0),
         )
 
         if spec["select_tasks"] > 0 and spec["file"] is not None:

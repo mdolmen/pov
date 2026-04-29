@@ -4,12 +4,8 @@ import { Sidebar } from "@/components/Sidebar";
 import type { Filters, Project } from "@/types";
 
 const DEFAULT_FILTERS: Filters = {
-  open: true,
-  archived: false,
-  maths: true,
-  papers: true,
-  books: true,
-  videos: true,
+  projects: { open: true, archived: false },
+  learning: { open: true, archived: false },
 };
 
 export default function App() {
@@ -18,8 +14,11 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
 
-  function toggleFilter(key: keyof Filters) {
-    setFilters((f) => ({ ...f, [key]: !f[key] }));
+  function toggleFilter(section: "projects" | "learning", key: "open" | "archived") {
+    setFilters((f) => ({
+      ...f,
+      [section]: { ...f[section], [key]: !f[section][key] },
+    }));
   }
 
   return (
