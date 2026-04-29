@@ -193,24 +193,24 @@ export function TaskList({ project, onBack }: Props) {
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <span className="text-xs text-stone-400">Loading…</span>
           </div>
         ) : (
           <>
-            {selected.length > 0 && (
-              <>
-                <SectionLabel>TODO</SectionLabel>
-                <div className="flex flex-col gap-1.5 mb-1">
-                  {selected.map((t) => (
-                    <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
-                  ))}
-                </div>
-                <Divider />
-              </>
-            )}
+            <SectionLabel>TODO</SectionLabel>
+            <div className="flex flex-col gap-1.5 mb-1">
+              {selected.length === 0 ? (
+                <p className="text-[11px] text-stone-300 px-1 py-0.5">No selected tasks</p>
+              ) : (
+                selected.map((t) => (
+                  <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
+                ))
+              )}
+            </div>
+            <Divider />
 
             <div className="flex flex-col gap-1.5">
               {pending.map((t) => (
@@ -222,11 +222,13 @@ export function TaskList({ project, onBack }: Props) {
               <>
                 <Divider />
                 <SectionLabel>Done</SectionLabel>
-                {/* scrollable, shows ~5 cards max */}
-                <div className="flex flex-col gap-1.5 overflow-y-auto" style={{ maxHeight: "268px" }}>
-                  {done.map((t) => (
-                    <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
-                  ))}
+                {/* outer div clips to ~5 cards; inner flex div holds the real layout */}
+                <div className="overflow-y-auto" style={{ maxHeight: "268px" }}>
+                  <div className="flex flex-col gap-1.5">
+                    {done.map((t) => (
+                      <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
+                    ))}
+                  </div>
                 </div>
               </>
             )}
