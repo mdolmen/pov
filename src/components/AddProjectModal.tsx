@@ -18,6 +18,7 @@ import {
 import { apiFetch } from "@/lib/backend";
 
 type ProjectStatus = "open" | "paused" | "done" | "canceled";
+type ProjectType = "project" | "learning";
 
 const STATUS_MAP: Record<ProjectStatus, { status: string; sub_status: string | null }> = {
   open:     { status: "open",     sub_status: null },
@@ -35,6 +36,7 @@ interface Props {
 export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
   const [filePath, setFilePath] = useState("");
   const [name, setName] = useState("");
+  const [projectType, setProjectType] = useState<ProjectType>("project");
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>("open");
   const [loading, setLoading] = useState(false);
 
@@ -61,7 +63,7 @@ export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
       const r = await apiFetch("/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, file_path: filePath, status, sub_status }),
+        body: JSON.stringify({ name, file_path: filePath, status, sub_status, type: projectType }),
       });
       if (!r.ok) throw new Error(await r.text());
       onCreated();
@@ -74,6 +76,7 @@ export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
   function handleClose() {
     setFilePath("");
     setName("");
+    setProjectType("project");
     setProjectStatus("open");
     onClose();
   }
@@ -106,17 +109,29 @@ export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
             className="bg-white border-stone-200 text-sm text-stone-800 placeholder:text-stone-400 focus-visible:ring-stone-300"
           />
 
-          <Select value={projectStatus} onValueChange={(v) => setProjectStatus(v as ProjectStatus)}>
-            <SelectTrigger className="bg-white border-stone-200 text-sm text-stone-700">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="open">Open</SelectItem>
-              <SelectItem value="paused">Paused</SelectItem>
-              <SelectItem value="done">Done</SelectItem>
-              <SelectItem value="canceled">Canceled</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={projectType} onValueChange={(v) => setProjectType(v as ProjectType)}>
+              <SelectTrigger className="flex-1 bg-white border-stone-200 text-sm text-stone-700">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="project">Project</SelectItem>
+                <SelectItem value="learning">Learning</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={projectStatus} onValueChange={(v) => setProjectStatus(v as ProjectStatus)}>
+              <SelectTrigger className="flex-1 bg-white border-stone-200 text-sm text-stone-700">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="done">Done</SelectItem>
+                <SelectItem value="canceled">Canceled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="flex justify-end gap-2 pt-1">
             <Button

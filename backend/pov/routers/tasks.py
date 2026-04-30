@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from pov.db import get_db
-from pov.storage import POV_DIR, PROJECTS_DIR
+from pov.storage import LEARNING_DIR, POV_DIR, PROJECTS_DIR
 from pov.tasks import Task, parse_items, toggle_cascade
 
 router = APIRouter(tags=["tasks"])
@@ -107,7 +107,8 @@ async def toggle_task(
     )
     await db.commit()
 
-    hardlink = PROJECTS_DIR / f"{project_id}.md"
+    base = LEARNING_DIR if row["type"] == "learning" else PROJECTS_DIR
+    hardlink = base / f"{project_id}.md"
     if hardlink.exists():
         subprocess.run(
             ["git", "-C", str(POV_DIR), "add", str(hardlink)],

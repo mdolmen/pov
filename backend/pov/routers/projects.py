@@ -14,12 +14,13 @@ from pydantic import BaseModel
 
 from pov.activity import ActivityLevel, get_activity
 from pov.db import get_db
-from pov.storage import CONFIG_FILE, POV_DIR, PROJECTS_DIR
+from pov.storage import CONFIG_FILE, LEARNING_DIR, POV_DIR, PROJECTS_DIR
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 Status = Literal["open", "archived"]
 SubStatus = Literal["paused", "done", "canceled"] | None
+ProjectType = Literal["project", "learning"]
 
 
 class ProjectResponse(BaseModel):
@@ -40,6 +41,7 @@ class CreateProjectRequest(BaseModel):
     file_path: str  # absolute path to the original TODO.md
     status: Status = "open"
     sub_status: SubStatus = None
+    type: ProjectType = "project"
 
 
 class UpdateProjectRequest(BaseModel):
@@ -56,8 +58,9 @@ def _count_tasks(file_path: Path) -> int:
         return 0
 
 
-def _hardlink_path(project_id: str) -> Path:
-    return PROJECTS_DIR / f"{project_id}.md"
+def _hardlink_path(project_id: str, type: str = "project") -> Path:
+    base = LEARNING_DIR if type == "learning" else PROJECTS_DIR
+    return base / f"{project_id}.md"
 
 
 def _create_hardlink(src: Path, dst: Path) -> bool:
@@ -128,16 +131,16 @@ async def create_project(body: CreateProjectRequest, db: aiosqlite.Connection = 
         raise HTTPException(status_code=422, detail="file not found")
 
     project_id = str(uuid.uuid4())
-    dst = _hardlink_path(project_id)
+    dst = _hardlink_path(project_id, body.type)
     has_hardlink = _create_hardlink(src, dst)
 
     if has_hardlink:
         _git_add_commit(dst, f"add: {body.name}")
 
     await db.execute(
-        """INSERT INTO projects (id, name, file_path, status, sub_status, has_hardlink)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (project_id, body.name, str(src), body.status, body.sub_status, int(has_hardlink)),
+        """INSERT INTO projects (id, name, file_path, status, sub_status, has_hardlink, type)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (project_id, body.name, str(src), body.status, body.sub_status, int(has_hardlink), body.type),
     )
     await db.commit()
 
@@ -157,7 +160,7 @@ async def delete_project(project_id: str, db: aiosqlite.Connection = Depends(get
     if not row:
         raise HTTPException(status_code=404, detail="project not found")
 
-    hardlink = _hardlink_path(project_id)
+    hardlink = _hardlink_path(project_id, row["type"])
     if hardlink.exists():
         hardlink.unlink()
 
