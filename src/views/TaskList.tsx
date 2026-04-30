@@ -67,7 +67,10 @@ function TaskCard({
 
   return (
     <div
-      className="group bg-white rounded-lg overflow-hidden flex ring-1 ring-black/[0.07] hover:ring-[1.5px] hover:ring-blue-400 transition-shadow"
+      className={
+        "group bg-white rounded-lg overflow-hidden flex ring-1 ring-black/[0.07] transition-shadow" +
+        (done ? "" : " hover:ring-blue-400")
+      }
       onDoubleClick={(e) => {
         e.stopPropagation();
         if (!done) task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
