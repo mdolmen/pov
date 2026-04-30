@@ -5,7 +5,22 @@
 - [x] Set up database schema
 - [ ] Add authentication endpoints
 - [x] Implement rate limiting
-- [ ] Add request logging middleware
+- [ ] Add request logging middleware 0
+- [ ] Add request logging middleware 1
+- [ ] Add request logging middleware 2
+- [ ] Add request logging middleware 3
+- [ ] Add request logging middleware 4
+- [ ] Add request logging middleware 5
+- [ ] Add request logging middleware 6
+
+### Get something
+
+- [ ] Define the API
+- [ ] Implement
+    - [x] Sub implement 0
+    - [ ] Sub implement 1
+    - [ ] Sub implement 2
+- [ ] Test
 
 ## Frontend
 

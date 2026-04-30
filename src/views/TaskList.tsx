@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useTasks } from "@/hooks/useTasks";
-import type { Project, Subtask, Task } from "@/types";
+import type { HeadingItem, ListItem, Project, Subtask, Task } from "@/types";
 
 interface Props {
   project: Project;
@@ -25,32 +25,34 @@ function CheckboxIcon({ checked }: { checked: boolean }) {
   );
 }
 
-function SubtaskRow({ subtask, onToggle }: { subtask: Subtask; onToggle: () => void }) {
+const SELECTED_BAND = "#7c3aed";
+
+function SubtaskCard({ subtask, onToggle }: { subtask: Subtask; onToggle: () => void }) {
   return (
-    <div className="flex items-start gap-2.5 px-3 pb-1">
-      <div className="w-3.5 shrink-0" />
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        className="mt-0.5 cursor-pointer"
-      >
-        <CheckboxIcon checked={subtask.checked} />
-      </button>
-      <span
-        className="text-[12px] leading-5"
-        style={{
-          color: subtask.checked ? "#a8a29e" : "#78716c",
-          textDecoration: subtask.checked ? "line-through" : "none",
-        }}
-      >
-        {subtask.text}
-      </span>
+    <div className="ml-5 bg-white rounded-lg overflow-hidden flex ring-1 ring-black/[0.07] hover:ring-[1.5px] hover:ring-blue-400 transition-shadow">
+      <div className="w-[3px] shrink-0" style={{ backgroundColor: "transparent" }} />
+      <div className="flex-1 flex items-start gap-2.5 px-3 py-2">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          className="mt-0.5 cursor-pointer"
+        >
+          <CheckboxIcon checked={subtask.checked} />
+        </button>
+        <span
+          className="flex-1 text-[12px] leading-5 min-w-0"
+          style={{
+            color: subtask.checked ? "#a8a29e" : "#57534e",
+            textDecoration: subtask.checked ? "line-through" : "none",
+          }}
+        >
+          {subtask.text}
+        </span>
+      </div>
     </div>
   );
 }
 
-const SELECTED_BAND = "#7c3aed";
-
-function TaskRow({
+function TaskCard({
   task,
   onToggle,
   onSelect,
@@ -71,61 +73,55 @@ function TaskRow({
         if (!done) task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
       }}
     >
-      {/* left band — visible only on selected tasks */}
       <div
         className="w-[3px] shrink-0"
         style={{ backgroundColor: task.is_selected && !done ? SELECTED_BAND : "transparent" }}
       />
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start gap-2.5 px-3 py-2.5">
+      <div className="flex-1 flex items-start gap-2.5 px-3 py-2.5 min-w-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(task.hash); }}
+          className="mt-0.5 cursor-pointer"
+        >
+          <CheckboxIcon checked={done} />
+        </button>
+        <span
+          className="flex-1 text-sm leading-5 min-w-0"
+          style={{
+            color: done ? "#a8a29e" : "#292524",
+            textDecoration: done ? "line-through" : "none",
+          }}
+        >
+          {task.text}
+        </span>
+        {!done && (
           <button
-            onClick={(e) => { e.stopPropagation(); onToggle(task.hash); }}
-            className="mt-0.5 cursor-pointer"
-          >
-            <CheckboxIcon checked={done} />
-          </button>
-
-          <span
-            className="flex-1 text-sm leading-5 min-w-0"
-            style={{
-              color: done ? "#a8a29e" : "#292524",
-              textDecoration: done ? "line-through" : "none",
+            onClick={(e) => {
+              e.stopPropagation();
+              task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
             }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-700 shrink-0 cursor-pointer"
           >
-            {task.text}
-          </span>
-
-          {!done && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
-              }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-700 shrink-0 cursor-pointer"
-            >
-              {task.is_selected ? (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              )}
-            </button>
-          )}
-        </div>
-
-        {task.subtasks.length > 0 && (
-          <div className="pb-2">
-            {task.subtasks.map((s) => (
-              <SubtaskRow key={s.hash} subtask={s} onToggle={() => onToggle(s.hash)} />
-            ))}
-          </div>
+            {task.is_selected ? (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
         )}
       </div>
     </div>
+  );
+}
+
+function HeadingLabel({ heading }: { heading: HeadingItem }) {
+  return (
+    <p className="text-[9px] font-semibold tracking-widest uppercase text-stone-400 mt-3 mb-1 px-1 first:mt-0">
+      {heading.text}
+    </p>
   );
 }
 
@@ -141,11 +137,56 @@ function Divider() {
   return <div className="border-t my-3" style={{ borderColor: "rgba(0,0,0,0.06)" }} />;
 }
 
+function renderPendingItems(
+  items: ListItem[],
+  onToggle: (hash: string) => void,
+  onSelect: (hash: string) => void,
+  onUnselect: (hash: string) => void,
+) {
+  const result: React.ReactNode[] = [];
+  // Walk items in order, emitting headings only when they precede pending tasks
+  let i = 0;
+  while (i < items.length) {
+    const item = items[i];
+    if (item.kind === "heading") {
+      // Look ahead: does this heading have any pending tasks before the next same-or-higher heading?
+      let hasPending = false;
+      for (let j = i + 1; j < items.length; j++) {
+        const next = items[j];
+        if (next.kind === "heading" && next.level <= item.level) break;
+        if (next.kind === "task" && !next.is_done && !next.is_selected) { hasPending = true; break; }
+      }
+      if (hasPending) {
+        result.push(<HeadingLabel key={`h-${i}`} heading={item} />);
+      }
+      i++;
+      continue;
+    }
+
+    // task
+    const task = item as Task;
+    if (task.is_done || task.is_selected) { i++; continue; }
+
+    result.push(
+      <TaskCard key={task.hash} task={task} onToggle={onToggle} onSelect={onSelect} onUnselect={onUnselect} />
+    );
+    for (const sub of task.subtasks) {
+      if (!sub.checked) {
+        result.push(
+          <SubtaskCard key={sub.hash} subtask={sub} onToggle={() => onToggle(sub.hash)} />
+        );
+      }
+    }
+    i++;
+  }
+
+  return result;
+}
+
 export function TaskList({ project, onBack }: Props) {
-  const { tasks, loading, toggle, select, unselect } = useTasks(project.id);
+  const { items, tasks, loading, toggle, select, unselect } = useTasks(project.id);
 
   const selected = tasks.filter((t) => t.is_selected && !t.is_done);
-  const pending = tasks.filter((t) => !t.is_selected && !t.is_done);
   const done = tasks.filter((t) => t.is_done);
 
   async function openInEditor() {
@@ -158,7 +199,6 @@ export function TaskList({ project, onBack }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <header
         className="flex items-center gap-3 px-4 py-3 shrink-0"
         style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}
@@ -197,7 +237,6 @@ export function TaskList({ project, onBack }: Props) {
         </button>
       </header>
 
-      {/* Content */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
         {loading ? (
           <div className="flex items-center justify-center h-32">
@@ -206,28 +245,29 @@ export function TaskList({ project, onBack }: Props) {
         ) : (
           <>
             <SectionLabel>TODO</SectionLabel>
-            <div className="flex flex-col gap-1.5 mb-1">
-              {selected.map((t) => (
-                <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
-              ))}
-            </div>
+
+            {selected.length > 0 && (
+              <div className="flex flex-col gap-1.5 mb-1">
+                {selected.map((t) => (
+                  <TaskCard key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
+                ))}
+              </div>
+            )}
+
             <Divider />
 
             <div className="flex flex-col gap-1.5">
-              {pending.map((t) => (
-                <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
-              ))}
+              {renderPendingItems(items, toggle, select, unselect)}
             </div>
 
             {done.length > 0 && (
               <>
                 <Divider />
                 <SectionLabel>Done</SectionLabel>
-                {/* outer div clips to ~5 cards; inner flex div holds the real layout */}
                 <div className="overflow-y-auto" style={{ maxHeight: "268px" }}>
                   <div className="flex flex-col gap-1.5">
                     {done.map((t) => (
-                      <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
+                      <TaskCard key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
                     ))}
                   </div>
                 </div>

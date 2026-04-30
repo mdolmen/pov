@@ -48,32 +48,31 @@
 
 ## Phase 4 — Frontend: project list
 
-- [ ] Main view: grid/list of project cards
-- [ ] Project card: name, task count, selected count (bold, right-aligned), activity border color
-- [ ] Border color logic: grey / light green / green based on last activity date
-- [ ] Archived section with grey / red / green border based on sub-status
-- [ ] "+" button → triggers Tauri native file browser dialog → calls `POST /projects`
-- [ ] Modal after file selection: enter project name, choose status
+- [x] Main view: grid/list of project cards
+- [x] Project card: name, task count, selected count (bold, right-aligned), activity border color
+- [x] Border color logic: grey / light green / green based on last activity date
+- [x] Archived section with grey / red / green border based on sub-status
+- [x] "+" button → triggers Tauri native file browser dialog → calls `POST /projects`
+- [x] Modal after file selection: enter project name, choose status
 
 ## Phase 5 — Frontend: sidebar
 
-- [ ] Sidebar component, hidden by default
-- [ ] Toggle button (or keyboard shortcut) to show/hide
-- [ ] Section: Projects → Opened, Archived
-- [ ] Section: Continuous Learning → Maths, Papers, Books, Videos
-- [ ] Navigate to project on click
+- [x] Sidebar component, hidden by default
+- [x] Toggle button (or keyboard shortcut) to show/hide
+- [x] Section: Projects → Opened, Archived
+- [x] Section: Learning → Opened, Archived
 
 ## Phase 6 — Frontend: task list view
 
-- [ ] Markdown renderer: headings, plain text, checkboxes (no edit)
-- [ ] Checkbox click → `PATCH /projects/:id/tasks/:hash` → optimistic UI update
-- [ ] "+" icon on hover at right of each task → marks as selected
-- [ ] Double-click on task → marks as selected
-- [ ] Selected tasks visually distinct (on top of the list, a separator between those and the rest)
-- [ ] When a task is selected it moves to the top section of the list
+- [x] Markdown renderer: headings, plain text, checkboxes (no edit)
+- [x] Checkbox click → `PATCH /projects/:id/tasks/:hash` → optimistic UI update
+- [x] "+" icon on hover at right of each task → marks as selected
+- [x] Double-click on task → marks as selected
+- [x] Selected tasks visually distinct (on top of the list, a separator between those and the rest)
+- [x] When a task is selected it moves to the top section of the list
 - [ ] Top-right edit icon → Tauri command to open file in vim in a terminal window
 - [ ] A task with subtask (markdown title) is considered done when all of the subtasks are done
-- [ ] Done tasks are moved to the bottom of the list, in the interface only, no changes to the underlying file
+- [x] Done tasks are moved to the bottom of the list, in the interface only, no changes to the underlying file
 
 ## Phase 7 — CLI
 

@@ -1,43 +1,65 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/backend";
-import type { Task } from "@/types";
+import type { ListItem, Task } from "@/types";
 
 export function useTasks(projectId: string) {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [items, setItems] = useState<ListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTasks = useCallback(async () => {
     const r = await apiFetch(`/projects/${projectId}/tasks`);
-    if (r.ok) setTasks(await r.json());
+    if (r.ok) setItems(await r.json());
     setLoading(false);
   }, [projectId]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
+  const tasks = items.filter((i): i is Task => i.kind === "task");
+
   async function toggle(hash: string) {
-    setTasks((ts) =>
-      ts.map((t) => {
-        if (t.hash === hash) {
-          const checked = !t.checked;
-          return { ...t, checked, is_done: t.subtasks.length === 0 ? checked : t.is_done };
+    setItems((prev) => {
+      const tIdx = prev.findIndex((i) => i.kind === "task" && (i as Task).hash === hash);
+      if (tIdx >= 0) {
+        const task = prev[tIdx] as Task;
+        if (task.subtasks.length > 0) {
+          const newDone = !task.is_done;
+          const updated: Task = {
+            ...task,
+            checked: newDone,
+            is_done: newDone,
+            subtasks: task.subtasks.map((s) => ({ ...s, checked: newDone })),
+          };
+          return prev.map((i, idx) => idx === tIdx ? updated : i);
         }
+        const checked = !task.checked;
+        return prev.map((i, idx) =>
+          idx === tIdx ? { ...task, checked, is_done: checked } : i
+        );
+      }
+      // subtask toggle
+      return prev.map((i) => {
+        if (i.kind !== "task") return i;
+        const t = i as Task;
         const si = t.subtasks.findIndex((s) => s.hash === hash);
-        if (si >= 0) {
-          const subtasks = t.subtasks.map((s, i) =>
-            i === si ? { ...s, checked: !s.checked } : s
-          );
-          return { ...t, subtasks, is_done: subtasks.every((s) => s.checked) };
-        }
-        return t;
-      })
-    );
+        if (si < 0) return i;
+        const subtasks = t.subtasks.map((s, idx) =>
+          idx === si ? { ...s, checked: !s.checked } : s
+        );
+        return { ...t, subtasks, is_done: subtasks.every((s) => s.checked) };
+      });
+    });
+
     const r = await apiFetch(`/projects/${projectId}/tasks/${hash}`, { method: "PATCH" });
     if (r.ok) {
       const updated: Task = await r.json();
-      setTasks((ts) =>
-        ts.map((t) =>
-          t.hash === updated.hash || t.subtasks.some((s) => s.hash === hash) ? updated : t
-        )
+      setItems((prev) =>
+        prev.map((i) => {
+          if (i.kind !== "task") return i;
+          const t = i as Task;
+          if (t.hash === updated.hash) return updated;
+          if (t.subtasks.some((s) => s.hash === hash)) return updated;
+          return i;
+        })
       );
     } else {
       fetchTasks();
@@ -45,14 +67,18 @@ export function useTasks(projectId: string) {
   }
 
   async function select(hash: string) {
-    setTasks((ts) => ts.map((t) => (t.hash === hash ? { ...t, is_selected: true } : t)));
+    setItems((prev) =>
+      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: true } : i)
+    );
     await apiFetch(`/projects/${projectId}/tasks/${hash}/select`, { method: "POST" });
   }
 
   async function unselect(hash: string) {
-    setTasks((ts) => ts.map((t) => (t.hash === hash ? { ...t, is_selected: false } : t)));
+    setItems((prev) =>
+      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: false } : i)
+    );
     await apiFetch(`/projects/${projectId}/tasks/${hash}/select`, { method: "DELETE" });
   }
 
-  return { tasks, loading, toggle, select, unselect };
+  return { items, tasks, loading, toggle, select, unselect };
 }

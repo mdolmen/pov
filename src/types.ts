@@ -13,6 +13,12 @@ export interface Filters {
   learning: SectionFilters;
 }
 
+export interface HeadingItem {
+  kind: "heading";
+  text: string;
+  level: number;
+}
+
 export interface Subtask {
   hash: string;
   text: string;
@@ -21,6 +27,7 @@ export interface Subtask {
 }
 
 export interface Task {
+  kind: "task";
   hash: string;
   text: string;
   checked: boolean;
@@ -29,6 +36,8 @@ export interface Task {
   is_done: boolean;
   is_selected: boolean;
 }
+
+export type ListItem = HeadingItem | Task;
 
 export interface Project {
   id: string;

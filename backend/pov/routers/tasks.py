@@ -1,17 +1,23 @@
 """Task endpoints: list, toggle, select."""
 
 import subprocess
+from typing import Annotated, Literal, Union
 
 import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from pov.activity import get_activity
 from pov.db import get_db
 from pov.storage import POV_DIR, PROJECTS_DIR
-from pov.tasks import Task, parse_tasks, toggle_line
+from pov.tasks import Task, parse_items, toggle_cascade
 
 router = APIRouter(tags=["tasks"])
+
+
+class HeadingResponse(BaseModel):
+    kind: Literal["heading"] = "heading"
+    text: str
+    level: int
 
 
 class SubtaskResponse(BaseModel):
@@ -22,6 +28,7 @@ class SubtaskResponse(BaseModel):
 
 
 class TaskResponse(BaseModel):
+    kind: Literal["task"] = "task"
     hash: str
     text: str
     checked: bool
@@ -29,6 +36,11 @@ class TaskResponse(BaseModel):
     subtasks: list[SubtaskResponse]
     is_done: bool
     is_selected: bool
+
+
+ListItemResponse = Annotated[
+    Union[HeadingResponse, TaskResponse], Field(discriminator="kind")
+]
 
 
 async def _get_project_or_404(project_id: str, db: aiosqlite.Connection) -> aiosqlite.Row:
@@ -63,14 +75,20 @@ def _task_to_response(task: Task, selected: set[str]) -> TaskResponse:
     )
 
 
-@router.get("/projects/{project_id}/tasks", response_model=list[TaskResponse])
+@router.get("/projects/{project_id}/tasks", response_model=list[ListItemResponse])
 async def list_tasks(project_id: str, db: aiosqlite.Connection = Depends(get_db)):
     row = await _get_project_or_404(project_id, db)
     from pathlib import Path
     file_path = Path(row["file_path"])
     selected = await _selected_hashes(project_id, db)
-    tasks = parse_tasks(file_path)
-    return [_task_to_response(t, selected) for t in tasks]
+    items = parse_items(file_path)
+    result: list[HeadingResponse | TaskResponse] = []
+    for item in items:
+        if isinstance(item, Task):
+            result.append(_task_to_response(item, selected))
+        else:
+            result.append(HeadingResponse(text=item.text, level=item.level))
+    return result
 
 
 @router.patch("/projects/{project_id}/tasks/{task_hash}", response_model=TaskResponse)
@@ -81,10 +99,9 @@ async def toggle_task(
     from pathlib import Path
     file_path = Path(row["file_path"])
 
-    if not toggle_line(file_path, task_hash):
+    if not toggle_cascade(file_path, task_hash):
         raise HTTPException(status_code=404, detail="task not found")
 
-    # Register activity and commit.
     await db.execute(
         "INSERT INTO activity (project_id) VALUES (?)", (project_id,)
     )
@@ -102,6 +119,7 @@ async def toggle_task(
         )
 
     selected = await _selected_hashes(project_id, db)
+    from pov.tasks import parse_tasks
     tasks = parse_tasks(file_path)
     task = next((t for t in tasks if t.hash == task_hash), None)
     if task is None:
