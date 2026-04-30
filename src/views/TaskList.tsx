@@ -238,7 +238,8 @@ export function TaskList({ project, onBack }: Props) {
         <button
           onClick={openInEditor}
           className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded shrink-0 cursor-pointer"
-          aria-label="Edit in vim"
+          aria-label="Open in default text editor"
+          title="Open in default text editor"
         >
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
             <path

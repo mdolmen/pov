@@ -21,12 +21,9 @@ fn get_backend_port() -> u16 {
 
 #[tauri::command]
 fn open_in_editor(path: String) {
-    let script = format!(
-        "tell application \"Terminal\" to do script \"vim '{}'; exit\"",
-        path.replace('\'', "'\\''")
-    );
-    std::process::Command::new("osascript")
-        .args(["-e", &script])
+    // -t opens the file in the default text editor registered with Launch Services.
+    std::process::Command::new("open")
+        .args(["-t", &path])
         .spawn()
         .ok();
 }
