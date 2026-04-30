@@ -2,7 +2,7 @@
 
 ## API
 
-- [x] Set up database schema
+- [ ] Set up database schema
 - [ ] Add authentication endpoints
 - [x] Implement rate limiting
 - [ ] Add request logging middleware 0
@@ -17,7 +17,7 @@
 
 - [ ] Define the API
 - [ ] Implement
-    - [x] Sub implement 0
+    - [ ] Sub implement 0
     - [ ] Sub implement 1
     - [ ] Sub implement 2
 - [ ] Test
@@ -26,13 +26,13 @@
 
 - [x] Create login page
 - [ ] Build user dashboard
-- [x] Add error boundaries
+- [ ] Add error boundaries
 - [ ] Write integration tests
 
 ## Done (older)
 
-- [x] Bootstrap project repository
-- [x] Configure CI pipeline
+- [ ] Bootstrap project repository
+- [ ] Configure CI pipeline
 - [x] Write API specification
 - [x] Set up staging environment
 - [x] Migrate legacy data

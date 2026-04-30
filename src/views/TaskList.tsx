@@ -127,8 +127,21 @@ function TaskCard({
 }
 
 function HeadingLabel({ heading }: { heading: HeadingItem }) {
+  if (heading.level === 2) {
+    return (
+      <p
+        className="text-[13px] font-semibold text-stone-700 mt-4 mb-1.5 px-1 first:mt-0"
+        style={{ fontFeatureSettings: '"ss01"' }}
+      >
+        {heading.text}
+      </p>
+    );
+  }
   return (
-    <p className="text-[9px] font-semibold tracking-widest uppercase text-stone-400 mt-3 mb-1 px-1 first:mt-0">
+    <p
+      className="text-[11px] font-medium text-stone-400 mt-2.5 mb-1 px-1"
+      style={{ fontFeatureSettings: '"ss01"' }}
+    >
       {heading.text}
     </p>
   );
@@ -158,7 +171,7 @@ function renderPendingItems(
   while (i < items.length) {
     const item = items[i];
     if (item.kind === "heading") {
-      // Look ahead: does this heading have any pending tasks before the next same-or-higher heading?
+      if (item.level === 1) { i++; continue; }
       let hasPending = false;
       for (let j = i + 1; j < items.length; j++) {
         const next = items[j];
@@ -246,8 +259,6 @@ export function TaskList({ project, onBack }: Props) {
           </div>
         ) : (
           <>
-            <SectionLabel>TODO</SectionLabel>
-
             {selected.length > 0 && (
               <div className="flex flex-col gap-1.5 mb-1">
                 {selected.map((t) => (
@@ -256,7 +267,7 @@ export function TaskList({ project, onBack }: Props) {
               </div>
             )}
 
-            <Divider />
+            {selected.length > 0 && <Divider />}
 
             <div className="flex flex-col gap-1.5">
               {renderPendingItems(items, toggle, select, unselect)}
