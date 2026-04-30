@@ -27,27 +27,24 @@ function CheckboxIcon({ checked }: { checked: boolean }) {
 
 const SELECTED_BAND = "#7c3aed";
 
-function SubtaskCard({ subtask, onToggle }: { subtask: Subtask; onToggle: () => void }) {
+function SubtaskRow({ subtask, onToggle }: { subtask: Subtask; onToggle: () => void }) {
   return (
-    <div className="ml-5 bg-white rounded-lg overflow-hidden flex ring-1 ring-black/[0.07] hover:ring-[1.5px] hover:ring-blue-400 transition-shadow">
-      <div className="w-[3px] shrink-0" style={{ backgroundColor: "transparent" }} />
-      <div className="flex-1 flex items-start gap-2.5 px-3 py-2">
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          className="mt-0.5 cursor-pointer"
-        >
-          <CheckboxIcon checked={subtask.checked} />
-        </button>
-        <span
-          className="flex-1 text-[12px] leading-5 min-w-0"
-          style={{
-            color: subtask.checked ? "#a8a29e" : "#57534e",
-            textDecoration: subtask.checked ? "line-through" : "none",
-          }}
-        >
-          {subtask.text}
-        </span>
-      </div>
+    <div className="flex items-start gap-2.5 pl-9 pr-3 pb-1.5">
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className="mt-0.5 cursor-pointer"
+      >
+        <CheckboxIcon checked={subtask.checked} />
+      </button>
+      <span
+        className="flex-1 text-[12px] leading-5 min-w-0"
+        style={{
+          color: subtask.checked ? "#a8a29e" : "#57534e",
+          textDecoration: subtask.checked ? "line-through" : "none",
+        }}
+      >
+        {subtask.text}
+      </span>
     </div>
   );
 }
@@ -80,40 +77,49 @@ function TaskCard({
         className="w-[3px] shrink-0"
         style={{ backgroundColor: task.is_selected && !done ? SELECTED_BAND : "transparent" }}
       />
-      <div className="flex-1 flex items-start gap-2.5 px-3 py-2.5 min-w-0">
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggle(task.hash); }}
-          className="mt-0.5 cursor-pointer"
-        >
-          <CheckboxIcon checked={done} />
-        </button>
-        <span
-          className="flex-1 text-sm leading-5 min-w-0"
-          style={{
-            color: done ? "#a8a29e" : "#292524",
-            textDecoration: done ? "line-through" : "none",
-          }}
-        >
-          {task.text}
-        </span>
-        {!done && (
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start gap-2.5 px-3 py-2.5">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
-            }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-700 shrink-0 cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); onToggle(task.hash); }}
+            className="mt-0.5 cursor-pointer"
           >
-            {task.is_selected ? (
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            ) : (
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            )}
+            <CheckboxIcon checked={done} />
           </button>
+          <span
+            className="flex-1 text-sm leading-5 min-w-0"
+            style={{
+              color: done ? "#a8a29e" : "#292524",
+              textDecoration: done ? "line-through" : "none",
+            }}
+          >
+            {task.text}
+          </span>
+          {!done && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                task.is_selected ? onUnselect(task.hash) : onSelect(task.hash);
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-700 shrink-0 cursor-pointer"
+            >
+              {task.is_selected ? (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M5 1v8M1 5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
+        {task.subtasks.length > 0 && (
+          <div className="pb-1">
+            {task.subtasks.map((s) => (
+              <SubtaskRow key={s.hash} subtask={s} onToggle={() => onToggle(s.hash)} />
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -173,13 +179,6 @@ function renderPendingItems(
     result.push(
       <TaskCard key={task.hash} task={task} onToggle={onToggle} onSelect={onSelect} onUnselect={onUnselect} />
     );
-    for (const sub of task.subtasks) {
-      if (!sub.checked) {
-        result.push(
-          <SubtaskCard key={sub.hash} subtask={sub} onToggle={() => onToggle(sub.hash)} />
-        );
-      }
-    }
     i++;
   }
 
