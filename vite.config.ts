@@ -31,8 +31,11 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, the Python backend, and the
+      //    fixtures directory. The backend writes to fixture .md files on toggle;
+      //    without this, Vite triggers a full page reload that resets UI state.
+      //    (Production has no Vite, so writes to user .md files are unaffected.)
+      ignored: ["**/src-tauri/**", "**/backend/**", "**/fixtures/**"],
     },
   },
 }));
