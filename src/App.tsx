@@ -28,7 +28,11 @@ export default function App() {
         className="flex flex-col h-screen select-none overflow-hidden"
         style={{ background: "#f7f6f2" }}
       >
-        <TaskList project={selectedProject} onBack={() => setSelectedProject(null)} />
+        <TaskList
+          project={selectedProject}
+          onBack={() => setSelectedProject(null)}
+          onProjectUpdated={setSelectedProject}
+        />
       </div>
     );
   }

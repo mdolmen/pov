@@ -34,6 +34,7 @@ class ProjectResponse(BaseModel):
     task_count: int
     selected_count: int
     activity: ActivityLevel
+    paused_until: str | None = None
 
 
 class CreateProjectRequest(BaseModel):
@@ -48,6 +49,9 @@ class UpdateProjectRequest(BaseModel):
     name: str | None = None
     status: Status | None = None
     sub_status: SubStatus | None = None
+    # ISO 8601 date (YYYY-MM-DD). Empty string clears the value;
+    # None means "don't change".
+    paused_until: str | None = None
 
 
 def _count_tasks(file_path: Path) -> int:
@@ -114,6 +118,7 @@ async def _row_to_response(row: aiosqlite.Row, db: aiosqlite.Connection) -> Proj
         task_count=_count_tasks(file_path),
         selected_count=selected_count,
         activity=get_activity(file_path, has_hardlink),
+        paused_until=row["paused_until"] if "paused_until" in row.keys() else None,
     )
 
 
@@ -182,7 +187,11 @@ async def update_project(
     if not await cursor.fetchone():
         raise HTTPException(status_code=404, detail="project not found")
 
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    # Use exclude_unset so callers can explicitly null a field (e.g. clear paused_until).
+    updates = body.model_dump(exclude_unset=True)
+    # Treat empty string on paused_until as "clear".
+    if updates.get("paused_until") == "":
+        updates["paused_until"] = None
     if updates:
         set_clause = ", ".join(f"{k} = ?" for k in updates)
         await db.execute(

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS projects (
     sub_status   TEXT,
     type         TEXT NOT NULL DEFAULT 'project',
     has_hardlink INTEGER NOT NULL DEFAULT 1,
+    paused_until TEXT,
     created_at   TEXT NOT NULL DEFAULT (datetime('now'))
 )
 """
@@ -39,12 +40,17 @@ CREATE TABLE IF NOT EXISTS activity (
 
 
 async def init_db() -> None:
-    """Create tables if they don't exist."""
+    """Create tables if they don't exist; apply any pending column migrations."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("PRAGMA foreign_keys = ON")
         await db.execute(CREATE_PROJECTS)
         await db.execute(CREATE_SELECTED_TASKS)
         await db.execute(CREATE_ACTIVITY)
+        cursor = await db.execute("PRAGMA table_info(projects)")
+        columns = {row[1] for row in await cursor.fetchall()}
+        if "paused_until" not in columns:
+            # ISO 8601 date string (YYYY-MM-DD); SQLite has no native DATE type.
+            await db.execute("ALTER TABLE projects ADD COLUMN paused_until TEXT")
         await db.commit()
 
 

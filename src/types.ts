@@ -50,4 +50,5 @@ export interface Project {
   task_count: number;
   selected_count: number;
   activity: ActivityLevel;
+  paused_until: string | null;
 }

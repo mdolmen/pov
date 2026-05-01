@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { ProjectSettingsModal } from "@/components/ProjectSettingsModal";
 import { useTasks } from "@/hooks/useTasks";
 import type { HeadingItem, ListItem, Project, Subtask, Task } from "@/types";
 
 interface Props {
   project: Project;
   onBack: () => void;
+  onProjectUpdated: (p: Project) => void;
 }
 
 function CheckboxIcon({ checked }: { checked: boolean }) {
@@ -198,8 +201,9 @@ function renderPendingItems(
   return result;
 }
 
-export function TaskList({ project, onBack }: Props) {
+export function TaskList({ project, onBack, onProjectUpdated }: Props) {
   const { items, tasks, loading, toggle, select, unselect } = useTasks(project.id);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selected = tasks.filter((t) => t.is_selected && !t.is_done);
   const done = tasks.filter((t) => t.is_done);
@@ -251,7 +255,33 @@ export function TaskList({ project, onBack }: Props) {
             />
           </svg>
         </button>
+
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded shrink-0 cursor-pointer"
+          aria-label="Project settings"
+          title="Project settings"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
       </header>
+
+      <ProjectSettingsModal
+        open={settingsOpen}
+        project={project}
+        onClose={() => setSettingsOpen(false)}
+        onUpdated={onProjectUpdated}
+        onDeleted={() => { setSettingsOpen(false); onBack(); }}
+      />
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
         {loading ? (
