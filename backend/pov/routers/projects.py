@@ -1,9 +1,6 @@
 """CRUD endpoints for projects."""
 
-import json
-import os
 import re
-import subprocess
 import uuid
 from pathlib import Path
 from typing import Literal
@@ -14,7 +11,13 @@ from pydantic import BaseModel
 
 from pov.activity import ActivityLevel, get_activity
 from pov.db import get_db
-from pov.storage import CONFIG_FILE, LEARNING_DIR, POV_DIR, PROJECTS_DIR
+from pov.projects import (
+    create_hardlink as _create_hardlink,
+    git_add_commit as _git_add_commit,
+    hardlink_path as _hardlink_path,
+    read_config as _read_config,
+    write_config as _write_config,
+)
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -60,41 +63,6 @@ def _count_tasks(file_path: Path) -> int:
         return len(re.findall(r"^\s*- \[.\]", text, re.MULTILINE))
     except OSError:
         return 0
-
-
-def _hardlink_path(project_id: str, type: str = "project") -> Path:
-    base = LEARNING_DIR if type == "learning" else PROJECTS_DIR
-    return base / f"{project_id}.md"
-
-
-def _create_hardlink(src: Path, dst: Path) -> bool:
-    """Try to create a hardlink. Returns True on success, False on cross-device."""
-    try:
-        os.link(src, dst)
-        return True
-    except OSError as e:
-        if e.errno == 18:  # EXDEV: cross-device link
-            return False
-        raise
-
-
-def _git_add_commit(file_path: Path, message: str) -> None:
-    subprocess.run(
-        ["git", "-C", str(POV_DIR), "add", str(file_path)],
-        check=True, capture_output=True,
-    )
-    subprocess.run(
-        ["git", "-C", str(POV_DIR), "commit", "-m", message],
-        check=True, capture_output=True,
-    )
-
-
-def _read_config() -> dict:
-    return json.loads(CONFIG_FILE.read_text())
-
-
-def _write_config(config: dict) -> None:
-    CONFIG_FILE.write_text(json.dumps(config, indent=2))
 
 
 async def _row_to_response(row: aiosqlite.Row, db: aiosqlite.Connection) -> ProjectResponse:

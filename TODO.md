@@ -77,11 +77,11 @@
 
 ## Phase 7 — CLI
 
-- [ ] Python script `pov` (entry point via `pyproject.toml`)
-- [ ] `pov add <path>` — create hardlink, update config.json, git add + commit
-- [ ] `pov list` — print tracked projects
-- [ ] `pov remove <name>` — remove hardlink + config entry
-- [ ] Install path: "Install CLI" option in tray menu, symlinks `pov` into `/usr/local/bin`
+- [x] Python script `pov` (entry point via `pyproject.toml`)
+- [x] `pov add <path>` — create hardlink, update config.json, git add + commit
+- [x] `pov list` — print tracked projects
+- [x] `pov remove <name>` — remove hardlink + config entry
+- [x] Install path: "Install CLI" option in tray menu, symlinks `pov` into `/usr/local/bin`
 
 ## Phase 8 — Activity tracker (heatmap)
 

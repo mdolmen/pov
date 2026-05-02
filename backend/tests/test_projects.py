@@ -61,7 +61,7 @@ def test_create_project_cross_device_fallback(client: TestClient, todo_file: Pat
     def cross_device_link(src, dst):
         raise OSError(18, "Invalid cross-device link")
 
-    with patch("pov.routers.projects.os.link", cross_device_link):
+    with patch("pov.projects.os.link", cross_device_link):
         r = client.post("/projects", json={"name": "X", "file_path": str(todo_file)})
     assert r.status_code == 201
     assert r.json()["has_hardlink"] is False
