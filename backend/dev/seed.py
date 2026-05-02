@@ -3,14 +3,17 @@
 Usage (from backend/):
     uv run python dev/seed.py
 
-Resets ALL projects in ~/.local/share/pov/pov.db to the fixture set.
+Resets ALL projects in ~/.local/share/pov/pov.db to the fixture set,
+and seeds synthetic git commits so the activity heatmap has data.
 """
 
 import hashlib
 import json
 import os
+import random
 import re
 import sqlite3
+import subprocess
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -199,6 +202,69 @@ def main() -> None:
 
     CONFIG_FILE.write_text(json.dumps({"projects": config_projects, "learning": {}}, indent=2))
     print(f"✓ seeded {len(SEED)} projects → {DB_PATH}")
+
+    _seed_activity_commits(config_projects)
+
+
+def _seed_activity_commits(seeded_projects: list[dict]) -> None:
+    """Backfill the pov-dev git repo with synthetic 'activity:' commits over
+    the last 120 days so the heatmap has visible data after a fresh seed.
+
+    Distribution: ~60% of recent days have at least one commit; weekday days
+    are more likely than weekends; counts skew small (1–4) with occasional
+    bursts (5–8). All commits go to the project type's directory if a
+    hardlink can be made; otherwise we just commit the change message
+    against the repo with --allow-empty.
+    """
+    if not (POV_DIR / ".git").exists():
+        # init step usually creates this; skip if absent.
+        subprocess.run(["git", "init", str(POV_DIR)], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "-C", str(POV_DIR), "commit", "--allow-empty", "-m", "init"],
+            check=True, capture_output=True,
+        )
+
+    rng = random.Random(42)
+    open_projects = [
+        p for p in seeded_projects
+        if any(s["name"] == p["name"] and s.get("status") == "open" for s in SEED)
+    ]
+    if not open_projects:
+        return
+
+    now = datetime.now(tz=timezone.utc).replace(microsecond=0)
+    base_env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "pov-seed",
+        "GIT_AUTHOR_EMAIL": "seed@pov.local",
+        "GIT_COMMITTER_NAME": "pov-seed",
+        "GIT_COMMITTER_EMAIL": "seed@pov.local",
+    }
+
+    for offset in range(119, -1, -1):
+        day = now - timedelta(days=offset)
+        weekday = day.weekday()  # Mon=0..Sun=6
+        # Activity probability: ~70% weekdays, ~30% weekends.
+        p_active = 0.7 if weekday < 5 else 0.3
+        if rng.random() > p_active:
+            continue
+        # Most days have 1–4 commits; ~10% have a burst of 5–8.
+        n = rng.randint(5, 8) if rng.random() < 0.1 else rng.randint(1, 4)
+        for _ in range(n):
+            proj = rng.choice(open_projects)
+            # Pick a plausible time within the day (work hours weighted).
+            hour = rng.choices(range(24), weights=[1]*8 + [3]*9 + [2]*4 + [1]*3)[0]
+            minute = rng.randint(0, 59)
+            ts = day.replace(hour=hour, minute=minute, second=rng.randint(0, 59))
+            iso = ts.isoformat()
+            env = {**base_env, "GIT_AUTHOR_DATE": iso, "GIT_COMMITTER_DATE": iso}
+            # The activity router only attributes commits with this exact
+            # subject format and a known project_id from the DB.
+            msg = f"activity: {proj['id']}.md"
+            subprocess.run(
+                ["git", "-C", str(POV_DIR), "commit", "--allow-empty", "-m", msg],
+                check=True, capture_output=True, env=env,
+            )
 
 
 if __name__ == "__main__":

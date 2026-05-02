@@ -1,8 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
 import { AddProjectModal } from "@/components/AddProjectModal";
+import { ActivityHeatmap } from "@/components/ActivityHeatmap";
 import { useProjects } from "@/hooks/useProjects";
 import type { Filters, Project, Tab } from "@/types";
+
+function readHeatmapVisible(tab: Tab): boolean {
+  try {
+    const v = localStorage.getItem(`pov.heatmap.${tab}.visible`);
+    return v === null ? true : v === "1";
+  } catch {
+    return true;
+  }
+}
+
+function writeHeatmapVisible(tab: Tab, visible: boolean) {
+  try {
+    localStorage.setItem(`pov.heatmap.${tab}.visible`, visible ? "1" : "0");
+  } catch {
+    // localStorage might not exist (e.g. private mode); silently ignore.
+  }
+}
 
 interface Props {
   onSelectProject: (project: Project) => void;
@@ -30,12 +48,34 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
   const { projects, loading, refresh } = useProjects();
   const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [archivedExpanded, setArchivedExpanded] = useState(false);
+  const [heatmapVisible, setHeatmapVisible] = useState<boolean>(() =>
+    readHeatmapVisible("projects"),
+  );
+
+  // Sync the persisted preference whenever the user switches tabs.
+  useEffect(() => {
+    setHeatmapVisible(readHeatmapVisible(activeTab));
+  }, [activeTab]);
+
+  function toggleHeatmap() {
+    const next = !heatmapVisible;
+    setHeatmapVisible(next);
+    writeHeatmapVisible(activeTab, next);
+  }
 
   const tabType = activeTab === "projects" ? "project" : "learning";
   const tabFilters = filters[activeTab];
 
-  const open = projects.filter((p) => p.type === tabType && p.status === "open");
-  const archived = projects.filter((p) => p.type === tabType && p.status === "archived");
+  // Sort by number of selected tasks (desc), then name (asc) as tiebreaker.
+  const bySelected = (a: Project, b: Project) =>
+    b.selected_count - a.selected_count || a.name.localeCompare(b.name);
+
+  const open = projects
+    .filter((p) => p.type === tabType && p.status === "open")
+    .sort(bySelected);
+  const archived = projects
+    .filter((p) => p.type === tabType && p.status === "archived")
+    .sort(bySelected);
 
   return (
     <>
@@ -108,6 +148,32 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
                 </div>
               )}
             </>
+          )}
+        </div>
+
+        {/* Activity heatmap, pinned at the bottom */}
+        <div className="shrink-0 border-t" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
+          {heatmapVisible ? (
+            <div className="px-3 pt-2 pb-3">
+              <div className="flex justify-end mb-1">
+                <button
+                  onClick={toggleHeatmap}
+                  className="text-[10px] tracking-wide uppercase text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+                >
+                  Hide
+                </button>
+              </div>
+              <ActivityHeatmap key={activeTab} type={tabType} months={10} />
+            </div>
+          ) : (
+            <div className="flex justify-end px-3 py-1.5">
+              <button
+                onClick={toggleHeatmap}
+                className="text-[10px] tracking-wide uppercase text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+              >
+                Show activity
+              </button>
+            </div>
           )}
         </div>
       </div>

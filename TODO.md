@@ -93,26 +93,26 @@ edit already produces a commit there.
 
 ### Backend
 
-- [ ] `GET /activity?type=project|learning&days=120` — shell out to
+- [x] `GET /activity?type=project|learning&days=120` — shell out to
   `git log --since="120 days ago" --pretty=format:"%aI%x09%s"` on
   `POV_DIR`, parse commit messages of the form `activity: <id>.md` /
   `add: <name>`, look up project type via the id segment, bucket by
   local date. Returns `[{date: "YYYY-MM-DD", count: N}]` for the last
   120 days.
-- [ ] Tests: per-type filtering, day bucketing, empty-day handling,
+- [x] Tests: per-type filtering, day bucketing, empty-day handling,
   graceful behavior when the git repo is empty
 
 ### Frontend
 
-- [ ] `ActivityHeatmap` component — sliding window of the last ~120 days
+- [x] `ActivityHeatmap` component — sliding window of the last ~120 days
   (4 months, month-granularity x-axis labels), one cell per day, columns
   per week, days as rows
-- [ ] Quantile-based color scale (e.g. 0 / q25 / q50 / q75 / q90 of
+- [x] Quantile-based color scale (e.g. 0 / q25 / q50 / q75 / q90 of
   non-zero days), stone palette base + green ramp for filled cells
-- [ ] Cell tooltip on hover: `<count> activities on <date>`
-- [ ] Wire into `ProjectList`: instantiate per active tab (refetch when
+- [x] Cell tooltip on hover: `<count> activities on <date>`
+- [x] Wire into `ProjectList`: instantiate per active tab (refetch when
   tab changes); fixed at the bottom of the page
-- [ ] Show/hide toggle:
+- [x] Show/hide toggle:
   - "Hide" button above the heatmap, right-aligned
   - "Show" button at the bottom of the page, right-aligned, when hidden
   - Persist per tab in `localStorage` (key: `pov.heatmap.<tab>.visible`)
