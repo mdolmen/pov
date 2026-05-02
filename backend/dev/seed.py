@@ -28,8 +28,9 @@ def days_ago(n: int) -> float:
 
 
 def task_hash(line: str) -> str:
-    normalized = CHECKBOX_RE.sub(r"\1 ]", line)
-    return hashlib.sha256(normalized.encode()).hexdigest()
+    # Must match pov/tasks.py: sha256 of normalized line, truncated to 16 hex chars.
+    normalized = CHECKBOX_RE.sub(r"\1 ]", line.rstrip())
+    return hashlib.sha256(normalized.encode()).hexdigest()[:16]
 
 
 def unchecked_hashes(path: Path) -> list[str]:
@@ -157,11 +158,7 @@ def main() -> None:
             task_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
             UNIQUE(project_id, task_hash)
         );
-        CREATE TABLE IF NOT EXISTS activity (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-            occurred_at TEXT NOT NULL DEFAULT (datetime('now'))
-        );
+        DROP TABLE IF EXISTS activity;
     """)
     db.execute("DELETE FROM projects")
     db.commit()

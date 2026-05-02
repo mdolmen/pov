@@ -30,22 +30,13 @@ CREATE TABLE IF NOT EXISTS selected_tasks (
 )
 """
 
-CREATE_ACTIVITY = """
-CREATE TABLE IF NOT EXISTS activity (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    occurred_at TEXT NOT NULL DEFAULT (datetime('now'))
-)
-"""
-
-
 async def init_db() -> None:
     """Create tables if they don't exist; apply any pending column migrations."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("PRAGMA foreign_keys = ON")
         await db.execute(CREATE_PROJECTS)
         await db.execute(CREATE_SELECTED_TASKS)
-        await db.execute(CREATE_ACTIVITY)
+        await db.execute("DROP TABLE IF EXISTS activity")
         cursor = await db.execute("PRAGMA table_info(projects)")
         columns = {row[1] for row in await cursor.fetchall()}
         if "paused_until" not in columns:

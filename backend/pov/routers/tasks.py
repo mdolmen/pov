@@ -102,11 +102,6 @@ async def toggle_task(
     if not toggle_cascade(file_path, task_hash):
         raise HTTPException(status_code=404, detail="task not found")
 
-    await db.execute(
-        "INSERT INTO activity (project_id) VALUES (?)", (project_id,)
-    )
-    await db.commit()
-
     base = LEARNING_DIR if row["type"] == "learning" else PROJECTS_DIR
     hardlink = base / f"{project_id}.md"
     if hardlink.exists():

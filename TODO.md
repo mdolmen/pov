@@ -70,9 +70,10 @@
 - [x] Double-click on task → marks as selected
 - [x] Selected tasks visually distinct (on top of the list, a separator between those and the rest)
 - [x] When a task is selected it moves to the top section of the list
-- [ ] Top-right edit icon → Tauri command to open file in vim in a terminal window
-- [ ] A task with subtask (markdown title) is considered done when all of the subtasks are done
+- [x] Top-right edit icon → Tauri command to open file in vim in a terminal window
+- [x] A task with subtask (markdown title) is considered done when all of the subtasks are done
 - [x] Done tasks are moved to the bottom of the list, in the interface only, no changes to the underlying file
+- [x] Order projects by number of selected tasks
 
 ## Phase 7 — CLI
 
@@ -82,13 +83,41 @@
 - [ ] `pov remove <name>` — remove hardlink + config entry
 - [ ] Install path: "Install CLI" option in tray menu, symlinks `pov` into `/usr/local/bin`
 
-## Phase 9 — Continuous Learning
+## Phase 8 — Activity tracker (heatmap)
 
-- [ ] Add Maths, Papers, Books, Videos as fixed entries in config (type = "learning")
-- [ ] Same task list view as projects
-- [ ] Sidebar entries navigate to the correct learning section
+Per-tab git-style activity heatmap pinned at the bottom of the project
+list. Tracks task toggles and underlying .md file edits, scoped to the
+projects of the current tab (projects vs learning). Source of truth is
+the existing pov data git repo — every toggle and watcher-detected file
+edit already produces a commit there.
 
-## Phase 10 — Packaging
+### Backend
+
+- [ ] `GET /activity?type=project|learning&days=120` — shell out to
+  `git log --since="120 days ago" --pretty=format:"%aI%x09%s"` on
+  `POV_DIR`, parse commit messages of the form `activity: <id>.md` /
+  `add: <name>`, look up project type via the id segment, bucket by
+  local date. Returns `[{date: "YYYY-MM-DD", count: N}]` for the last
+  120 days.
+- [ ] Tests: per-type filtering, day bucketing, empty-day handling,
+  graceful behavior when the git repo is empty
+
+### Frontend
+
+- [ ] `ActivityHeatmap` component — sliding window of the last ~120 days
+  (4 months, month-granularity x-axis labels), one cell per day, columns
+  per week, days as rows
+- [ ] Quantile-based color scale (e.g. 0 / q25 / q50 / q75 / q90 of
+  non-zero days), stone palette base + green ramp for filled cells
+- [ ] Cell tooltip on hover: `<count> activities on <date>`
+- [ ] Wire into `ProjectList`: instantiate per active tab (refetch when
+  tab changes); fixed at the bottom of the page
+- [ ] Show/hide toggle:
+  - "Hide" button above the heatmap, right-aligned
+  - "Show" button at the bottom of the page, right-aligned, when hidden
+  - Persist per tab in `localStorage` (key: `pov.heatmap.<tab>.visible`)
+
+## Phase 9 — Packaging
 
 - [ ] Configure Tauri bundler for macOS `.app`
 - [ ] Bundle Python backend as a self-contained binary (PyInstaller)
