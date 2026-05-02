@@ -35,8 +35,13 @@ def pov_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr("pov.storage.CONFIG_FILE", data_dir / "config.json")
     monkeypatch.setattr("pov.routers.projects.POV_DIR", data_dir)
     monkeypatch.setattr("pov.routers.projects.PROJECTS_DIR", projects_dir)
+    monkeypatch.setattr("pov.routers.projects.LEARNING_DIR", learning_dir)
     monkeypatch.setattr("pov.routers.projects.CONFIG_FILE", data_dir / "config.json")
     monkeypatch.setattr("pov.activity.POV_DIR", data_dir)
+    monkeypatch.setattr("pov.routers.activity.POV_DIR", data_dir)
+    monkeypatch.setattr("pov.routers.tasks.POV_DIR", data_dir)
+    monkeypatch.setattr("pov.routers.tasks.PROJECTS_DIR", projects_dir)
+    monkeypatch.setattr("pov.routers.tasks.LEARNING_DIR", learning_dir)
 
     return data_dir
 
