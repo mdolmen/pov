@@ -167,7 +167,8 @@ def test_list_tasks(client: TestClient, todo_file: Path):
 
     r = client.get(f"/projects/{pid}/tasks")
     assert r.status_code == 200
-    tasks = r.json()
+    items = r.json()
+    tasks = [i for i in items if i["kind"] == "task"]
     assert len(tasks) == 3
     texts = [t["text"] for t in tasks]
     assert "Task one" in texts
@@ -183,8 +184,8 @@ def test_toggle_task(client: TestClient, todo_file: Path):
     r = client.post("/projects", json={"name": "P", "file_path": str(todo_file)})
     pid = r.json()["id"]
 
-    tasks = client.get(f"/projects/{pid}/tasks").json()
-    unchecked = next(t for t in tasks if not t["checked"])
+    items = client.get(f"/projects/{pid}/tasks").json()
+    unchecked = next(t for t in items if t["kind"] == "task" and not t["checked"])
     h = unchecked["hash"]
 
     r = client.patch(f"/projects/{pid}/tasks/{h}")
@@ -206,28 +207,29 @@ def test_select_and_unselect_task(client: TestClient, todo_file: Path):
     r = client.post("/projects", json={"name": "P", "file_path": str(todo_file)})
     pid = r.json()["id"]
 
-    tasks = client.get(f"/projects/{pid}/tasks").json()
-    h = tasks[0]["hash"]
+    items = client.get(f"/projects/{pid}/tasks").json()
+    h = next(t for t in items if t["kind"] == "task")["hash"]
 
     # Select.
     r = client.post(f"/projects/{pid}/tasks/{h}/select")
     assert r.status_code == 204
 
-    tasks = client.get(f"/projects/{pid}/tasks").json()
-    assert next(t for t in tasks if t["hash"] == h)["is_selected"] is True
+    items = client.get(f"/projects/{pid}/tasks").json()
+    assert next(t for t in items if t["kind"] == "task" and t["hash"] == h)["is_selected"] is True
 
     # Unselect.
     r = client.delete(f"/projects/{pid}/tasks/{h}/select")
     assert r.status_code == 204
 
-    tasks = client.get(f"/projects/{pid}/tasks").json()
-    assert next(t for t in tasks if t["hash"] == h)["is_selected"] is False
+    items = client.get(f"/projects/{pid}/tasks").json()
+    assert next(t for t in items if t["kind"] == "task" and t["hash"] == h)["is_selected"] is False
 
 
 def test_select_is_idempotent(client: TestClient, todo_file: Path):
     r = client.post("/projects", json={"name": "P", "file_path": str(todo_file)})
     pid = r.json()["id"]
-    h = client.get(f"/projects/{pid}/tasks").json()[0]["hash"]
+    items = client.get(f"/projects/{pid}/tasks").json()
+    h = next(t for t in items if t["kind"] == "task")["hash"]
 
     client.post(f"/projects/{pid}/tasks/{h}/select")
     r = client.post(f"/projects/{pid}/tasks/{h}/select")
