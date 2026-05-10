@@ -38,6 +38,16 @@ fn resolve_pov_binary() -> std::path::PathBuf {
     p
 }
 
+fn install_dst() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    std::path::PathBuf::from(home).join(".local/bin/pov")
+}
+
+fn is_cli_installed() -> bool {
+    let dst = install_dst();
+    dst.exists() || dst.is_symlink()
+}
+
 #[tauri::command]
 fn install_cli() -> Result<String, String> {
     let src = resolve_pov_binary();
@@ -47,21 +57,26 @@ fn install_cli() -> Result<String, String> {
             src.display()
         ));
     }
-    let dst = std::path::PathBuf::from("/usr/local/bin/pov");
+    let dst = install_dst();
 
-    // Replace any existing symlink or file at the target.
+    if let Some(parent) = dst.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("could not create {}: {}", parent.display(), e))?;
+    }
+
     if dst.exists() || dst.is_symlink() {
         std::fs::remove_file(&dst)
             .map_err(|e| format!("could not remove existing {}: {}", dst.display(), e))?;
     }
 
     std::os::unix::fs::symlink(&src, &dst).map_err(|e| {
-        format!(
-            "could not symlink {} → {}: {} (you may need to run `sudo chown $(whoami) /usr/local/bin` once)",
-            dst.display(), src.display(), e
-        )
+        format!("could not symlink {} → {}: {}", dst.display(), src.display(), e)
     })?;
-    Ok(format!("linked {} → {}", dst.display(), src.display()))
+    Ok(format!(
+        "Linked {} → {}\n\nMake sure ~/.local/bin is on your PATH.",
+        dst.display(),
+        src.display()
+    ))
 }
 
 fn bring_to_front(app: &AppHandle) {
@@ -103,7 +118,9 @@ pub fn run() {
 
             // Tray icon — left-click brings main window to front.
             let show = MenuItem::with_id(app, "show", "Show pov", true, None::<&str>)?;
-            let install = MenuItem::with_id(app, "install_cli", "Install CLI", true, None::<&str>)?;
+            let cli_installed = is_cli_installed();
+            let install_label = if cli_installed { "CLI installed ✓" } else { "Install CLI" };
+            let install = MenuItem::with_id(app, "install_cli", install_label, !cli_installed, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &install, &quit])?;
 
