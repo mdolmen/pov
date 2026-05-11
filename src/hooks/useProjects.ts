@@ -22,6 +22,8 @@ export function useProjects() {
 
   useEffect(() => {
     refresh();
+    const id = setInterval(refresh, 3000);
+    return () => clearInterval(id);
   }, [refresh]);
 
   return { projects, loading, error, refresh };
