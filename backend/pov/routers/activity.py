@@ -1,9 +1,9 @@
-"""Activity heatmap endpoint, sourced from git log on the pov data repo."""
+"""Activity heatmap endpoint, sourced from each project's own git repo."""
 
-import re
 import subprocess
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 from typing import Literal
 
 import aiosqlite
@@ -11,14 +11,10 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from pov.db import get_db
-from pov.storage import POV_DIR
 
 router = APIRouter(prefix="/activity", tags=["activity"])
 
 ProjectType = Literal["project", "learning"]
-
-# Watcher and toggle commit messages: "activity: <project_id>.md"
-ACTIVITY_RE = re.compile(r"^activity:\s+([0-9a-f-]+)\.md$")
 
 
 class ActivityDay(BaseModel):
@@ -26,29 +22,28 @@ class ActivityDay(BaseModel):
     count: int
 
 
-def _git_log_since(days: int) -> list[tuple[str, str]]:
-    """Return [(iso_timestamp, subject)] for commits in the last N days.
+def _find_git_root(file_path: Path) -> Path | None:
+    """Walk up from file_path to find the enclosing git repo root."""
+    current = file_path.parent
+    while True:
+        if (current / ".git").exists():
+            return current
+        parent = current.parent
+        if parent == current:
+            return None
+        current = parent
 
-    Empty list if the repo is missing or git fails.
-    """
+
+def _commits_since(git_root: Path, days: int) -> list[str]:
+    """Return ISO author-date timestamps for commits in the last N days."""
     result = subprocess.run(
-        ["git", "-C", str(POV_DIR), "log", f"--since={days} days ago", "--pretty=format:%aI%x09%s"],
+        ["git", "-C", str(git_root), "log", f"--since={days} days ago", "--format=%aI"],
         capture_output=True,
         text=True,
     )
     if result.returncode != 0 or not result.stdout:
         return []
-    pairs: list[tuple[str, str]] = []
-    for line in result.stdout.splitlines():
-        if "\t" in line:
-            ts, subject = line.split("\t", 1)
-            pairs.append((ts, subject))
-    return pairs
-
-
-async def _project_types(db: aiosqlite.Connection) -> dict[str, str]:
-    cursor = await db.execute("SELECT id, type FROM projects")
-    return {row["id"]: row["type"] for row in await cursor.fetchall()}
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
 @router.get("", response_model=list[ActivityDay])
@@ -57,26 +52,29 @@ async def get_activity(
     days: int = 120,
     db: aiosqlite.Connection = Depends(get_db),
 ):
-    """Return per-day activity counts for the last `days` days.
+    """Return per-day commit counts across all project repos for the last `days` days.
 
-    Counts commits whose message is `activity: <project_id>.md` and
-    whose project has the requested type. Days with zero activity are
-    omitted; the frontend fills the calendar window itself.
+    Each project's file_path is used to locate its git repo root. Repos shared
+    by multiple projects are counted once. Days with zero commits are omitted.
     """
-    types = await _project_types(db)
+    cursor = await db.execute(
+        "SELECT file_path FROM projects WHERE type = ?", (type,)
+    )
+    rows = await cursor.fetchall()
+
+    git_roots: set[Path] = set()
+    for row in rows:
+        root = _find_git_root(Path(row["file_path"]))
+        if root is not None:
+            git_roots.add(root)
+
     counts: Counter[str] = Counter()
-    for ts, subject in _git_log_since(days):
-        m = ACTIVITY_RE.match(subject)
-        if not m:
-            continue
-        project_id = m.group(1)
-        if types.get(project_id) != type:
-            continue
-        try:
-            dt = datetime.fromisoformat(ts)
-        except ValueError:
-            continue
-        # Bucket by the commit's own local date (no tz conversion).
-        counts[dt.date().isoformat()] += 1
+    for root in git_roots:
+        for ts in _commits_since(root, days):
+            try:
+                dt = datetime.fromisoformat(ts)
+            except ValueError:
+                continue
+            counts[dt.date().isoformat()] += 1
 
     return [ActivityDay(date=d, count=c) for d, c in sorted(counts.items())]
