@@ -5,8 +5,7 @@ use tauri_plugin_shell::ShellExt;
 
 static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
 
-// Path to the backend directory, baked in at compile time for dev.
-// Phase 9 (packaging) replaces this with a sidecar binary.
+#[cfg(debug_assertions)]
 const BACKEND_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../backend");
 
 #[tauri::command]
@@ -23,14 +22,23 @@ fn open_in_editor(path: String) {
         .ok();
 }
 
-/// Resolve the path of the `pov` CLI binary.
+/// Path to the `pov` CLI binary.
 ///
-/// In dev that's the script uv created in `<backend>/.venv/bin/pov`. In a
-/// packaged build (phase 9) we'll replace this with the bundled sidecar.
+/// Dev: the uv-managed venv script. Release: the PyInstaller binary bundled
+/// alongside the app executable in Contents/MacOS/.
 fn resolve_pov_binary() -> std::path::PathBuf {
-    let mut p = std::path::PathBuf::from(BACKEND_DIR);
-    p.push(".venv/bin/pov");
-    p
+    #[cfg(debug_assertions)]
+    {
+        std::path::PathBuf::from(BACKEND_DIR).join(".venv/bin/pov")
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        std::env::current_exe()
+            .expect("could not get current exe")
+            .parent()
+            .expect("exe has no parent dir")
+            .join("pov-cli")
+    }
 }
 
 fn install_dst() -> std::path::PathBuf {
@@ -49,7 +57,7 @@ fn install_cli() -> Result<String, String> {
     let src = resolve_pov_binary();
     if !src.exists() {
         return Err(format!(
-            "pov CLI binary not found at {}. Run `uv sync` in backend/ first.",
+            "pov binary not found at {}.",
             src.display()
         ));
     }
@@ -65,16 +73,22 @@ fn install_cli() -> Result<String, String> {
             .map_err(|e| format!("could not remove existing {}: {}", dst.display(), e))?;
     }
 
+    // Dev: symlink (source changes are picked up automatically).
+    // Release: copy (user can move the .app without breaking the CLI).
+    #[cfg(debug_assertions)]
     std::os::unix::fs::symlink(&src, &dst).map_err(|e| {
         format!("could not symlink {} → {}: {}", dst.display(), src.display(), e)
     })?;
+    #[cfg(not(debug_assertions))]
+    std::fs::copy(&src, &dst).map_err(|e| {
+        format!("could not copy {} → {}: {}", src.display(), dst.display(), e)
+    })?;
+
     Ok(format!(
-        "Linked {} → {}\n\nMake sure ~/.local/bin is on your PATH.",
-        dst.display(),
-        src.display()
+        "Installed pov to {}\n\nMake sure ~/.local/bin is on your PATH.",
+        dst.display()
     ))
 }
-
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -84,12 +98,19 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![get_backend_port, open_in_editor, install_cli, is_cli_installed])
         .setup(|app| {
-            // Spawn the Python backend and wait for the port line on stdout.
-            let mut cmd = app.shell().command("uv");
-            cmd = cmd.args(["--directory", BACKEND_DIR, "run", "python", "main.py"]);
+            // Spawn the Python backend and wait for it to print its port.
             #[cfg(debug_assertions)]
-            { cmd = cmd.env("POV_ENV", "dev"); }
-            let (mut rx, _child) = cmd.spawn().expect("failed to spawn Python backend");
+            let backend_cmd = app.shell()
+                .command("uv")
+                .args(["--directory", BACKEND_DIR, "run", "python", "main.py"])
+                .env("POV_ENV", "dev");
+
+            #[cfg(not(debug_assertions))]
+            let backend_cmd = app.shell()
+                .sidecar("pov-backend")
+                .expect("pov-backend sidecar not configured");
+
+            let (mut rx, _child) = backend_cmd.spawn().expect("failed to spawn backend");
 
             tauri::async_runtime::block_on(async {
                 while let Some(event) = rx.recv().await {
