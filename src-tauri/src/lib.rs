@@ -1,10 +1,5 @@
 use std::sync::OnceLock;
 
-use tauri::{
-    menu::{Menu, MenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager,
-};
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
@@ -43,6 +38,7 @@ fn install_dst() -> std::path::PathBuf {
     std::path::PathBuf::from(home).join(".local/bin/pov")
 }
 
+#[tauri::command]
 fn is_cli_installed() -> bool {
     let dst = install_dst();
     dst.exists() || dst.is_symlink()
@@ -79,12 +75,6 @@ fn install_cli() -> Result<String, String> {
     ))
 }
 
-fn bring_to_front(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.show();
-        let _ = window.set_focus();
-    }
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -92,7 +82,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_backend_port, open_in_editor, install_cli])
+        .invoke_handler(tauri::generate_handler![get_backend_port, open_in_editor, install_cli, is_cli_installed])
         .setup(|app| {
             // Spawn the Python backend and wait for the port line on stdout.
             let mut cmd = app.shell().command("uv");
@@ -115,45 +105,6 @@ pub fn run() {
                     }
                 }
             });
-
-            // Tray icon — left-click brings main window to front.
-            let show = MenuItem::with_id(app, "show", "Show pov", true, None::<&str>)?;
-            let cli_installed = is_cli_installed();
-            let install_label = if cli_installed { "CLI installed ✓" } else { "Install CLI" };
-            let install = MenuItem::with_id(app, "install_cli", install_label, !cli_installed, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show, &install, &quit])?;
-
-            TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
-                .icon_as_template(true)
-                .menu(&menu)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => bring_to_front(app),
-                    "install_cli" => {
-                        let result = install_cli();
-                        // Surface the result by reusing the dialog plugin.
-                        use tauri_plugin_dialog::DialogExt;
-                        let (title, body) = match result {
-                            Ok(msg) => ("CLI installed", msg),
-                            Err(msg) => ("CLI install failed", msg),
-                        };
-                        app.dialog().message(body).title(title).show(|_| {});
-                    }
-                    "quit" => app.exit(0),
-                    _ => {}
-                })
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        bring_to_front(tray.app_handle());
-                    }
-                })
-                .build(app)?;
 
             Ok(())
         })

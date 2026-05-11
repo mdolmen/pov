@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ProjectList } from "@/views/ProjectList";
 import { TaskList } from "@/views/TaskList";
+import { SettingsView } from "@/views/SettingsView";
 import { Sidebar } from "@/components/Sidebar";
 import type { Filters, Project } from "@/types";
 
@@ -11,6 +12,7 @@ const DEFAULT_FILTERS: Filters = {
 
 export default function App() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -35,6 +37,10 @@ export default function App() {
         />
       </div>
     );
+  }
+
+  if (settingsOpen) {
+    return <SettingsView onBack={() => setSettingsOpen(false)} />;
   }
 
   return (
@@ -73,7 +79,11 @@ export default function App() {
             onClick={() => setSidebarOpen(false)}
           >
             <div className="h-full w-48 shrink-0" onClick={(e) => e.stopPropagation()}>
-              <Sidebar filters={filters} onToggle={toggleFilter} />
+              <Sidebar
+                filters={filters}
+                onToggle={toggleFilter}
+                onSettings={() => { setSidebarOpen(false); setSettingsOpen(true); }}
+              />
             </div>
             <div className="flex-1" style={{ background: "rgba(0,0,0,0.08)" }} />
           </div>
