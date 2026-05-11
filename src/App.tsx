@@ -16,6 +16,7 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0);
 
   function toggleFilter(section: "projects" | "learning", key: "open" | "archived") {
     setFilters((f) => ({
@@ -63,13 +64,25 @@ export default function App() {
             <rect y="8.5" width="13" height="1.5" rx="0.75" fill="currentColor" />
           </svg>
         </button>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded text-lg leading-none pb-0.5"
-          aria-label="Add project"
-        >
-          +
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setActivityRefreshKey((k) => k + 1)}
+            className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded"
+            aria-label="Refresh activity"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M10.5 6a4.5 4.5 0 1 1-1.01-2.845" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              <path d="M10.5 2v2.5H8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={() => setAddOpen(true)}
+            className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded text-lg leading-none pb-0.5"
+            aria-label="Add project"
+          >
+            +
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 relative overflow-hidden">
@@ -94,6 +107,7 @@ export default function App() {
           addOpen={addOpen}
           onAddClose={() => setAddOpen(false)}
           filters={filters}
+          activityRefreshKey={activityRefreshKey}
         />
       </div>
     </div>

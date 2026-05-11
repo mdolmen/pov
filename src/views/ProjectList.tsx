@@ -27,6 +27,7 @@ interface Props {
   addOpen: boolean;
   onAddClose: () => void;
   filters: Filters;
+  activityRefreshKey?: number;
 }
 
 function Chevron({ expanded }: { expanded: boolean }) {
@@ -44,7 +45,7 @@ function Chevron({ expanded }: { expanded: boolean }) {
   );
 }
 
-export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: Props) {
+export function ProjectList({ onSelectProject, addOpen, onAddClose, filters, activityRefreshKey = 0 }: Props) {
   const { projects, loading, refresh } = useProjects();
   const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [archivedExpanded, setArchivedExpanded] = useState(false);
@@ -163,7 +164,7 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters }: P
                   Hide
                 </button>
               </div>
-              <ActivityHeatmap key={activeTab} type={tabType} months={10} />
+              <ActivityHeatmap key={activeTab} type={tabType} months={10} refreshKey={activityRefreshKey} />
             </div>
           ) : (
             <div className="flex justify-end px-3 py-1.5">

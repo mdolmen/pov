@@ -10,6 +10,8 @@ interface Props {
   type: "project" | "learning";
   /** Number of full calendar months to display, ending with the current month. */
   months?: number;
+  /** Increment to trigger a re-fetch. */
+  refreshKey?: number;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -41,7 +43,7 @@ function shadeFor(count: number, thresholds: number[]): string {
   return SHADES[4];
 }
 
-export function ActivityHeatmap({ type, months = 4 }: Props) {
+export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
   const [data, setData] = useState<Record<string, number>>({});
 
   // Calendar-aligned window: first day of (current month - (months - 1)) → today.
@@ -68,7 +70,7 @@ export function ActivityHeatmap({ type, months = 4 }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [type, queryDays]);
+  }, [type, queryDays, refreshKey]);
 
   const { weeks, monthLabels, thresholds } = useMemo(() => {
     // Build a [weeks][7 days] grid. Columns are weeks (Mon-Sun); rows are
