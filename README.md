@@ -2,6 +2,8 @@
 
 A macOS desktop app for tracking TODO.md files across projects. Built with Tauri + React frontend and a FastAPI Python backend.
 
+![Project Overview](screens/projects.png)
+
 ## Prerequisites
 
 - [Rust](https://rustup.rs/)
