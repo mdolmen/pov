@@ -158,3 +158,28 @@ async def unselect_task(
         (project_id, task_hash),
     )
     await db.commit()
+
+
+@router.post("/tasks/cleanup", status_code=204)
+async def cleanup_selected_tasks(db: aiosqlite.Connection = Depends(get_db)):
+    """Remove selected_tasks rows whose task is marked done in the source file."""
+    from pathlib import Path
+    from pov.tasks import parse_tasks
+
+    cursor = await db.execute("SELECT id, file_path FROM projects")
+    projects = await cursor.fetchall()
+
+    for project in projects:
+        file_path = Path(project["file_path"])
+        if not file_path.exists():
+            continue
+        done_hashes = {t.hash for t in parse_tasks(file_path) if t.is_done}
+        if not done_hashes:
+            continue
+        placeholders = ",".join("?" * len(done_hashes))
+        await db.execute(
+            f"DELETE FROM selected_tasks WHERE project_id = ? AND task_hash IN ({placeholders})",
+            (project["id"], *done_hashes),
+        )
+
+    await db.commit()

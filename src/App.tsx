@@ -3,6 +3,7 @@ import { ProjectList } from "@/views/ProjectList";
 import { TaskList } from "@/views/TaskList";
 import { SettingsView } from "@/views/SettingsView";
 import { Sidebar } from "@/components/Sidebar";
+import { apiFetch } from "@/lib/backend";
 import type { Filters, Project } from "@/types";
 
 const DEFAULT_FILTERS: Filters = {
@@ -66,7 +67,10 @@ export default function App() {
         </button>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setActivityRefreshKey((k) => k + 1)}
+            onClick={async () => {
+              await apiFetch("/tasks/cleanup", { method: "POST" });
+              setActivityRefreshKey((k) => k + 1);
+            }}
             className="w-6 h-6 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded"
             aria-label="Refresh activity"
           >
