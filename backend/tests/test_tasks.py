@@ -225,6 +225,31 @@ def test_select_and_unselect_task(client: TestClient, todo_file: Path):
     assert next(t for t in items if t["kind"] == "task" and t["hash"] == h)["is_selected"] is False
 
 
+def test_toggle_done_removes_from_selected(client: TestClient, todo_file: Path):
+    r = client.post("/projects", json={"name": "P", "file_path": str(todo_file)})
+    pid = r.json()["id"]
+
+    items = client.get(f"/projects/{pid}/tasks").json()
+    h = next(t for t in items if t["kind"] == "task" and not t["checked"])["hash"]
+
+    client.post(f"/projects/{pid}/tasks/{h}/select")
+    assert next(t for t in client.get(f"/projects/{pid}/tasks").json()
+                if t["kind"] == "task" and t["hash"] == h)["is_selected"] is True
+
+    # Toggle to done — should auto-remove from selected.
+    client.patch(f"/projects/{pid}/tasks/{h}")
+    items = client.get(f"/projects/{pid}/tasks").json()
+    task = next(t for t in items if t["kind"] == "task" and t["hash"] == h)
+    assert task["is_done"] is True
+    assert task["is_selected"] is False
+
+    # Project selected_count should reflect the removal.
+    project = client.get(f"/projects/{pid}").json() if hasattr(client, "_unused") else \
+        client.get("/projects").json()
+    selected_count = next(p for p in project if p["id"] == pid)["selected_count"]
+    assert selected_count == 0
+
+
 def test_select_is_idempotent(client: TestClient, todo_file: Path):
     r = client.post("/projects", json={"name": "P", "file_path": str(todo_file)})
     pid = r.json()["id"]

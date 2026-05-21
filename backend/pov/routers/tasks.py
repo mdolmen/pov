@@ -114,7 +114,6 @@ async def toggle_task(
             capture_output=True,
         )
 
-    selected = await _selected_hashes(project_id, db)
     from pov.tasks import parse_tasks
     tasks = parse_tasks(file_path)
     task = next((t for t in tasks if t.hash == task_hash), None)
@@ -125,6 +124,15 @@ async def toggle_task(
         )
     if not task:
         raise HTTPException(status_code=404, detail="task not found after toggle")
+
+    if task.is_done:
+        await db.execute(
+            "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
+            (project_id, task.hash),
+        )
+        await db.commit()
+
+    selected = await _selected_hashes(project_id, db)
     return _task_to_response(task, selected)
 
 
