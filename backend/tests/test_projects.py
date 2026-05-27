@@ -21,7 +21,7 @@ def test_create_project_success(client: TestClient, todo_file: Path, pov_dir: Pa
     data = r.json()
     assert data["name"] == "My Project"
     assert data["status"] == "open"
-    assert data["task_count"] == 3
+    assert data["task_count"] == 2
     assert data["selected_count"] == 0
     assert data["has_hardlink"] is True
 
@@ -73,7 +73,7 @@ def test_list_projects_returns_metadata(client: TestClient, todo_file: Path):
     assert r.status_code == 200
     projects = r.json()
     assert len(projects) == 1
-    assert projects[0]["task_count"] == 3
+    assert projects[0]["task_count"] == 2
     assert projects[0]["selected_count"] == 0
     assert projects[0]["activity"] in ("this_week", "this_month", "older", "none")
 

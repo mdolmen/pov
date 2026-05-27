@@ -60,7 +60,7 @@ class UpdateProjectRequest(BaseModel):
 def _count_tasks(file_path: Path) -> int:
     try:
         text = file_path.read_text()
-        return len(re.findall(r"^\s*- \[.\]", text, re.MULTILINE))
+        return len(re.findall(r"^\s*- \[ \]", text, re.MULTILINE))
     except OSError:
         return 0
 
