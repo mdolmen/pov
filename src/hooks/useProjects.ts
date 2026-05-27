@@ -7,7 +7,8 @@ export function useProjects() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const r = await apiFetch("/projects");
       if (!r.ok) throw new Error("failed to fetch");
@@ -22,7 +23,7 @@ export function useProjects() {
 
   useEffect(() => {
     refresh();
-    const id = setInterval(refresh, 3000);
+    const id = setInterval(() => refresh(false), 3000);
     return () => clearInterval(id);
   }, [refresh]);
 

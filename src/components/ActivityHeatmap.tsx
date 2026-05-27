@@ -45,6 +45,7 @@ function shadeFor(count: number, thresholds: number[]): string {
 
 export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
   const [data, setData] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
   // Calendar-aligned window: first day of (current month - (months - 1)) → today.
   // Computed once per render-input change.
@@ -58,14 +59,19 @@ export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     (async () => {
       const r = await apiFetch(`/activity?type=${type}&days=${queryDays}`);
-      if (!r.ok) return;
+      if (!r.ok) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
       const rows: Day[] = await r.json();
       if (cancelled) return;
       const map: Record<string, number> = {};
       for (const row of rows) map[row.date] = row.count;
       setData(map);
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -133,7 +139,25 @@ export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
   const totalHeight = 7 * (cell + gap) + 14; // 14px reserved for month labels
 
   return (
-    <div className="overflow-x-auto">
+    <div>
+      <div className="flex justify-end items-center gap-1.5 text-[10px] text-stone-400 h-3 mb-1">
+        {loading && (
+          <>
+            <svg
+              className="animate-spin"
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+              <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            <span>updating</span>
+          </>
+        )}
+      </div>
+      <div className="overflow-x-auto">
       <svg width={totalWidth} height={totalHeight} role="img" aria-label="Activity heatmap">
         {monthLabels.map((m) => (
           <text
@@ -171,6 +195,7 @@ export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
           })
         )}
       </svg>
+      </div>
     </div>
   );
 }
