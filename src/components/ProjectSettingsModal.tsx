@@ -131,6 +131,16 @@ export function ProjectSettingsModal({ open, project, onClose, onUpdated, onDele
             </Select>
           </label>
 
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-medium tracking-wide text-stone-500 uppercase">File</span>
+            <p
+              className="text-xs text-stone-600 font-mono break-all select-text"
+              title={project.file_path}
+            >
+              {project.file_path}
+            </p>
+          </div>
+
           {status === "paused" && (
             <label className="flex flex-col gap-1.5">
               <span className="text-[11px] font-medium tracking-wide text-stone-500 uppercase">
