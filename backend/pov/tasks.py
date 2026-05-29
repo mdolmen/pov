@@ -13,9 +13,16 @@ def _normalize(line: str) -> str:
     return re.sub(r"\[.\]", "[ ]", line.rstrip())
 
 
-def task_hash(line: str) -> str:
+def task_hash(line: str, occurrence: int = 1) -> str:
+    """Hash a checkbox line, disambiguated by occurrence among identical lines.
+
+    `occurrence` is 1-based: the first appearance of a given normalized line in
+    a file gets 1, the second gets 2, etc. This keeps hashes stable across line
+    shifts (insert/remove above) but unique for tasks that share text.
+    """
     normalized = _normalize(line)
-    return hashlib.sha256(normalized.encode()).hexdigest()[:16]
+    key = normalized if occurrence == 1 else f"{normalized}\x00#{occurrence}"
+    return hashlib.sha256(key.encode()).hexdigest()[:16]
 
 
 def _set_checked(line: str, checked: bool) -> str:
@@ -26,19 +33,23 @@ def _set_checked(line: str, checked: bool) -> str:
 
 
 class Subtask:
-    def __init__(self, text: str, checked: bool, line_number: int, raw_line: str) -> None:
+    def __init__(
+        self, text: str, checked: bool, line_number: int, raw_line: str, occurrence: int = 1
+    ) -> None:
         self.text = text
         self.checked = checked
         self.line_number = line_number
-        self.hash = task_hash(raw_line)
+        self.hash = task_hash(raw_line, occurrence)
 
 
 class Task:
-    def __init__(self, text: str, checked: bool, line_number: int, raw_line: str) -> None:
+    def __init__(
+        self, text: str, checked: bool, line_number: int, raw_line: str, occurrence: int = 1
+    ) -> None:
         self.text = text
         self.checked = checked
         self.line_number = line_number
-        self.hash = task_hash(raw_line)
+        self.hash = task_hash(raw_line, occurrence)
         self.subtasks: list[Subtask] = []
 
     @property
@@ -63,6 +74,7 @@ def parse_items(file_path: Path) -> list[Heading | Task]:
 
     items: list[Heading | Task] = []
     current: Task | None = None
+    seen: dict[str, int] = {}
 
     for i, line in enumerate(lines):
         h = HEADING_RE.match(line)
@@ -76,13 +88,20 @@ def parse_items(file_path: Path) -> list[Heading | Task]:
             continue
         indent, state, text = m.group(1), m.group(2), m.group(3)
         checked = state.lower() == "x"
+        key = _normalize(line)
+        seen[key] = seen.get(key, 0) + 1
+        occurrence = seen[key]
 
         if not indent:
-            current = Task(text=text, checked=checked, line_number=i, raw_line=line)
+            current = Task(
+                text=text, checked=checked, line_number=i, raw_line=line, occurrence=occurrence
+            )
             items.append(current)
         elif current is not None:
             current.subtasks.append(
-                Subtask(text=text, checked=checked, line_number=i, raw_line=line)
+                Subtask(
+                    text=text, checked=checked, line_number=i, raw_line=line, occurrence=occurrence
+                )
             )
 
     return items
@@ -99,10 +118,13 @@ def toggle_line(file_path: Path, target_hash: str) -> bool:
     except OSError:
         return False
 
+    seen: dict[str, int] = {}
     for i, line in enumerate(lines):
         if not CHECKBOX_RE.match(line):
             continue
-        if task_hash(line) != target_hash:
+        key = _normalize(line)
+        seen[key] = seen.get(key, 0) + 1
+        if task_hash(line, seen[key]) != target_hash:
             continue
         if "[ ]" in line:
             lines[i] = line.replace("[ ]", "[x]", 1)
@@ -138,18 +160,27 @@ def toggle_cascade(file_path: Path, target_hash: str) -> bool:
     except OSError:
         return False
 
+    def _walk_hash(line: str, seen: dict[str, int]) -> str:
+        key = _normalize(line)
+        seen[key] = seen.get(key, 0) + 1
+        return task_hash(line, seen[key])
+
     if task is not None and task.subtasks:
         new_state = not task.is_done
         targets = {task.hash: new_state} | {s.hash: new_state for s in task.subtasks}
+        seen: dict[str, int] = {}
         for i, line in enumerate(lines):
             if CHECKBOX_RE.match(line):
-                h = task_hash(line)
+                h = _walk_hash(line, seen)
                 if h in targets:
                     lines[i] = _set_checked(line, targets[h])
 
     elif task is not None:
+        seen = {}
         for i, line in enumerate(lines):
-            if CHECKBOX_RE.match(line) and task_hash(line) == target_hash:
+            if not CHECKBOX_RE.match(line):
+                continue
+            if _walk_hash(line, seen) == target_hash:
                 lines[i] = _set_checked(line, not task.checked)
                 break
 
@@ -161,10 +192,11 @@ def toggle_cascade(file_path: Path, target_hash: str) -> bool:
             (new_sub if s.hash == target_hash else s.checked) for s in parent.subtasks
         )
         found_sub = found_parent = False
+        seen = {}
         for i, line in enumerate(lines):
             if not CHECKBOX_RE.match(line):
                 continue
-            h = task_hash(line)
+            h = _walk_hash(line, seen)
             if h == target_hash and not found_sub:
                 lines[i] = _set_checked(line, new_sub)
                 found_sub = True

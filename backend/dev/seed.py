@@ -30,18 +30,25 @@ def days_ago(n: int) -> float:
     return (datetime.now(tz=timezone.utc) - timedelta(days=n)).timestamp()
 
 
-def task_hash(line: str) -> str:
-    # Must match pov/tasks.py: sha256 of normalized line, truncated to 16 hex chars.
+def task_hash(line: str, occurrence: int = 1) -> str:
+    # Must match pov/tasks.py: sha256 of normalized line, with occurrence
+    # disambiguator for identical lines, truncated to 16 hex chars.
     normalized = CHECKBOX_RE.sub(r"\1 ]", line.rstrip())
-    return hashlib.sha256(normalized.encode()).hexdigest()[:16]
+    key = normalized if occurrence == 1 else f"{normalized}\x00#{occurrence}"
+    return hashlib.sha256(key.encode()).hexdigest()[:16]
 
 
 def unchecked_hashes(path: Path) -> list[str]:
     """Return task hashes for all unchecked top-level tasks in a file."""
     hashes = []
+    seen: dict[str, int] = {}
     for line in path.read_text().splitlines():
+        if not re.match(r"^\s*- \[.\]", line):
+            continue
+        normalized = CHECKBOX_RE.sub(r"\1 ]", line.rstrip())
+        seen[normalized] = seen.get(normalized, 0) + 1
         if re.match(r"^\s*- \[ \]", line):
-            hashes.append(task_hash(line))
+            hashes.append(task_hash(line, seen[normalized]))
     return hashes
 
 

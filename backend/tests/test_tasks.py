@@ -110,6 +110,23 @@ def test_hash_stable_across_check_state():
     assert task_hash(unchecked) == task_hash(checked)
 
 
+def test_hash_unique_for_duplicate_text(tmp_path: Path):
+    f = tmp_path / "t.md"
+    f.write_text("- [ ] Same task\n- [ ] Other\n- [ ] Same task\n")
+    tasks = parse_tasks(f)
+    assert tasks[0].text == "Same task"
+    assert tasks[2].text == "Same task"
+    assert tasks[0].hash != tasks[2].hash
+
+
+def test_toggle_disambiguates_duplicate_text(tmp_path: Path):
+    f = tmp_path / "t.md"
+    f.write_text("- [ ] Same task\n- [ ] Same task\n")
+    tasks = parse_tasks(f)
+    toggle_line(f, tasks[1].hash)
+    assert f.read_text() == "- [ ] Same task\n- [x] Same task\n"
+
+
 def test_hash_stable_across_line_shift(tmp_path: Path):
     f = tmp_path / "t.md"
     f.write_text("- [ ] Task one\n- [ ] Task two\n")
