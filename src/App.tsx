@@ -4,7 +4,7 @@ import { TaskList } from "@/views/TaskList";
 import { SettingsView } from "@/views/SettingsView";
 import { Sidebar } from "@/components/Sidebar";
 import { apiFetch } from "@/lib/backend";
-import type { Filters, Project } from "@/types";
+import type { Filters, Project, Tab } from "@/types";
 
 const DEFAULT_FILTERS: Filters = {
   projects: { open: true, archived: false },
@@ -17,6 +17,9 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  // Held here rather than in ProjectList: the list unmounts while a project is
+  // open, so going back must land on the tab the project was opened from.
+  const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [activityRefreshKey, setActivityRefreshKey] = useState(0);
 
   function toggleFilter(section: "projects" | "learning", key: "open" | "archived") {
@@ -112,6 +115,8 @@ export default function App() {
           onAddClose={() => setAddOpen(false)}
           filters={filters}
           activityRefreshKey={activityRefreshKey}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       </div>
     </div>

@@ -28,6 +28,8 @@ interface Props {
   onAddClose: () => void;
   filters: Filters;
   activityRefreshKey?: number;
+  activeTab: Tab;
+  onTabChange: (tab: Tab) => void;
 }
 
 function Spinner({ label }: { label: string }) {
@@ -63,12 +65,19 @@ function Chevron({ expanded }: { expanded: boolean }) {
   );
 }
 
-export function ProjectList({ onSelectProject, addOpen, onAddClose, filters, activityRefreshKey = 0 }: Props) {
+export function ProjectList({
+  onSelectProject,
+  addOpen,
+  onAddClose,
+  filters,
+  activityRefreshKey = 0,
+  activeTab,
+  onTabChange,
+}: Props) {
   const { projects, loading, refresh } = useProjects();
-  const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [archivedExpanded, setArchivedExpanded] = useState(false);
   const [heatmapVisible, setHeatmapVisible] = useState<boolean>(() =>
-    readHeatmapVisible("projects"),
+    readHeatmapVisible(activeTab),
   );
 
   // Sync the persisted preference whenever the user switches tabs.
@@ -107,7 +116,7 @@ export function ProjectList({ onSelectProject, addOpen, onAddClose, filters, act
           {(["projects", "learning"] as Tab[]).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => onTabChange(tab)}
               className="pb-2.5 text-[11px] font-semibold tracking-widest uppercase transition-colors cursor-pointer"
               style={{
                 color: activeTab === tab ? "#292524" : "#a8a29e",
