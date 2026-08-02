@@ -119,14 +119,74 @@ edit already produces a commit there.
 
 ## Phase 9 — Packaging
 
-- [ ] Configure Tauri bundler for macOS `.app`
-- [ ] Bundle Python backend as a self-contained binary (PyInstaller)
-- [ ] App icon
-- [ ] Test cold launch (no terminal, no dev tools)
-- [ ] Sign and notarize for macOS Gatekeeper (or document how to bypass for local use)
+- [x] Configure Tauri bundler for macOS `.app`
+- [x] Bundle Python backend as a self-contained binary (PyInstaller)
+- [x] App icon
+- [x] Test cold launch (no terminal, no dev tools)
+- [x] Sign and notarize for macOS Gatekeeper (or document how to bypass for local use)
+
+## Phase 10 — Time tracking (learning projects)
+
+Learning project pages get a second heatmap, below the task list, showing
+time spent per day on that project (blue ramp, to distinguish it from the
+green activity ramp). Time is entered by hand from a modal: a duration in
+15-minute steps plus an optional topic. Unlike activity, this data has no
+git source of truth — it lives in SQLite.
+
+### Navigation
+
+- [x] Lift `activeTab` from `ProjectList` into `App` state and pass it down
+  as a controlled prop, so returning from a project page lands on the tab
+  it was opened from (learning project → learning tab)
+
+### Backend
+
+- [x] `time_entries` table in `pov/db.py`: `id`, `project_id`
+  (FK → projects, ON DELETE CASCADE), `date` (TEXT, `YYYY-MM-DD`),
+  `minutes` (INTEGER, multiple of 15), `topic` (TEXT, nullable),
+  `created_at`; index on `(project_id, date)`
+- [x] `pov/routers/time.py`, mounted in `main.py`:
+  - `GET /projects/:id/time?days=N` — per-day totals for the window,
+    `[{date, minutes}]`, zero days omitted
+  - `POST /projects/:id/time` — record an entry `{date, minutes, topic?}`;
+    validate `minutes > 0` and `minutes % 15 == 0`, 404 on unknown project
+  - `GET /projects/:id/time/topics` — distinct topics used on this project,
+    most recently used first
+- [x] Tests: day bucketing (several entries same day), empty window, minutes
+  validation rejects non-multiples of 15 and non-positive values, unknown
+  project 404, topic list ordering and de-duplication
+
+### Frontend
+
+- [x] Extract the grid/scale/labels of `ActivityHeatmap` into a presentational
+  `Heatmap` component (props: `data: Record<string, number>`, `months`,
+  `shades`, tooltip formatter). `ActivityHeatmap` keeps the green ramp;
+  no visual change to the project list
+- [x] `TimeHeatmap` component — fetches `GET /projects/:id/time`, blue ramp
+  (`#ebe9e2` base + 4 blue shades), tooltip `<Xh YYmin> on <date>`
+- [x] Wire into `TaskList`, pinned below the task list, only when
+  `project.type === "learning"`; same hide/show toggle and `localStorage`
+  persistence as the activity heatmap (key: `pov.time.<projectId>.visible`)
+- [x] "+" button at the top right of the time heatmap → `AddTimeModal`
+- [x] `AddTimeModal`: date (defaults to today), duration stepper in 15-min
+  increments, free-text topic input with suggestions from
+  `GET /projects/:id/time/topics` (typing a new topic is allowed).
+  On submit → `POST` then refresh the heatmap and the topic list
+
+### Import
+
+- [x] `pov/timelog.py` — parse a TIME.md table (`| DATE | TIME | TOPIC |`,
+  hours with a comma or dot separator, rounded to 15 minutes)
+- [x] `pov import-time <project> <path>` — one-shot import into the real DB;
+  refuses to run twice unless `--replace`
+- [x] Tests: hour → minute conversion, rounding, malformed rows, duplicate
+  import guard, unknown project
+- [x] `dev/seed.py` seeds `debug/TIME.md` into the Maths learning project
+
+## Maintenance
+
+- [ ] Fix `pov add`, returns 128
 
 ## Post-MVP
 
-- [ ] TIME.md / time tracking for Maths
 - [ ] Analytics on file edit history
-- [ ] Auto-update mechanism

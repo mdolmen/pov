@@ -75,7 +75,13 @@ pov add path/to/TODO.md           # track a project
 pov add path/to/TODO.md --type learning
 pov list                          # list tracked projects
 pov remove "project name"         # stop tracking
+pov import-time "Maths" TIME.md   # import a time log into a project
 ```
+
+`import-time` reads a markdown table of `| DATE | TIME | TOPIC |` rows, where
+TIME is a number of hours (comma or dot separator), and records the entries
+against the project's time heatmap. It refuses to run twice unless given
+`--replace`.
 
 ## Data locations
 

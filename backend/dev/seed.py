@@ -18,7 +18,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-FIXTURES = Path(__file__).parent.parent.parent / "fixtures"
+from pov.timelog import insert_time_rows, parse_time_log
+
+REPO_ROOT = Path(__file__).parent.parent.parent
+FIXTURES = REPO_ROOT / "fixtures"
+TIME_LOG = REPO_ROOT / "debug" / "TIME.md"
 POV_DIR = Path.home() / ".local" / "share" / "pov-dev"
 DB_PATH = POV_DIR / "pov.db"
 CONFIG_FILE = POV_DIR / "config.json"
@@ -168,6 +172,14 @@ def main() -> None:
             task_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')),
             UNIQUE(project_id, task_hash)
         );
+        CREATE TABLE IF NOT EXISTS time_entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            date TEXT NOT NULL, minutes INTEGER NOT NULL, topic TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_time_entries_project_date
+            ON time_entries(project_id, date);
         DROP TABLE IF EXISTS activity;
     """)
     db.execute("DELETE FROM projects")
@@ -201,6 +213,9 @@ def main() -> None:
                     "INSERT OR IGNORE INTO selected_tasks (project_id, task_hash) VALUES (?,?)",
                     (project_id, h),
                 )
+
+        if spec["name"] == "Maths" and TIME_LOG.exists():
+            insert_time_rows(db, project_id, parse_time_log(TIME_LOG))
 
         config_projects.append({"id": project_id, "name": spec["name"], "path": file_path})
 
