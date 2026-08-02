@@ -9,7 +9,12 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 
-from pov.db import CREATE_PROJECTS, CREATE_SELECTED_TASKS
+from pov.db import (
+    CREATE_PROJECTS,
+    CREATE_SELECTED_TASKS,
+    CREATE_TIME_ENTRIES,
+    CREATE_TIME_ENTRIES_INDEX,
+)
 
 
 @pytest.fixture()
@@ -53,6 +58,8 @@ async def db(pov_dir: Path) -> aiosqlite.Connection:
         await conn.execute("PRAGMA foreign_keys = ON")
         await conn.execute(CREATE_PROJECTS)
         await conn.execute(CREATE_SELECTED_TASKS)
+        await conn.execute(CREATE_TIME_ENTRIES)
+        await conn.execute(CREATE_TIME_ENTRIES_INDEX)
         await conn.commit()
         conn.row_factory = aiosqlite.Row
         yield conn

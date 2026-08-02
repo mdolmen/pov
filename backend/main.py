@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from pov.db import init_db
-from pov.routers import activity, projects, tasks
+from pov.routers import activity, projects, tasks, timelog
 from pov.storage import init_storage
 from pov.watcher import start_watcher
 
@@ -24,6 +24,7 @@ app.add_middleware(
 app.include_router(projects.router)
 app.include_router(tasks.router)
 app.include_router(activity.router)
+app.include_router(timelog.router)
 
 
 @app.get("/health")
