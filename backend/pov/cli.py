@@ -20,6 +20,7 @@ from pov.projects import (
     remove_project_sync,
 )
 from pov.storage import POV_DIR
+from pov.timelog import TimeLogParseError, insert_time_rows, parse_time_log
 
 
 def _open_db() -> sqlite3.Connection:
@@ -97,6 +98,51 @@ def cmd_remove(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import_time(args: argparse.Namespace) -> int:
+    path = Path(args.path)
+    if not path.exists():
+        print(f"error: file not found: {path}", file=sys.stderr)
+        return 2
+
+    db = _open_db()
+    try:
+        try:
+            project = find_project_by_name_sync(db, args.name)
+        except ProjectNotFoundError:
+            print(f"error: no project named {args.name!r}", file=sys.stderr)
+            return 1
+        except AmbiguousProjectError:
+            print(f"error: multiple projects named {args.name!r}", file=sys.stderr)
+            return 1
+
+        try:
+            rows = parse_time_log(path)
+        except TimeLogParseError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
+
+        existing = db.execute(
+            "SELECT COUNT(*) FROM time_entries WHERE project_id = ?", (project["id"],)
+        ).fetchone()[0]
+        if existing and not args.replace:
+            print(
+                f"error: {args.name!r} already has {existing} time entries; "
+                "pass --replace to overwrite",
+                file=sys.stderr,
+            )
+            return 1
+        if args.replace:
+            db.execute("DELETE FROM time_entries WHERE project_id = ?", (project["id"],))
+
+        count = insert_time_rows(db, project["id"], rows)
+    finally:
+        db.close()
+
+    total = sum(r.minutes for r in rows)
+    print(f"imported: {count} entries ({total / 60:.2f}h) into {args.name}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="pov", description="pov CLI")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -124,6 +170,16 @@ def main(argv: list[str] | None = None) -> int:
     p_remove = sub.add_parser("remove", help="stop tracking a project")
     p_remove.add_argument("name", help="exact project name")
     p_remove.set_defaults(func=cmd_remove)
+
+    p_import = sub.add_parser("import-time", help="import a TIME.md file into a project")
+    p_import.add_argument("name", help="exact project name")
+    p_import.add_argument("path", help="path to a TIME.md file")
+    p_import.add_argument(
+        "--replace",
+        action="store_true",
+        help="delete the project's existing time entries first",
+    )
+    p_import.set_defaults(func=cmd_import_time)
 
     args = parser.parse_args(argv)
     return args.func(args)
