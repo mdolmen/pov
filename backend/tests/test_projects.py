@@ -78,6 +78,32 @@ def test_list_projects_returns_metadata(client: TestClient, todo_file: Path):
     assert projects[0]["activity"] in ("this_week", "this_month", "older", "none")
 
 
+def test_list_projects_tolerates_a_binary_file(client: TestClient, todo_file: Path, tmp_path: Path):
+    """A tracked PDF must not take down the whole list."""
+    pdf = tmp_path / "book.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n\xe2\x28\xa1 binary\n")
+    client.post("/projects", json={"name": "P", "file_path": str(todo_file)})
+    client.post("/projects", json={"name": "Book", "file_path": str(pdf), "type": "learning"})
+
+    r = client.get("/projects")
+    assert r.status_code == 200
+    by_name = {p["name"]: p for p in r.json()}
+    assert set(by_name) == {"P", "Book"}
+    assert by_name["Book"]["task_count"] == 0
+
+
+def test_tasks_of_a_binary_file_are_empty(client: TestClient, tmp_path: Path):
+    pdf = tmp_path / "book.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n\xe2\x28\xa1 binary\n")
+    pid = client.post(
+        "/projects", json={"name": "Book", "file_path": str(pdf), "type": "learning"}
+    ).json()["id"]
+
+    r = client.get(f"/projects/{pid}/tasks")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
 def test_delete_project(client: TestClient, todo_file: Path, pov_dir: Path):
     create = client.post("/projects", json={"name": "P", "file_path": str(todo_file)})
     project_id = create.json()["id"]

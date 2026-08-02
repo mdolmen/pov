@@ -58,10 +58,12 @@ class UpdateProjectRequest(BaseModel):
 
 
 def _count_tasks(file_path: Path) -> int:
+    # A tracked file is not always markdown — a PDF can be added as a learning
+    # project — and one undecodable file must not fail the whole list.
     try:
         text = file_path.read_text()
         return len(re.findall(r"^\s*- \[ \]", text, re.MULTILINE))
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return 0
 
 

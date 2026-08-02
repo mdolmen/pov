@@ -69,7 +69,7 @@ def parse_items(file_path: Path) -> list[Heading | Task]:
     """Return headings and tasks in document order."""
     try:
         lines = file_path.read_text().splitlines()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return []
 
     items: list[Heading | Task] = []
@@ -115,7 +115,7 @@ def toggle_line(file_path: Path, target_hash: str) -> bool:
     """Toggle the checkbox of the line matching target_hash. Returns True if found."""
     try:
         lines = file_path.read_text().splitlines(keepends=True)
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return False
 
     seen: dict[str, int] = {}
@@ -157,7 +157,7 @@ def toggle_cascade(file_path: Path, target_hash: str) -> bool:
 
     try:
         lines = file_path.read_text().splitlines(keepends=True)
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return False
 
     def _walk_hash(line: str, seen: dict[str, int]) -> str:
