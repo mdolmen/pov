@@ -1,8 +1,27 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { AddTimeModal } from "@/components/AddTimeModal";
 import { ProjectSettingsModal } from "@/components/ProjectSettingsModal";
+import { TimeHeatmap } from "@/components/TimeHeatmap";
 import { useTasks } from "@/hooks/useTasks";
 import type { HeadingItem, ListItem, Project, Subtask, Task } from "@/types";
+
+function readTimeVisible(projectId: string): boolean {
+  try {
+    const v = localStorage.getItem(`pov.time.${projectId}.visible`);
+    return v === null ? true : v === "1";
+  } catch {
+    return true;
+  }
+}
+
+function writeTimeVisible(projectId: string, visible: boolean) {
+  try {
+    localStorage.setItem(`pov.time.${projectId}.visible`, visible ? "1" : "0");
+  } catch {
+    // localStorage might not exist (e.g. private mode); silently ignore.
+  }
+}
 
 interface Props {
   project: Project;
@@ -204,6 +223,17 @@ function renderPendingItems(
 export function TaskList({ project, onBack, onProjectUpdated }: Props) {
   const { items, tasks, loading, toggle, select, unselect } = useTasks(project.id);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [addTimeOpen, setAddTimeOpen] = useState(false);
+  const [timeRefreshKey, setTimeRefreshKey] = useState(0);
+  const [timeVisible, setTimeVisible] = useState<boolean>(() => readTimeVisible(project.id));
+
+  const tracksTime = project.type === "learning";
+
+  function toggleTime() {
+    const next = !timeVisible;
+    setTimeVisible(next);
+    writeTimeVisible(project.id, next);
+  }
 
   const selected = tasks.filter((t) => t.is_selected && !t.is_done);
   const done = tasks.filter((t) => t.is_done);
@@ -326,6 +356,48 @@ export function TaskList({ project, onBack, onProjectUpdated }: Props) {
           </>
         )}
       </div>
+
+      {tracksTime && (
+        <div className="shrink-0 border-t" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
+          {timeVisible ? (
+            <div className="px-3 pt-2 pb-3">
+              <div className="flex justify-between items-center mb-1">
+                <button
+                  onClick={toggleTime}
+                  className="text-[10px] tracking-wide uppercase text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+                >
+                  Hide
+                </button>
+                <button
+                  onClick={() => setAddTimeOpen(true)}
+                  className="w-5 h-5 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors rounded cursor-pointer text-base leading-none pb-0.5"
+                  aria-label="Record time"
+                  title="Record time"
+                >
+                  +
+                </button>
+              </div>
+              <TimeHeatmap projectId={project.id} refreshKey={timeRefreshKey} />
+            </div>
+          ) : (
+            <div className="flex justify-end px-3 py-1.5">
+              <button
+                onClick={toggleTime}
+                className="text-[10px] tracking-wide uppercase text-stone-400 hover:text-stone-600 transition-colors cursor-pointer"
+              >
+                Show time
+              </button>
+            </div>
+          )}
+
+          <AddTimeModal
+            open={addTimeOpen}
+            projectId={project.id}
+            onClose={() => setAddTimeOpen(false)}
+            onRecorded={() => setTimeRefreshKey((k) => k + 1)}
+          />
+        </div>
+      )}
     </div>
   );
 }
