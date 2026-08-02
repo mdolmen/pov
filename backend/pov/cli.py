@@ -105,7 +105,10 @@ def main(argv: list[str] | None = None) -> int:
     p_add.add_argument("path", help="path to a TODO.md file")
     p_add.add_argument("--name", help="display name (default: file stem)")
     p_add.add_argument(
-        "--type", choices=("project", "learning"), default="project"
+        "--type",
+        choices=("project", "learning"),
+        default="project",
+        help="project kind (default: project)",
     )
     p_add.add_argument(
         "--status",
