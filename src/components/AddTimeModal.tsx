@@ -79,33 +79,34 @@ export function AddTimeModal({ open: isOpen, projectId, onClose, onRecorded }: P
         </DialogHeader>
 
         <div className="flex flex-col gap-3 pt-1">
-          <Input
-            type="date"
-            value={date}
-            max={todayKey()}
-            onChange={(e) => setDate(e.target.value)}
-            className="bg-white border-stone-200 text-sm text-stone-800 focus-visible:ring-stone-300"
-          />
-
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMinutes((m) => Math.max(STEP_MINUTES, m - STEP_MINUTES))}
-              disabled={minutes <= STEP_MINUTES}
-              className="w-8 h-8 rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 disabled:opacity-40 disabled:hover:border-stone-200 cursor-pointer text-base leading-none"
-              aria-label="Less time"
-            >
-              −
-            </button>
-            <span className="flex-1 text-center text-sm text-stone-800 tabular-nums">
+            <Input
+              type="date"
+              value={date}
+              max={todayKey()}
+              onChange={(e) => setDate(e.target.value)}
+              className="flex-1 bg-white border-stone-200 text-sm text-stone-800 focus-visible:ring-stone-300"
+            />
+            <span className="w-14 text-right text-sm text-stone-800 tabular-nums">
               {formatMinutes(minutes)}
             </span>
-            <button
-              onClick={() => setMinutes((m) => m + STEP_MINUTES)}
-              className="w-8 h-8 rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 cursor-pointer text-base leading-none"
-              aria-label="More time"
-            >
-              +
-            </button>
+            <div className="flex">
+              <button
+                onClick={() => setMinutes((m) => Math.max(STEP_MINUTES, m - STEP_MINUTES))}
+                disabled={minutes <= STEP_MINUTES}
+                className="w-8 h-9 rounded-l-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 disabled:opacity-40 disabled:hover:border-stone-200 cursor-pointer text-base leading-none"
+                aria-label="Less time"
+              >
+                −
+              </button>
+              <button
+                onClick={() => setMinutes((m) => m + STEP_MINUTES)}
+                className="w-8 h-9 -ml-px rounded-r-lg border border-stone-200 bg-white text-stone-600 hover:border-stone-300 cursor-pointer text-base leading-none"
+                aria-label="More time"
+              >
+                +
+              </button>
+            </div>
           </div>
 
           <Input
