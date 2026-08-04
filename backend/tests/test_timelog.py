@@ -102,6 +102,17 @@ def test_import_time_refuses_to_duplicate(cli_db: Path, tmp_path: Path, capsys: 
     assert count == 3
 
 
+def test_import_time_append_keeps_existing(cli_db: Path, tmp_path: Path):
+    _seed_project(tmp_path)
+    time_file = tmp_path / "TIME.md"
+    time_file.write_text(TABLE)
+    assert main(["import-time", "Maths", str(time_file)]) == 0
+
+    assert main(["import-time", "Maths", str(time_file), "--append"]) == 0
+    count = sqlite3.connect(cli_db).execute("SELECT COUNT(*) FROM time_entries").fetchone()[0]
+    assert count == 6
+
+
 def test_import_time_unknown_project(cli_db: Path, tmp_path: Path, capsys: pytest.CaptureFixture):
     time_file = tmp_path / "TIME.md"
     time_file.write_text(TABLE)

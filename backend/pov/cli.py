@@ -124,10 +124,10 @@ def cmd_import_time(args: argparse.Namespace) -> int:
         existing = db.execute(
             "SELECT COUNT(*) FROM time_entries WHERE project_id = ?", (project["id"],)
         ).fetchone()[0]
-        if existing and not args.replace:
+        if existing and not (args.replace or args.append):
             print(
                 f"error: {args.name!r} already has {existing} time entries; "
-                "pass --replace to overwrite",
+                "pass --append to keep them or --replace to overwrite",
                 file=sys.stderr,
             )
             return 1
@@ -174,10 +174,16 @@ def main(argv: list[str] | None = None) -> int:
     p_import = sub.add_parser("import-time", help="import a TIME.md file into a project")
     p_import.add_argument("name", help="exact project name")
     p_import.add_argument("path", help="path to a TIME.md file")
-    p_import.add_argument(
+    mode = p_import.add_mutually_exclusive_group()
+    mode.add_argument(
         "--replace",
         action="store_true",
         help="delete the project's existing time entries first",
+    )
+    mode.add_argument(
+        "--append",
+        action="store_true",
+        help="keep the project's existing time entries",
     )
     p_import.set_defaults(func=cmd_import_time)
 

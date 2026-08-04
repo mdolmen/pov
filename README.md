@@ -80,8 +80,8 @@ pov import-time "Maths" TIME.md   # import a time log into a project
 
 `import-time` reads a markdown table of `| DATE | TIME | TOPIC |` rows, where
 TIME is a number of hours (comma or dot separator), and records the entries
-against the project's time heatmap. It refuses to run twice unless given
-`--replace`.
+against the project's time heatmap. If the project already has time entries it
+refuses to run, unless given `--append` (keep them) or `--replace` (drop them).
 
 ## Data locations
 
