@@ -155,6 +155,9 @@ git source of truth — it lives in SQLite.
 - [x] Tests: day bucketing (several entries same day), empty window, minutes
   validation rejects non-multiples of 15 and non-positive values, unknown
   project 404, topic list ordering and de-duplication
+- [x] Fold recorded time into the project card activity level: the color band
+  takes the more recent of the file's git/mtime activity and the last
+  recorded time entry
 
 ### Frontend
 

@@ -8,6 +8,8 @@ from pov.storage import POV_DIR
 
 ActivityLevel = str  # "this_week" | "this_month" | "older" | "none"
 
+_LEVEL_RANK = {"none": 0, "older": 1, "this_month": 2, "this_week": 3}
+
 
 def _classify(dt: datetime | None) -> ActivityLevel:
     if dt is None:
@@ -42,6 +44,20 @@ def _mtime(file_path: Path) -> datetime | None:
         return datetime.fromtimestamp(ts, tz=timezone.utc)
     except OSError:
         return None
+
+
+def classify_day(iso_date: str) -> ActivityLevel:
+    """Classify a YYYY-MM-DD date, as recorded time entries store it."""
+    try:
+        day = datetime.fromisoformat(iso_date).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return "none"
+    return _classify(day)
+
+
+def most_recent(*levels: ActivityLevel) -> ActivityLevel:
+    """Return the level standing for the most recent activity."""
+    return max(levels, key=lambda level: _LEVEL_RANK.get(level, 0))
 
 
 def get_activity(file_path: Path, has_hardlink: bool) -> ActivityLevel:

@@ -1,7 +1,9 @@
 """Tests for /projects endpoints."""
 
 import json
+import os
 import subprocess
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -76,6 +78,34 @@ def test_list_projects_returns_metadata(client: TestClient, todo_file: Path):
     assert projects[0]["task_count"] == 2
     assert projects[0]["selected_count"] == 0
     assert projects[0]["activity"] in ("this_week", "this_month", "older", "none")
+
+
+def test_recorded_time_counts_as_activity(client: TestClient, tmp_path: Path):
+    """A stale file the user recorded time on today reads as active."""
+    pdf = tmp_path / "book.pdf"
+    pdf.write_bytes(b"%PDF-1.4\n\xe2\x28\xa1 binary\n")
+    old = (datetime.now(tz=timezone.utc) - timedelta(days=90)).timestamp()
+    os.utime(pdf, (old, old))
+
+    pid = client.post(
+        "/projects", json={"name": "Book", "file_path": str(pdf), "type": "learning"}
+    ).json()["id"]
+
+    with patch("pov.routers.projects.get_activity", return_value="older"):
+        assert client.get("/projects").json()[0]["activity"] == "older"
+
+        client.post(f"/projects/{pid}/time", json={"minutes": 60})
+        assert client.get("/projects").json()[0]["activity"] == "this_week"
+
+
+def test_recorded_time_does_not_downgrade_file_activity(client: TestClient, todo_file: Path):
+    """The most recent of the two signals wins."""
+    pid = client.post("/projects", json={"name": "P", "file_path": str(todo_file)}).json()["id"]
+    old_day = (date.today() - timedelta(days=200)).isoformat()
+    client.post(f"/projects/{pid}/time", json={"minutes": 60, "date": old_day})
+
+    with patch("pov.routers.projects.get_activity", return_value="this_week"):
+        assert client.get("/projects").json()[0]["activity"] == "this_week"
 
 
 def test_list_projects_tolerates_a_binary_file(client: TestClient, todo_file: Path, tmp_path: Path):

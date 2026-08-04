@@ -9,7 +9,7 @@ import aiosqlite
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from pov.activity import ActivityLevel, get_activity
+from pov.activity import ActivityLevel, classify_day, get_activity, most_recent
 from pov.db import get_db
 from pov.projects import (
     create_hardlink as _create_hardlink,
@@ -77,6 +77,16 @@ async def _row_to_response(row: aiosqlite.Row, db: aiosqlite.Connection) -> Proj
     )
     selected_count = (await cursor.fetchone())[0]
 
+    # Time recorded on a project counts as activity: reading a PDF or working
+    # off-file leaves no trace in git, but the user did work on it.
+    cursor = await db.execute(
+        "SELECT MAX(date) FROM time_entries WHERE project_id = ?", (project_id,)
+    )
+    last_time_entry = (await cursor.fetchone())[0]
+    activity = get_activity(file_path, has_hardlink)
+    if last_time_entry:
+        activity = most_recent(activity, classify_day(last_time_entry))
+
     return ProjectResponse(
         id=project_id,
         name=row["name"],
@@ -87,7 +97,7 @@ async def _row_to_response(row: aiosqlite.Row, db: aiosqlite.Connection) -> Proj
         has_hardlink=has_hardlink,
         task_count=_count_tasks(file_path),
         selected_count=selected_count,
-        activity=get_activity(file_path, has_hardlink),
+        activity=activity,
         paused_until=row["paused_until"] if "paused_until" in row.keys() else None,
     )
 
