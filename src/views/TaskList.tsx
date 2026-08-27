@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AddTimeModal } from "@/components/AddTimeModal";
+import { InlineMarkdown } from "@/components/InlineMarkdown";
 import { ProjectSettingsModal } from "@/components/ProjectSettingsModal";
 import { TimeHeatmap } from "@/components/TimeHeatmap";
 import { useTasks } from "@/hooks/useTasks";
@@ -65,7 +66,7 @@ function SubtaskRow({ subtask, onToggle }: { subtask: Subtask; onToggle: () => v
           textDecoration: subtask.checked ? "line-through" : "none",
         }}
       >
-        {subtask.text}
+        <InlineMarkdown text={subtask.text} />
       </span>
     </div>
   );
@@ -114,7 +115,7 @@ function TaskCard({
               textDecoration: done ? "line-through" : "none",
             }}
           >
-            {task.text}
+            <InlineMarkdown text={task.text} />
           </span>
           {!done && (
             <button
@@ -155,7 +156,7 @@ function HeadingLabel({ heading }: { heading: HeadingItem }) {
         className="text-[13px] font-semibold text-stone-700 mt-4 mb-1.5 px-1 first:mt-0"
         style={{ fontFeatureSettings: '"ss01"' }}
       >
-        {heading.text}
+        <InlineMarkdown text={heading.text} />
       </p>
     );
   }
@@ -164,7 +165,7 @@ function HeadingLabel({ heading }: { heading: HeadingItem }) {
       className="text-[11px] font-medium text-stone-400 mt-2.5 mb-1 px-1"
       style={{ fontFeatureSettings: '"ss01"' }}
     >
-      {heading.text}
+      <InlineMarkdown text={heading.text} />
     </p>
   );
 }
