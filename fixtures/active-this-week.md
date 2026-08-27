@@ -2,8 +2,8 @@
 
 ## API
 
-- [ ] Set up database schema
-- [ ] Add authentication endpoints
+- [ ] Set up database schema in `backend/pov/db.py`
+- [ ] Add authentication endpoints — **blocked** on the token spec
 - [x] Implement rate limiting
 - [ ] Add request logging middleware 0
 - [ ] Add request logging middleware 1
@@ -15,9 +15,9 @@
 
 ### Get something
 
-- [ ] Define the API
+- [ ] Define the API — see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)
 - [ ] Implement
-    - [ ] Sub implement 0
+    - [ ] Sub implement 0 — reuse `parse_items()`
     - [ ] Sub implement 1
     - [ ] Sub implement 2
 - [ ] Test
@@ -26,8 +26,14 @@
 
 - [x] Create login page
 - [ ] Build user dashboard
-- [ ] Add error boundaries
-- [ ] Write integration tests
+- [ ] Add error boundaries around `<TaskList />`
+- [ ] Write *integration* tests
+
+## Rendering `InlineMarkdown`
+
+- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer
+- [ ] Keep a literal \*asterisk\* unformatted in task text
+- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark
 
 ## Done (older)
 
