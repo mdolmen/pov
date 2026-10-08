@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Heatmap, windowDays } from "@/components/Heatmap";
-import { apiFetch } from "@/lib/backend";
-
-interface Day {
-  date: string; // YYYY-MM-DD
-  count: number;
-}
+import { listActivity } from "@/lib/backend";
 
 interface Props {
   type: "project" | "learning";
@@ -29,12 +24,13 @@ export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const r = await apiFetch(`/activity?type=${type}&days=${queryDays}`);
-      if (!r.ok) {
+      let rows;
+      try {
+        rows = await listActivity(type, queryDays);
+      } catch {
         if (!cancelled) setLoading(false);
         return;
       }
-      const rows: Day[] = await r.json();
       if (cancelled) return;
       const map: Record<string, number> = {};
       for (const row of rows) map[row.date] = row.count;

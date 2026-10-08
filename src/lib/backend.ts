@@ -1,5 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ListItem, Project, Status, SubStatus, Task, TimeDay, TimeEntry } from "@/types";
+import type {
+  ActivityDay,
+  ListItem,
+  Project,
+  Status,
+  SubStatus,
+  Task,
+  TimeDay,
+  TimeEntry,
+} from "@/types";
 
 let baseUrl: string | null = null;
 
@@ -71,3 +80,6 @@ export const addTime = (
 
 export const listTopics = (projectId: string) =>
   call<string[]>("list_topics", { project_id: projectId });
+
+export const listActivity = (type: "project" | "learning", days: number) =>
+  call<ActivityDay[]>("activity", { type, days });

@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::projects::{self, NewProject, ProjectUpdate};
-use crate::{Error, Paths, Result, db, tasks, timelog};
+use crate::{Error, Paths, Result, activity, db, tasks, timelog};
 
 #[derive(Deserialize)]
 struct ProjectArgs {
@@ -68,6 +68,14 @@ struct ListTimeArgs {
 
 fn default_days() -> u64 {
     120
+}
+
+#[derive(Deserialize)]
+struct ActivityArgs {
+    #[serde(rename = "type")]
+    project_type: String,
+    #[serde(default = "default_days")]
+    days: u64,
 }
 
 #[derive(Deserialize)]
@@ -150,6 +158,10 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
         "list_topics" => {
             let a: ProjectArgs = parse(args)?;
             json(timelog::topics(&conn, &a.project_id)?)
+        }
+        "activity" => {
+            let a: ActivityArgs = parse(args)?;
+            json(activity::heatmap(&conn, paths, &a.project_type, a.days)?)
         }
         "remove_project" => {
             let a: ProjectArgs = parse(args)?;
