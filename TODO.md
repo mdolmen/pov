@@ -343,9 +343,9 @@ before the Phase 13 Commands block as its safety net.
 - [x] Project list: counts, tabs, ordering, archived section, empty state
 - [x] Sidebar: open/close, open/archived filters per tab, settings link
 - [x] Task list: headings and tasks, back to the right tab, markdown links, open in editor
-- [ ] Toggle task: moves to Done, file updated, activity commit, untoggle
-- [ ] Subtasks: single toggle, last subtask completes parent, parent cascade
-- [ ] Next tasks: select with "+" and double-click, unselect, done unselects, card count,
+- [x] Toggle task: moves to Done, file updated, activity commit, untoggle
+- [x] Subtasks: single toggle, last subtask completes parent, parent cascade
+- [x] Next tasks: select with "+" and double-click, unselect, done unselects, card count,
   cleanup
 - [ ] Add project: dialog, name from folder, hardlink + commit, learning tab, archived status
 - [ ] Project settings: rename, pause date, archive, delete with confirmation

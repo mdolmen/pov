@@ -51,8 +51,10 @@ export default async function setup(project: TestProject) {
   project.provide("backendPort", port);
   project.provide("povHome", home);
 
-  return () => {
+  return async () => {
+    const exited = new Promise((done) => backend.once("exit", done));
     backend.kill();
+    await exited;
     rmSync(home, { recursive: true, force: true });
   };
 }

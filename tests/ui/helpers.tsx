@@ -135,3 +135,20 @@ export function doneSection() {
   const label = screen.queryByText("Done", { selector: "p" });
   return label ? within(label.nextElementSibling as HTMLElement) : null;
 }
+
+/** The checkbox of a task or subtask, found by its text. */
+export function checkbox(text: string): HTMLElement {
+  return screen.getByText(text).previousElementSibling as HTMLElement;
+}
+
+/** The hover "+" / "×" button of a pending task, found by its text. */
+export function nextButton(text: string): HTMLElement {
+  return screen.getByText(text).nextElementSibling as HTMLElement;
+}
+
+/** Text positions in the page, to check display order. */
+export function inOrder(...texts: string[]): boolean {
+  const body = document.body.textContent ?? "";
+  const positions = texts.map((t) => body.indexOf(t));
+  return positions.every((p, i) => p >= 0 && (i === 0 || p > positions[i - 1]));
+}
