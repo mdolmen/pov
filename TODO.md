@@ -341,8 +341,8 @@ before the Phase 13 Commands block as its safety net.
 
 - [x] Setup: Vitest + jsdom, backend on a temp `HOME`, Tauri IPC mocks
 - [x] Project list: counts, tabs, ordering, archived section, empty state
-- [ ] Sidebar: open/close, open/archived filters per tab, settings link
-- [ ] Task list: headings and tasks, back to the right tab, markdown links, open in editor
+- [x] Sidebar: open/close, open/archived filters per tab, settings link
+- [x] Task list: headings and tasks, back to the right tab, markdown links, open in editor
 - [ ] Toggle task: moves to Done, file updated, activity commit, untoggle
 - [ ] Subtasks: single toggle, last subtask completes parent, parent cascade
 - [ ] Next tasks: select with "+" and double-click, unselect, done unselects, card count,
