@@ -186,9 +186,164 @@ git source of truth — it lives in SQLite.
   import guard, unknown project
 - [x] `dev/seed.py` seeds `debug/TIME.md` into the Maths learning project
 
+## Phase 11 — Queue stage
+
+Task list goes from three piles (next / backlog / done) to four:
+next → queue → backlog → done. "Queue" = committed to, but not yet
+next. Same left-band visual cue as "next", in amber instead of violet.
+A task is in at most one stage; both stages live in the existing
+`selected_tasks` table, so done-task cleanup and project deletion
+cascade cover both for free.
+
+### Backend
+
+- [ ] `selected_tasks.stage` column (`TEXT NOT NULL DEFAULT 'next'`,
+  `'next' | 'queue'`), added via the `PRAGMA table_info` migration in
+  `init_db` (existing rows become `next`)
+- [ ] `TaskResponse.is_queued: bool`; `is_selected` now means
+  `stage = 'next'` only
+- [ ] `POST /projects/:id/tasks/:hash/select` upserts `stage = 'next'`
+  (moves a queued task up)
+- [ ] `POST /projects/:id/tasks/:hash/queue` upserts `stage = 'queue'`;
+  `DELETE /projects/:id/tasks/:hash/queue` removes the row
+- [ ] `ProjectResponse.queued_count`; `selected_count` counts `next` only
+- [ ] Tests: migration keeps existing rows as `next`, select ↔ queue
+  moves (never two rows), unqueue, counts per stage, `/tasks/cleanup`
+  removes done queued tasks
+
+### Frontend
+
+- [ ] `Task.is_queued`, `Project.queued_count` in `types.ts`;
+  `queue` / `unqueue` in `useTasks` with the same optimistic update
+  pattern as `select`
+- [ ] `QUEUED_BAND = "#f59e0b"` (amber) left band in `TaskCard`
+- [ ] Queue section between "next" and backlog in `TaskList`, separated by
+  a `Divider`; `renderPendingItems` skips queued tasks like selected ones
+- [ ] Hover actions: backlog task gets "+" (→ next) and a second icon
+  (→ queue); queued task gets "↑" (→ next) and "×" (→ backlog); next
+  task keeps "×". Double-click stays backlog ↔ next
+- [ ] `ProjectCard`: queued count shown muted (stone-400, regular weight)
+  left of the bold next count; project ordering unchanged (next count)
+
+## Phase 12 — MCP server
+
+Let external tools (Claude Code, other MCP clients) add tasks to a
+tracked project. Runs as a stdio MCP server spawned by the client via the
+CLI (`pov mcp`), independent of the app being open. It writes the
+TODO.md through the hardlink, so the watcher commits it like any external
+edit, and writes stages straight to `pov.db` like the CLI does.
+
+### Core
+
+- [ ] `append_task(file_path, text, heading=None) -> str` in
+  `pov/tasks.py`: append `- [ ] <text>` at the end of the section under
+  `heading` (exact heading text match), or at end of file when `None`;
+  returns the new task's hash. Reject empty / multi-line text and unknown
+  headings (`ValueError`)
+- [ ] Tests: append to end of file, append inside a section followed by
+  another heading, trailing-newline handling, duplicate text gets a
+  distinct hash (occurrence counter), unknown heading rejected
+
+### Server
+
+- [ ] Add the `mcp` Python SDK dependency; `pov/mcp_server.py` built with
+  `FastMCP`
+- [ ] Tool `list_projects()` — id, name, type, status, task / next /
+  queued counts (open projects first)
+- [ ] Tool `list_sections(project)` — headings of the project's TODO.md,
+  so the client can target one
+- [ ] Tool `add_task(project, text, section=None, stage="backlog")` —
+  `stage` ∈ `backlog | queue | next`; `project` matches by id or
+  case-insensitive name, error listing candidates on miss / ambiguity;
+  returns the task hash
+- [ ] `pov mcp` subcommand in `cli.py` runs the server over stdio
+- [ ] Tests: each tool against a temp `POV_DIR` (unknown project,
+  ambiguous name, stage persisted in `selected_tasks`, section targeting)
+
+### Integration
+
+- [ ] Refetch tasks / projects on window focus so tasks added while the
+  app is open show up without navigating away
+- [ ] README: how to register the server
+  (`claude mcp add pov -- pov mcp`, generic JSON config for other clients)
+- [ ] Check the PyInstaller bundle still builds with the `mcp` dependency
+  (the CLI symlink points into the bundle)
+
+## Phase 13 — Port the backend to Rust
+
+Replace the Python sidecar (FastAPI + PyInstaller) with Rust inside the
+existing Tauri crate, for longevity, stability and startup/memory. The
+React frontend stays; HTTP routes become Tauri commands, so the
+localhost port goes away (no more `CORS *` with no auth, no port race, no
+orphaned backend, no `--onefile` unpack at launch). Same `pov.db` schema
+and `~/.local/share/pov/` layout, so there is no data migration. Ports
+whatever Python exists at the time, so Phases 11 and 12 included if
+they land first. Every commit leaves the app working: Python keeps
+serving the routes not yet ported.
+
+### Guidelines
+
+- [ ] Edit `CLAUDE.md`: add a "Rust style" section next to "Python style"
+  (removed at the end of this phase):
+  - [ ] `cargo fmt` and `cargo clippy -- -D warnings` clean on every commit
+  - [ ] Errors: `thiserror` enum in the core, `anyhow` only in the CLI binary commands return `Result<T, String>` mapped at the boundary; no `unwrap()` / `expect()` outside tests and startup invariants
+  - [ ] Core logic in plain functions over `&Connection` / `&Path`, no Tauri types, so the app, the CLI and tests share it; Tauri commands are thin wrappers
+  - [ ] `serde` structs mirror `types.ts` field names (`#[serde(rename_all)]` only when needed); one struct per response shape
+  - [ ] Prefer owned, simple types (`String`, `Vec`, `PathBuf`) over lifetime and generics until profiling says otherwise; no `unsafe`
+  - [ ] Sync code (`rusqlite`, `std::process`) run via `tauri::async_runtime::spawn_blocking` from commands; no async runtime in the core
+  - [ ] Few, boring dependencies; `Cargo.lock` committed; pin the edition and `rust-version`
+  - [ ] Tests next to the code (`#[cfg(test)] mod tests`), real SQLite in a `tempfile::TempDir`, no mocks — same rule as the Python suite
+  - [ ] `///` doc comments on public items; naming per Rust API guidelines
+
+### Safety net
+
+- [ ] Golden outputs: script that runs each Python endpoint against
+  `fixtures/` and saves the JSON; the Rust tests assert the same output
+- [ ] Port the pytest cases first, as failing Rust tests, router by router
+
+### Core (`src-tauri/src/core/`)
+
+- [ ] `storage`: data dir (`pov-dev` under `cfg(debug_assertions)` or
+  `POV_ENV=dev`), folder + config + git repo init
+- [ ] `db`: `rusqlite` (bundled), schema + `PRAGMA table_info` migrations,
+  `foreign_keys = ON` on every connection
+- [ ] `tasks`: parser + `task_hash` byte-identical to Python (sha256 of
+  the normalized line, first 16 hex, `\x00#n` occurrence suffix). Mind
+  `str.splitlines()` vs `lines()` (`\x0c`, `\x1c`, ``...) and the
+  non-UTF-8 → empty list fallback
+- [ ] Test: hashes equal the Python ones on every fixture, including
+  duplicate lines and odd line separators
+- [ ] `projects` (hardlink + fallback, config.json), `activity` (`git`
+  subprocess, mtime fallback), `timelog` (TIME.md parser)
+- [ ] `watcher`: `notify` crate on `projects/` and `learning/`, `.md`
+  modify → `git add` + `git commit`; started in Tauri `setup`
+
+### Commands (one commit per router, frontend switched in the same commit)
+
+- [ ] tasks → projects → timelog → activity as `#[tauri::command]`s
+- [ ] Frontend: replace `apiFetch` calls (14, in hooks and modals) with
+  typed `invoke` wrappers in `src/lib/backend.ts`
+- [ ] Remove the sidecar: `main.py` spawn in `lib.rs`, `get_backend_port`,
+  `tauri-plugin-shell` + `shell:*` capabilities, `externalBin`
+
+### CLI
+
+- [ ] `pov` as a second binary in the crate (`src/bin/pov.rs`, `clap`):
+  `add`, `list`, `remove`, `import-time` (+ `mcp` via `rmcp` if Phase 12
+  is done), same flags and output as today
+- [ ] Test: CLI cases from `test_cli.py`
+- [ ] Bundle it next to the app executable; `install_cli` unchanged
+
+### Cleanup
+
+- [ ] Delete `backend/`, `build.py`, `beforeBuildCommand` Python step
+- [ ] README: prerequisites (no uv), dev, test (`cargo test`), build
+- [ ] `CLAUDE.md`: drop the Python style section
+- [ ] Check cold launch time, memory and `.dmg` size before / after
+
 ## Maintenance
 
-- [ ] Fix `pov add`, returns 128
+- [x] Fix `pov add`, returns 128
 
 ## Post-MVP
 
