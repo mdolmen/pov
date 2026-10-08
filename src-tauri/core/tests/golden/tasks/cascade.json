@@ -71,7 +71,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 5,
+ "count_tasks": 4,
  "toggles": {
   "a686f0f26546b334": "- [x] partial\n  - [x] a\n  - [x] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
   "15fd1e57b167375c": "- [ ] partial\n  - [ ] a\n  - [ ] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",

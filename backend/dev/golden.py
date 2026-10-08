@@ -154,6 +154,7 @@ def _tasks_golden(data: bytes, work: Path) -> dict:
     path = work / "TODO.md"
     path.write_bytes(data)
     items = parse_items(path)
+    count = _count_tasks(path)
     hashes = [
         h
         for item in items
@@ -168,7 +169,7 @@ def _tasks_golden(data: bytes, work: Path) -> dict:
     return {
         **_input_json(data),
         "items": [_item_json(i) for i in items],
-        "count_tasks": _count_tasks(path),
+        "count_tasks": count,
         "toggles": toggles,
     }
 

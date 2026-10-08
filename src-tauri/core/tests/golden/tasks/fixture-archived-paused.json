@@ -52,7 +52,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 2,
+ "count_tasks": 3,
  "toggles": {
   "6a9b0d0f7347a3c6": "# Mobile App\n\n- [ ] Design wireframes\n- [x] Set up project structure\n- [ ] Implement navigation\n- [ ] Build onboarding flow\n- [ ] Connect to backend API\n",
   "c71fc41788bb99cd": "# Mobile App\n\n- [x] Design wireframes\n- [ ] Set up project structure\n- [ ] Implement navigation\n- [ ] Build onboarding flow\n- [ ] Connect to backend API\n",

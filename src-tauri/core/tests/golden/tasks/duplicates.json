@@ -58,7 +58,7 @@
    ]
   }
  ],
- "count_tasks": 4,
+ "count_tasks": 6,
  "toggles": {
   "79f9bfe627d0f1a0": "- [x] same\n- [x] same\n- [ ] parent\n  - [ ] same\n  - [ ] child\n- [ ] parent\n  - [ ] child\n",
   "9a279b2499034527": "- [ ] same\n- [ ] same\n- [ ] parent\n  - [ ] same\n  - [ ] child\n- [ ] parent\n  - [ ] child\n",

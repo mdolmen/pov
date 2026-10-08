@@ -52,7 +52,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 1,
+ "count_tasks": 2,
  "toggles": {
   "a368c9075f1f1d6b": "# Research\n\n- [ ] Read intro papers\n- [ ] Set up experiment environment\n- [x] Run baseline experiments\n- [x] Analyze results\n- [ ] Write summary\n",
   "659d48df8b2aa46e": "# Research\n\n- [x] Read intro papers\n- [x] Set up experiment environment\n- [x] Run baseline experiments\n- [x] Analyze results\n- [ ] Write summary\n",

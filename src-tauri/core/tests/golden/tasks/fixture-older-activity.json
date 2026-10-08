@@ -61,7 +61,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 5,
+ "count_tasks": 4,
  "toggles": {
   "f0bfa55ca3c3552c": "# Legacy Refactor\n\n- [x] Audit existing codebase\n- [ ] Document current architecture\n- [x] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [x] Update dependencies\n",
   "817d898d37eef71c": "# Legacy Refactor\n\n- [ ] Audit existing codebase\n- [x] Document current architecture\n- [x] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [x] Update dependencies\n",

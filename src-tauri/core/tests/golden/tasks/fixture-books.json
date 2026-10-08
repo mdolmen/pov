@@ -52,7 +52,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 2,
+ "count_tasks": 3,
  "toggles": {
   "6960fa03e92a6cdd": "# Books\n\n- [ ] The Pragmatic Programmer\n- [x] Designing Data-Intensive Applications\n- [ ] Structure and Interpretation of Computer Programs\n- [ ] The Art of Problem Solving vol. 1\n- [ ] G\u00f6del, Escher, Bach\n",
   "7d41ef85e91dd47c": "# Books\n\n- [x] The Pragmatic Programmer\n- [ ] Designing Data-Intensive Applications\n- [ ] Structure and Interpretation of Computer Programs\n- [ ] The Art of Problem Solving vol. 1\n- [ ] G\u00f6del, Escher, Bach\n",

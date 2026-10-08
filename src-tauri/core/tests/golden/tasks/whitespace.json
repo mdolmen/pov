@@ -56,7 +56,7 @@
    "level": 3
   }
  ],
- "count_tasks": 6,
+ "count_tasks": 5,
  "toggles": {
   "9d5cd02f4e5f2d13": "- [x] trailing spaces   \n- [ ] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [ ] parent\n\t- [ ] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",
   "18b423493e5075df": "- [ ] trailing spaces   \n- [x] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [ ] parent\n\t- [ ] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",

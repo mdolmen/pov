@@ -65,7 +65,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 5,
+ "count_tasks": 6,
  "toggles": {
   "c7a4143f26f14964": "- [x] form\ffeed\n- [ ] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",
   "a85794047d6c3dbb": "- [ ] form\ffeed\n- [x] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",

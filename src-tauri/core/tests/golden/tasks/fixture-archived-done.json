@@ -43,7 +43,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 1,
+ "count_tasks": 0,
  "toggles": {
   "4c0f962c046af160": "# Website Redesign\n\n- [ ] Define design system\n- [x] Create mockups\n- [x] Implement landing page\n- [x] Review and sign off\n",
   "05f3b2d8ed6f459d": "# Website Redesign\n\n- [x] Define design system\n- [ ] Create mockups\n- [x] Implement landing page\n- [x] Review and sign off\n",

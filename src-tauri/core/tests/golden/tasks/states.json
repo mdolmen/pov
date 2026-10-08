@@ -51,7 +51,7 @@
    ]
   }
  ],
- "count_tasks": 2,
+ "count_tasks": 3,
  "toggles": {
   "780df28fb8ce81d7": "- [ ] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [X] upper sub\n  - [-] dash sub\n",
   "517d46d076ae413b": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [X] upper sub\n  - [-] dash sub\n",

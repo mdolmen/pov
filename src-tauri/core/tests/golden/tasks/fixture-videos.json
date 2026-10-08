@@ -43,7 +43,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 2,
+ "count_tasks": 3,
  "toggles": {
   "565e238706c745a4": "# Videos\n\n- [ ] 3Blue1Brown \u2014 Essence of Linear Algebra\n- [ ] Andrej Karpathy \u2014 Neural Networks: Zero to Hero\n- [ ] MIT 6.006 Introduction to Algorithms\n- [ ] Stanford CS231n Lecture series\n",
   "66a5fb66e9515e0f": "# Videos\n\n- [x] 3Blue1Brown \u2014 Essence of Linear Algebra\n- [x] Andrej Karpathy \u2014 Neural Networks: Zero to Hero\n- [ ] MIT 6.006 Introduction to Algorithms\n- [ ] Stanford CS231n Lecture series\n",

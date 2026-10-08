@@ -52,7 +52,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 2,
+ "count_tasks": 3,
  "toggles": {
   "b262122785f363a7": "# Papers\n\n- [ ] Attention Is All You Need\n- [x] RLHF \u2014 Ouyang et al. 2022\n- [ ] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [ ] **Scaling Laws** for Neural Language Models\n- [ ] Chain-of-Thought Prompting \u2014 *re-read section 3*\n",
   "0776efc7d032971f": "# Papers\n\n- [x] Attention Is All You Need\n- [ ] RLHF \u2014 Ouyang et al. 2022\n- [ ] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [ ] **Scaling Laws** for Neural Language Models\n- [ ] Chain-of-Thought Prompting \u2014 *re-read section 3*\n",
