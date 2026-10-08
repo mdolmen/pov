@@ -41,3 +41,13 @@
   - Rust startup (storage, db, watcher) is covered by a separate launch smoke test.
   - Once routes become Tauri commands, the tests reach them through a test-only bridge.
 - **Plan:** written now, before the Phase 13 Commands block, as its safety net.
+
+## 2026-10-08 — One command dispatch shared by the app and the UI tests
+
+- **Decision:** `pov-core::api::dispatch(paths, cmd, args)` maps a command name and JSON args
+  to a core call. The app exposes it as a single `api` Tauri command; the UI tests reach it
+  through `pov-bridge`, a test-only HTTP server behind the `bridge` feature.
+- **Why:** the tests run the same command table as the app, so a route can't work in tests and
+  be missing or wired differently in the app.
+- **Constraints:** the frontend calls typed wrappers in `src/lib/backend.ts`, never
+  `invoke("api")` directly; `pov-bridge` never ships.

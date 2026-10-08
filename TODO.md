@@ -313,11 +313,14 @@ See DECISIONS.md (2026-10-08).
 
 ### Commands (one commit per router, frontend switched in the same commit)
 
-- [ ] tasks → projects → timelog → activity as `#[tauri::command]`s
+- [ ] `pov-core::api::dispatch` + a single `api` Tauri command; test-only HTTP bridge
+  (`pov-bridge`) so the UI tests call the same dispatch
+- [ ] tasks → projects → timelog → activity through the dispatch
 - [ ] Frontend: replace `apiFetch` calls (14, in hooks and modals) with
-  typed `invoke` wrappers in `src/lib/backend.ts`
-- [ ] Remove the sidecar: `main.py` spawn in `lib.rs`, `get_backend_port`,
-  `tauri-plugin-shell` + `shell:*` capabilities, `externalBin`
+  typed wrappers over `invoke("api")` in `src/lib/backend.ts`
+- [ ] Remove the Python server: sidecar spawn, `get_backend_port`, `tauri-plugin-shell` +
+  `shell:*` capabilities, `pov-backend` in `externalBin`, `main.py` and the routers (the
+  Python CLI stays until the CLI block)
 
 ### CLI
 
