@@ -8,12 +8,20 @@ pub enum Error {
     Io(#[from] io::Error),
     #[error(transparent)]
     Sqlite(#[from] rusqlite::Error),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
     #[error("git {args}: {stderr}")]
     Git { args: String, stderr: String },
     #[error("{0} not found")]
     NotFound(&'static str),
     #[error("{0}")]
     Invalid(String),
+    #[error("file not found: {}", .0.display())]
+    FileNotFound(PathBuf),
+    #[error("already tracked: {}", .0.display())]
+    ProjectExists(PathBuf),
+    #[error("multiple projects named '{0}'")]
+    AmbiguousProject(String),
     #[error("{}:{line}: {msg}", path.display())]
     TimeLogParse {
         path: PathBuf,
