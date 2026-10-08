@@ -349,9 +349,9 @@ before the Phase 13 Commands block as its safety net.
   cleanup
 - [x] Add project: dialog, name from folder, hardlink + commit, learning tab, archived status
 - [x] Project settings: rename, pause date, archive, delete with confirmation
-- [ ] Activity heatmap: per-day counts, hide/show per tab
-- [ ] Time tracking: stepper, record time, topic suggestions, activity, hide/show per project
-- [ ] Settings: install CLI, already installed, install error
+- [x] Activity heatmap: per-day counts, hide/show per tab
+- [x] Time tracking: stepper, record time, topic suggestions, activity, hide/show per project
+- [x] Settings: install CLI, already installed, install error
 - [ ] Smoke test: launch the real app, Rust storage init and watcher commit
 
 ## Maintenance

@@ -174,3 +174,14 @@ export async function showArchived(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getAllByRole("button", { name: "Archived" })[0]);
   await user.click(screen.getByRole("button", { name: "Menu" }));
 }
+
+export async function toggleTask(projectId: string, hash: string) {
+  await api(`/projects/${projectId}/tasks/${hash}`, { method: "PATCH" });
+}
+
+export function daysAgo(n: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  const pad = (v: number) => String(v).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
