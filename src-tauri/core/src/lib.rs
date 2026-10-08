@@ -1,0 +1,11 @@
+//! pov domain logic: storage, database, TODO.md parsing, activity and time tracking.
+//!
+//! No Tauri types here, so the app, the CLI and tests share it.
+
+pub mod error;
+pub mod git;
+pub mod paths;
+pub mod storage;
+
+pub use error::{Error, Result};
+pub use paths::Paths;
