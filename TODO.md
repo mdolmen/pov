@@ -275,17 +275,17 @@ See DECISIONS.md (2026-10-08).
 
 ### Guidelines
 
-- [ ] Edit `CLAUDE.md`: add a "Rust style" section next to "Python style"
+- [x] Edit `CLAUDE.md`: add a "Rust style" section next to "Python style"
   (removed at the end of this phase):
-  - [ ] `cargo fmt` and `cargo clippy -- -D warnings` clean on every commit
-  - [ ] Errors: `thiserror` enum in the core, `anyhow` only in the CLI binary commands return `Result<T, String>` mapped at the boundary; no `unwrap()` / `expect()` outside tests and startup invariants
-  - [ ] Core logic in plain functions over `&Connection` / `&Path`, no Tauri types, so the app, the CLI and tests share it; Tauri commands are thin wrappers
-  - [ ] `serde` structs mirror `types.ts` field names (`#[serde(rename_all)]` only when needed); one struct per response shape
-  - [ ] Prefer owned, simple types (`String`, `Vec`, `PathBuf`) over lifetime and generics until profiling says otherwise; no `unsafe`
-  - [ ] Sync code (`rusqlite`, `std::process`) run via `tauri::async_runtime::spawn_blocking` from commands; no async runtime in the core
-  - [ ] Few, boring dependencies; `Cargo.lock` committed; pin the edition and `rust-version`
-  - [ ] Tests next to the code (`#[cfg(test)] mod tests`), real SQLite in a `tempfile::TempDir`, no mocks — same rule as the Python suite
-  - [ ] `///` doc comments on public items; naming per Rust API guidelines
+  - [x] `cargo fmt` and `cargo clippy -- -D warnings` clean on every commit
+  - [x] Errors: `thiserror` enum in the core, `anyhow` only in the CLI binary commands return `Result<T, String>` mapped at the boundary; no `unwrap()` / `expect()` outside tests and startup invariants
+  - [x] Core logic in plain functions over `&Connection` / `&Path`, no Tauri types, so the app, the CLI and tests share it; Tauri commands are thin wrappers
+  - [x] `serde` structs mirror `types.ts` field names (`#[serde(rename_all)]` only when needed); one struct per response shape
+  - [x] Prefer owned, simple types (`String`, `Vec`, `PathBuf`) over lifetime and generics until profiling says otherwise; no `unsafe`
+  - [x] Sync code (`rusqlite`, `std::process`) run via `tauri::async_runtime::spawn_blocking` from commands; no async runtime in the core
+  - [x] Few, boring dependencies; `Cargo.lock` committed; pin the edition and `rust-version`
+  - [x] Tests next to the code (`#[cfg(test)] mod tests`), real SQLite in a `tempfile::TempDir`, no mocks — same rule as the Python suite
+  - [x] `///` doc comments on public items; naming per Rust API guidelines
 
 ### Safety net
 
