@@ -6,12 +6,12 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use regex::Regex;
-use rusqlite::{Connection, OptionalExtension};
+use rusqlite::Connection;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::pyline::{read_text, rstrip, split_lines, split_lines_keep_ends, strip};
-use crate::{Error, Paths, Result, git};
+use crate::{Error, Paths, Result, git, projects};
 
 // `[\s\x1c-\x1f]` is Python's `\s`: Rust's `\s` lacks the `\x1c`-`\x1f` separators.
 static CHECKBOX_RE: LazyLock<Regex> =
@@ -263,16 +263,6 @@ pub fn toggle_cascade(path: &Path, target: &str) -> Result<bool> {
     Ok(true)
 }
 
-fn project_file(conn: &Connection, project_id: &str) -> Result<(PathBuf, String)> {
-    conn.query_row(
-        "SELECT file_path, type FROM projects WHERE id = ?",
-        [project_id],
-        |row| Ok((PathBuf::from(row.get::<_, String>(0)?), row.get(1)?)),
-    )
-    .optional()?
-    .ok_or(Error::NotFound("project"))
-}
-
 fn selected_hashes(conn: &Connection, project_id: &str) -> Result<HashSet<String>> {
     let mut stmt = conn.prepare("SELECT task_hash FROM selected_tasks WHERE project_id = ?")?;
     let hashes = stmt.query_map([project_id], |row| row.get(0))?;
@@ -293,7 +283,7 @@ fn view(task: Task, selected: &HashSet<String>) -> TaskView {
 
 /// Lists a project's headings and tasks, with their selection state.
 pub fn list(conn: &Connection, project_id: &str) -> Result<Vec<ListItem>> {
-    let (file_path, _) = project_file(conn, project_id)?;
+    let (file_path, _) = projects::file_and_type(conn, project_id)?;
     let selected = selected_hashes(conn, project_id)?;
     Ok(parse_items(&file_path)
         .into_iter()
@@ -312,7 +302,7 @@ pub fn toggle(
     project_id: &str,
     task_hash: &str,
 ) -> Result<TaskView> {
-    let (file_path, project_type) = project_file(conn, project_id)?;
+    let (file_path, project_type) = projects::file_and_type(conn, project_id)?;
     if !toggle_cascade(&file_path, task_hash)? {
         return Err(Error::NotFound("task"));
     }
@@ -347,7 +337,7 @@ pub fn toggle(
 
 /// Marks a task as selected ("next"). Selecting twice is a no-op.
 pub fn select(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
-    project_file(conn, project_id)?;
+    projects::file_and_type(conn, project_id)?;
     conn.execute(
         "INSERT OR IGNORE INTO selected_tasks (project_id, task_hash) VALUES (?, ?)",
         [project_id, task_hash],
@@ -357,7 +347,7 @@ pub fn select(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()
 
 /// Removes a task from the selection.
 pub fn unselect(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
-    project_file(conn, project_id)?;
+    projects::file_and_type(conn, project_id)?;
     conn.execute(
         "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
         [project_id, task_hash],

@@ -2,15 +2,20 @@
 //! the Python backend stored.
 
 use std::fs;
+use std::io;
 use std::path::Path;
 
 /// Reads a file like Python's `Path.read_text()`: UTF-8, with `\r\n` and `\r` turned into `\n`.
 ///
 /// Returns `None` when the file can't be read or isn't valid UTF-8.
 pub fn read_text(path: &Path) -> Option<String> {
-    let bytes = fs::read(path).ok()?;
-    let text = String::from_utf8(bytes).ok()?;
-    Some(text.replace("\r\n", "\n").replace('\r', "\n"))
+    read_text_strict(path).ok()
+}
+
+/// Like [`read_text`], returning why the file couldn't be read.
+pub fn read_text_strict(path: &Path) -> io::Result<String> {
+    let text = fs::read_to_string(path)?;
+    Ok(text.replace("\r\n", "\n").replace('\r', "\n"))
 }
 
 /// Python's `str.isspace()`: Rust's whitespace plus the `\x1c`–`\x1f` separators.

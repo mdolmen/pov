@@ -1,4 +1,5 @@
 use std::io;
+use std::path::PathBuf;
 
 /// Errors raised by pov-core.
 #[derive(Debug, thiserror::Error)]
@@ -11,6 +12,14 @@ pub enum Error {
     Git { args: String, stderr: String },
     #[error("{0} not found")]
     NotFound(&'static str),
+    #[error("{0}")]
+    Invalid(String),
+    #[error("{}:{line}: {msg}", path.display())]
+    TimeLogParse {
+        path: PathBuf,
+        line: usize,
+        msg: String,
+    },
     #[error("HOME is not set")]
     NoHome,
 }

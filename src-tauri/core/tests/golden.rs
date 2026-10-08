@@ -3,7 +3,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use pov_core::Error;
 use pov_core::tasks::{self, Item};
+use pov_core::timelog;
 use serde_json::{Value, json};
 
 fn goldens(kind: &str) -> Vec<(String, Value)> {
@@ -81,6 +83,23 @@ fn tasks_match_python() {
             );
             let actual = fs::read_to_string(&path).unwrap();
             assert_eq!(actual, expected.as_str().unwrap(), "{name}: toggle {hash}");
+        }
+    }
+}
+
+#[test]
+fn time_log_matches_python() {
+    let tmp = tempfile::tempdir().unwrap();
+    for (name, golden) in goldens("time") {
+        let path = tmp.path().join("TIME.md");
+        fs::write(&path, input(&golden)).unwrap();
+
+        match timelog::parse(&path) {
+            Ok(rows) => assert_eq!(json!(rows), golden["rows"], "{name}: rows"),
+            Err(Error::TimeLogParse { line, .. }) => {
+                assert_eq!(json!(line), golden["error_line"], "{name}: error line")
+            }
+            Err(e) => panic!("{name}: {e}"),
         }
     }
 }
