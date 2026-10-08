@@ -289,26 +289,26 @@ See DECISIONS.md (2026-10-08).
 
 ### Safety net
 
-- [ ] Golden outputs: script that runs each Python endpoint against
+- [x] Golden outputs: script that runs each Python endpoint against
   `fixtures/` and saves the JSON; the Rust tests assert the same output
-- [ ] Per module, port the pytest cases first and see them fail, then
+- [x] Per module, port the pytest cases first and see them fail, then
   implement; tests and code land in the same commit
 
 ### Core (`pov-core` crate, `src-tauri/core/`)
 
-- [ ] `storage`: data dir (`pov-dev` under `cfg(debug_assertions)` or
+- [x] `storage`: data dir (`pov-dev` under `cfg(debug_assertions)` or
   `POV_ENV=dev`), folder + config + git repo init
-- [ ] `db`: `rusqlite` (bundled), schema + `PRAGMA table_info` migrations,
+- [x] `db`: `rusqlite` (bundled), schema + `PRAGMA table_info` migrations,
   `foreign_keys = ON` on every connection
-- [ ] `tasks`: parser + `task_hash` byte-identical to Python (sha256 of
+- [x] `tasks`: parser + `task_hash` byte-identical to Python (sha256 of
   the normalized line, first 16 hex, `\x00#n` occurrence suffix). Mind
   `str.splitlines()` vs `lines()` (`\x0c`, `\x1c`, ``...) and the
   non-UTF-8 → empty list fallback
-- [ ] Test: hashes equal the Python ones on every fixture, including
+- [x] Test: hashes equal the Python ones on every fixture, including
   duplicate lines and odd line separators
-- [ ] `projects` (hardlink + fallback, config.json), `activity` (`git`
+- [x] `projects` (hardlink + fallback, config.json), `activity` (`git`
   subprocess, mtime fallback), `timelog` (TIME.md parser)
-- [ ] `watcher`: `notify` crate on `projects/` and `learning/`, `.md`
+- [x] `watcher`: `notify` crate on `projects/` and `learning/`, `.md`
   modify → `git add` + `git commit`; started in Tauri `setup`
 
 ### Commands (one commit per router, frontend switched in the same commit)
@@ -337,6 +337,23 @@ See DECISIONS.md (2026-10-08).
 ## Maintenance
 
 - [x] Fix `pov add`, returns 128
+
+Python quirks kept by the Rust port (DECISIONS.md, exact parity); fix one per commit, after
+Phase 13:
+
+- [ ] `_normalize` replaces every `[.]` in a line, not just the checkbox: tasks differing only
+  by `[a]` / `[b]` in their text share a hash (told apart by occurrence only)
+- [ ] `_set_checked` replaces the first `[ ]` / `[x]` of the line: checking an already checked
+  parent ticks a `[ ]` written in its text
+- [ ] Toggling a task rewrites a CRLF file with LF line endings
+- [ ] `[-]`, `[~]` and other states count as unchecked, and toggling can't clear them
+- [ ] `task_count` counts unchecked subtasks too
+- [ ] Project activity level passes the original path to `git log` in the data repo, which is
+  outside it: the level always comes from the file's mtime
+- [ ] Heatmap buckets commits by the commit's own timezone, not local time
+- [x] NaN / infinite hours in TIME.md crash `import-time` (Rust: "bad duration" error)
+- [x] Adding an already tracked file links and commits, then crashes on the DB constraint
+  (Rust: refused before any side effect)
 
 ## Post-MVP
 
