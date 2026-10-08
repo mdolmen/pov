@@ -36,6 +36,27 @@ cd backend
 uv run pytest
 ```
 
+UI feature tests use Vitest + React Testing Library. They render the real frontend against the
+real backend, started on a temp `HOME`, and fake only native calls (file dialog, editor, CLI
+install):
+
+```sh
+npm test
+```
+
+Rust core tests:
+
+```sh
+cd src-tauri && cargo test -p pov-core
+```
+
+A launch smoke test starts the real debug app on a temp `HOME` and checks the Rust startup and
+file watcher (a window appears while it runs):
+
+```sh
+npm run smoke
+```
+
 ## Build
 
 Before the first build, generate the standalone Python binaries that get bundled into the app:
