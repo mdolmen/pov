@@ -271,15 +271,7 @@ edit, and writes stages straight to `pov.db` like the CLI does.
 
 ## Phase 13 — Port the backend to Rust
 
-Replace the Python sidecar (FastAPI + PyInstaller) with Rust inside the
-existing Tauri crate, for longevity, stability and startup/memory. The
-React frontend stays; HTTP routes become Tauri commands, so the
-localhost port goes away (no more `CORS *` with no auth, no port race, no
-orphaned backend, no `--onefile` unpack at launch). Same `pov.db` schema
-and `~/.local/share/pov/` layout, so there is no data migration. Ports
-whatever Python exists at the time, so Phases 11 and 12 included if
-they land first. Every commit leaves the app working: Python keeps
-serving the routes not yet ported.
+See DECISIONS.md (2026-10-08).
 
 ### Guidelines
 
