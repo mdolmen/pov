@@ -291,9 +291,10 @@ See DECISIONS.md (2026-10-08).
 
 - [ ] Golden outputs: script that runs each Python endpoint against
   `fixtures/` and saves the JSON; the Rust tests assert the same output
-- [ ] Port the pytest cases first, as failing Rust tests, router by router
+- [ ] Per module, port the pytest cases first and see them fail, then
+  implement; tests and code land in the same commit
 
-### Core (`src-tauri/src/core/`)
+### Core (`pov-core` crate, `src-tauri/core/`)
 
 - [ ] `storage`: data dir (`pov-dev` under `cfg(debug_assertions)` or
   `POV_ENV=dev`), folder + config + git repo init

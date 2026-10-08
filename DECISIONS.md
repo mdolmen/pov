@@ -13,3 +13,18 @@
   - Port whatever Python exists at the time (Phases 11 and 12 if they land first).
   - Every commit leaves the app working: Python serves the routes not yet ported.
 - **Plan:** TODO.md, Phase 13.
+
+## 2026-10-08 — Rust core as a separate `pov-core` crate
+
+- **Decision:** domain logic goes in `src-tauri/core/` (`pov-core`, Cargo workspace member, no
+  Tauri dependency). The Tauri app depends on it; the CLI becomes a binary of it.
+- **Why:** `cargo test -p pov-core` runs without compiling Tauri; the CLI doesn't link Tauri; a
+  module named `core` would clash with Rust's built-in `core` crate.
+
+## 2026-10-08 — The Rust port copies Python behavior exactly
+
+- **Decision:** byte-for-byte parity with Python, quirks included, checked by golden outputs
+  recorded from the Python code.
+- **Why:** golden tests can then tell a porting bug from a deliberate change.
+- **Constraints:** quirks found are listed in TODO.md › Maintenance and fixed later, one commit
+  each.
