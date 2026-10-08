@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ListItem, Task } from "@/types";
+import type { ListItem, Project, Status, SubStatus, Task } from "@/types";
 
 let baseUrl: string | null = null;
 
@@ -34,3 +34,29 @@ export const unselectTask = (projectId: string, taskHash: string) =>
   call<null>("unselect_task", { project_id: projectId, task_hash: taskHash });
 
 export const cleanupSelected = () => call<null>("cleanup_selected");
+
+export interface NewProject {
+  name: string;
+  file_path: string;
+  type: "project" | "learning";
+  status: Status;
+  sub_status: SubStatus;
+}
+
+/** Fields to change; `null` clears `sub_status`, `""` clears `paused_until`. */
+export interface ProjectChanges {
+  name?: string;
+  status?: Status;
+  sub_status?: SubStatus;
+  paused_until?: string;
+}
+
+export const listProjects = () => call<Project[]>("list_projects");
+
+export const addProject = (project: NewProject) => call<Project>("add_project", { ...project });
+
+export const updateProject = (projectId: string, changes: ProjectChanges) =>
+  call<Project>("update_project", { project_id: projectId, ...changes });
+
+export const removeProject = (projectId: string) =>
+  call<null>("remove_project", { project_id: projectId });

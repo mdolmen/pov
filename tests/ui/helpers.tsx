@@ -33,8 +33,8 @@ async function api(path: string, init?: RequestInit): Promise<Response> {
 
 /** Deletes every project, so each test starts from an empty list. */
 export async function resetData() {
-  const projects: Project[] = await (await api("/projects")).json();
-  for (const p of projects) await api(`/projects/${p.id}`, { method: "DELETE" });
+  const projects = await bridge<Project[]>("list_projects");
+  for (const p of projects) await bridge("remove_project", { project_id: p.id });
 }
 
 /** Writes a TODO.md in its own folder (outside any git repo) and returns its path. */
@@ -58,12 +58,7 @@ interface Seed {
 /** Tracks a project through the real backend. */
 export async function addProject(seed: Seed): Promise<Project> {
   const file = seed.file ?? writeTodo(seed.content ?? "- [ ] task\n");
-  const r = await api("/projects", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "project", status: "open", ...seed, file_path: file }),
-  });
-  return r.json();
+  return bridge<Project>("add_project", { type: "project", status: "open", ...seed, file_path: file });
 }
 
 export async function selectTask(projectId: string, hash: string) {
@@ -170,7 +165,7 @@ export function inOrder(...texts: string[]): boolean {
 }
 
 export async function getProject(id: string): Promise<Project> {
-  const projects: Project[] = await (await api("/projects")).json();
+  const projects = await bridge<Project[]>("list_projects");
   return projects.find((p) => p.id === id) as Project;
 }
 

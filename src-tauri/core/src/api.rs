@@ -1,21 +1,62 @@
 //! The commands the frontend calls, by name with JSON arguments. The app's single `api` Tauri
 //! command and the UI tests' bridge both go through [`dispatch`], so they run the same code.
 
-use serde::Serialize;
+use std::path::PathBuf;
+
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
+use crate::projects::{self, NewProject, ProjectUpdate};
 use crate::{Error, Paths, Result, db, tasks};
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 struct ProjectArgs {
     project_id: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 struct TaskArgs {
     project_id: String,
     task_hash: String,
+}
+
+#[derive(Deserialize)]
+struct AddProjectArgs {
+    name: String,
+    file_path: PathBuf,
+    #[serde(rename = "type", default = "default_type")]
+    project_type: String,
+    #[serde(default = "default_status")]
+    status: String,
+    #[serde(default)]
+    sub_status: Option<String>,
+}
+
+fn default_type() -> String {
+    "project".into()
+}
+
+fn default_status() -> String {
+    "open".into()
+}
+
+#[derive(Deserialize)]
+struct UpdateProjectArgs {
+    project_id: String,
+    name: Option<String>,
+    status: Option<String>,
+    #[serde(default, deserialize_with = "present")]
+    sub_status: Option<Option<String>>,
+    #[serde(default, deserialize_with = "present")]
+    paused_until: Option<Option<String>>,
+}
+
+/// Wraps a field that is present, even as `null`, in `Some`; an absent field stays `None`.
+fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
+    d: D,
+) -> std::result::Result<Option<T>, D::Error> {
+    T::deserialize(d).map(Some)
 }
 
 fn parse<T: DeserializeOwned>(args: Value) -> Result<T> {
@@ -47,6 +88,33 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
             json(tasks::unselect(&conn, &a.project_id, &a.task_hash)?)
         }
         "cleanup_selected" => json(tasks::cleanup_selected(&conn)?),
+        "list_projects" => json(projects::list(&conn, paths)?),
+        "add_project" => {
+            let a: AddProjectArgs = parse(args)?;
+            let project = NewProject {
+                name: a.name,
+                file_path: a.file_path,
+                project_type: a.project_type,
+                status: a.status,
+                sub_status: a.sub_status,
+            };
+            let id = projects::add(&conn, paths, &project)?;
+            json(projects::get(&conn, paths, &id)?)
+        }
+        "update_project" => {
+            let a: UpdateProjectArgs = parse(args)?;
+            let changes = ProjectUpdate {
+                name: a.name,
+                status: a.status,
+                sub_status: a.sub_status,
+                paused_until: a.paused_until,
+            };
+            json(projects::update(&conn, paths, &a.project_id, &changes)?)
+        }
+        "remove_project" => {
+            let a: ProjectArgs = parse(args)?;
+            json(projects::remove(&conn, paths, &a.project_id)?)
+        }
         _ => Err(Error::Invalid(format!("unknown command '{cmd}'"))),
     }
 }
@@ -86,6 +154,35 @@ mod tests {
         let (_tmp, paths) = paths();
         let err = dispatch(&paths, "list_tasks", json!({"project_id": "nope"})).unwrap_err();
         assert_eq!(err.to_string(), "project not found");
+    }
+
+    #[test]
+    fn update_project_tells_null_from_absent() {
+        let (tmp, paths) = paths();
+        let todo = tmp.path().join("TODO.md");
+        fs::write(&todo, "- [ ] one\n").unwrap();
+        let added = dispatch(
+            &paths,
+            "add_project",
+            json!({"name": "P", "file_path": todo, "status": "archived", "sub_status": "paused"}),
+        )
+        .unwrap();
+        assert_eq!(added["type"], "project");
+        let id = added["id"].clone();
+
+        let renamed = dispatch(
+            &paths,
+            "update_project",
+            json!({"project_id": id, "name": "Q"}),
+        );
+        assert_eq!(renamed.unwrap()["sub_status"], "paused");
+
+        let cleared = dispatch(
+            &paths,
+            "update_project",
+            json!({"project_id": id, "sub_status": null}),
+        );
+        assert_eq!(cleared.unwrap()["sub_status"], Value::Null);
     }
 
     #[test]

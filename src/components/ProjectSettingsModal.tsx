@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { apiFetch } from "@/lib/backend";
+import { removeProject, updateProject } from "@/lib/backend";
 import type { Project } from "@/types";
 
 type ProjectStatus = "open" | "paused" | "done" | "canceled";
@@ -60,20 +60,13 @@ export function ProjectSettingsModal({ open, project, onClose, onUpdated, onDele
     setSaving(true);
     try {
       const { status: dbStatus, sub_status } = STATUS_MAP[status];
-      const body: Record<string, string | null> = {
+      const updated = await updateProject(project.id, {
         name: name.trim(),
         status: dbStatus,
         sub_status,
         // empty string clears the date on the backend
         paused_until: status === "paused" ? pausedUntil : "",
-      };
-      const r = await apiFetch(`/projects/${project.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
       });
-      if (!r.ok) throw new Error(await r.text());
-      const updated: Project = await r.json();
       onUpdated(updated);
       onClose();
     } finally {
@@ -84,8 +77,7 @@ export function ProjectSettingsModal({ open, project, onClose, onUpdated, onDele
   async function remove() {
     setSaving(true);
     try {
-      const r = await apiFetch(`/projects/${project.id}`, { method: "DELETE" });
-      if (!r.ok && r.status !== 204) throw new Error(await r.text());
+      await removeProject(project.id);
       onDeleted();
     } finally {
       setSaving(false);

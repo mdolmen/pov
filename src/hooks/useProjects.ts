@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/backend";
+import { listProjects } from "@/lib/backend";
 import type { Project } from "@/types";
 
 export function useProjects() {
@@ -10,12 +10,10 @@ export function useProjects() {
   const refresh = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     try {
-      const r = await apiFetch("/projects");
-      if (!r.ok) throw new Error("failed to fetch");
-      setProjects(await r.json());
+      setProjects(await listProjects());
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "unknown error");
+      setError(String(e));
     } finally {
       setLoading(false);
     }

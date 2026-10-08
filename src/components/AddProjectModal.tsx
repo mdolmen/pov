@@ -15,12 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { apiFetch } from "@/lib/backend";
+import { addProject } from "@/lib/backend";
+import type { Status, SubStatus } from "@/types";
 
 type ProjectStatus = "open" | "paused" | "done" | "canceled";
 type ProjectType = "project" | "learning";
 
-const STATUS_MAP: Record<ProjectStatus, { status: string; sub_status: string | null }> = {
+const STATUS_MAP: Record<ProjectStatus, { status: Status; sub_status: SubStatus }> = {
   open:     { status: "open",     sub_status: null },
   paused:   { status: "archived", sub_status: "paused" },
   done:     { status: "archived", sub_status: "done" },
@@ -60,12 +61,7 @@ export function AddProjectModal({ open: isOpen, onClose, onCreated }: Props) {
     setLoading(true);
     try {
       const { status, sub_status } = STATUS_MAP[projectStatus];
-      const r = await apiFetch("/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, file_path: filePath, status, sub_status, type: projectType }),
-      });
-      if (!r.ok) throw new Error(await r.text());
+      await addProject({ name, file_path: filePath, status, sub_status, type: projectType });
       onCreated();
       handleClose();
     } finally {
