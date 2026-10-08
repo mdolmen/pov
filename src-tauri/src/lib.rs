@@ -56,10 +56,7 @@ fn is_cli_installed() -> bool {
 fn install_cli() -> Result<String, String> {
     let src = resolve_pov_binary();
     if !src.exists() {
-        return Err(format!(
-            "pov binary not found at {}.",
-            src.display()
-        ));
+        return Err(format!("pov binary not found at {}.", src.display()));
     }
     let dst = install_dst();
 
@@ -77,11 +74,21 @@ fn install_cli() -> Result<String, String> {
     // Release: copy (user can move the .app without breaking the CLI).
     #[cfg(debug_assertions)]
     std::os::unix::fs::symlink(&src, &dst).map_err(|e| {
-        format!("could not symlink {} → {}: {}", dst.display(), src.display(), e)
+        format!(
+            "could not symlink {} → {}: {}",
+            dst.display(),
+            src.display(),
+            e
+        )
     })?;
     #[cfg(not(debug_assertions))]
     std::fs::copy(&src, &dst).map_err(|e| {
-        format!("could not copy {} → {}: {}", src.display(), dst.display(), e)
+        format!(
+            "could not copy {} → {}: {}",
+            src.display(),
+            dst.display(),
+            e
+        )
     })?;
 
     Ok(format!(
@@ -96,17 +103,24 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_backend_port, open_in_editor, install_cli, is_cli_installed])
+        .invoke_handler(tauri::generate_handler![
+            get_backend_port,
+            open_in_editor,
+            install_cli,
+            is_cli_installed
+        ])
         .setup(|app| {
             // Spawn the Python backend and wait for it to print its port.
             #[cfg(debug_assertions)]
-            let backend_cmd = app.shell()
+            let backend_cmd = app
+                .shell()
                 .command("uv")
                 .args(["--directory", BACKEND_DIR, "run", "python", "main.py"])
                 .env("POV_ENV", "dev");
 
             #[cfg(not(debug_assertions))]
-            let backend_cmd = app.shell()
+            let backend_cmd = app
+                .shell()
                 .sidecar("pov-backend")
                 .expect("pov-backend sidecar not configured");
 
