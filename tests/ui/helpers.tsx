@@ -1,0 +1,137 @@
+// Shared helpers: fake native calls, seed projects through the real backend, read the data dir.
+
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { mockIPC } from "@tauri-apps/api/mocks";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { inject } from "vitest";
+import App from "@/App";
+import type { Project } from "@/types";
+
+const baseUrl = () => `http://127.0.0.1:${inject("backendPort")}`;
+
+/** The backend's data dir (`~/.local/share/pov-dev` under the temp HOME). */
+export const dataDir = () => join(inject("povHome"), ".local/share/pov-dev");
+
+async function api(path: string, init?: RequestInit): Promise<Response> {
+  const r = await fetch(`${baseUrl()}${path}`, init);
+  if (!r.ok) throw new Error(`${init?.method ?? "GET"} ${path}: ${r.status} ${await r.text()}`);
+  return r;
+}
+
+/** Deletes every project, so each test starts from an empty list. */
+export async function resetData() {
+  const projects: Project[] = await (await api("/projects")).json();
+  for (const p of projects) await api(`/projects/${p.id}`, { method: "DELETE" });
+}
+
+/** Writes a TODO.md in its own folder (outside any git repo) and returns its path. */
+export function writeTodo(content: string, folder = "Project"): string {
+  const dir = join(mkdtempSync(join(inject("povHome"), "files-")), folder);
+  mkdirSync(dir);
+  const path = join(dir, "TODO.md");
+  writeFileSync(path, content);
+  return path;
+}
+
+interface Seed {
+  name: string;
+  content?: string;
+  file?: string;
+  type?: "project" | "learning";
+  status?: "open" | "archived";
+  sub_status?: "paused" | "done" | "canceled" | null;
+}
+
+/** Tracks a project through the real backend. */
+export async function addProject(seed: Seed): Promise<Project> {
+  const file = seed.file ?? writeTodo(seed.content ?? "- [ ] task\n");
+  const r = await api("/projects", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "project", status: "open", ...seed, file_path: file }),
+  });
+  return r.json();
+}
+
+export async function selectTask(projectId: string, hash: string) {
+  await api(`/projects/${projectId}/tasks/${hash}/select`, { method: "POST" });
+}
+
+export async function recordTime(projectId: string, minutes: number, date: string, topic?: string) {
+  await api(`/projects/${projectId}/time`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ minutes, date, topic }),
+  });
+}
+
+export async function taskHash(projectId: string, text: string): Promise<string> {
+  const items = await (await api(`/projects/${projectId}/tasks`)).json();
+  const all = items.flatMap((i: { kind: string; subtasks?: { text: string }[] }) =>
+    i.kind === "task" ? [i, ...(i.subtasks ?? [])] : [],
+  );
+  return all.find((t: { text: string }) => t.text === text).hash;
+}
+
+/** Commit subjects of the data repo, newest first. */
+export function gitSubjects(): string[] {
+  const out = execFileSync("git", ["-C", dataDir(), "log", "--format=%s"], { encoding: "utf8" });
+  return out.trim().split("\n");
+}
+
+export function today(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+interface Native {
+  /** What the file dialog returns. */
+  dialogPath?: string | null;
+  cliInstalled?: boolean;
+  installCli?: () => string;
+}
+
+/** Fakes the Tauri side; returns the calls made, as `[command, args]`. */
+export function mockNative(native: Native = {}): [string, unknown][] {
+  const calls: [string, unknown][] = [];
+  mockIPC((cmd, args) => {
+    calls.push([cmd, args]);
+    switch (cmd) {
+      case "get_backend_port":
+        return inject("backendPort");
+      case "plugin:dialog|open":
+        return native.dialogPath ?? null;
+      case "is_cli_installed":
+        return native.cliInstalled ?? false;
+      case "install_cli":
+        return (native.installCli ?? (() => "Installed pov"))();
+      default:
+        return null;
+    }
+  });
+  return calls;
+}
+
+/** Renders the whole app with fake native calls. */
+export function renderApp(native: Native = {}) {
+  const calls = mockNative(native);
+  const user = userEvent.setup();
+  render(<App />);
+  return { user, calls };
+}
+
+/** Opens a project from the list. */
+export async function openProject(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
+  await screen.findByRole("button", { name: "Back" });
+}
+
+/** The section of the task list under a "Done" label, if any. */
+export function doneSection() {
+  const label = screen.queryByText("Done", { selector: "p" });
+  return label ? within(label.nextElementSibling as HTMLElement) : null;
+}

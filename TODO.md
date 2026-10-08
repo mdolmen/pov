@@ -339,8 +339,8 @@ See DECISIONS.md (2026-10-08).
 UI feature tests (Vitest + React Testing Library, real backend, see DECISIONS.md), written
 before the Phase 13 Commands block as its safety net.
 
-- [ ] Setup: Vitest + jsdom, backend on a temp `HOME`, Tauri IPC mocks
-- [ ] Project list: counts, tabs, ordering, archived section, empty state
+- [x] Setup: Vitest + jsdom, backend on a temp `HOME`, Tauri IPC mocks
+- [x] Project list: counts, tabs, ordering, archived section, empty state
 - [ ] Sidebar: open/close, open/archived filters per tab, settings link
 - [ ] Task list: headings and tasks, back to the right tab, markdown links, open in editor
 - [ ] Toggle task: moves to Done, file updated, activity commit, untoggle

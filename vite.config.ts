@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -8,6 +9,15 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
+  test: {
+    environment: "jsdom",
+    include: ["tests/ui/**/*.test.tsx"],
+    globalSetup: "./tests/ui/globalSetup.ts",
+    setupFiles: "./tests/ui/setup.ts",
+    // One backend serves every test file, and each test resets its data.
+    fileParallelism: false,
+    testTimeout: 20_000,
+  },
   resolve: {
     alias: {
       "@": new URL("./src", import.meta.url).pathname,
