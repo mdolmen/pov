@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use tauri::Manager;
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
 
@@ -110,6 +111,13 @@ pub fn run() {
             is_cli_installed
         ])
         .setup(|app| {
+            let dev = cfg!(debug_assertions) || std::env::var("POV_ENV").is_ok_and(|v| v == "dev");
+            let paths = pov_core::Paths::data_dir(dev)?;
+            pov_core::storage::init(&paths)?;
+            pov_core::db::init(&paths)?;
+            // Kept in app state: watching stops when the watcher is dropped.
+            app.manage(pov_core::watcher::start(&paths)?);
+
             // Spawn the Python backend and wait for it to print its port.
             #[cfg(debug_assertions)]
             let backend_cmd = app

@@ -31,9 +31,8 @@ def _build(name: str, script: Path, out_dir: Path) -> None:
             "--onefile",
             "--name", name,
             "--distpath", str(out_dir),
-            # uvicorn and watchdog use dynamic imports
+            # uvicorn uses dynamic imports
             "--collect-all", "uvicorn",
-            "--collect-all", "watchdog",
             # clean build artefacts out of source tree
             "--workpath", str(out_dir / "_build"),
             "--specpath", str(out_dir / "_build"),

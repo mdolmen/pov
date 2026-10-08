@@ -12,6 +12,7 @@ pub mod pyline;
 pub mod storage;
 pub mod tasks;
 pub mod timelog;
+pub mod watcher;
 
 pub use error::{Error, Result};
 pub use paths::Paths;

@@ -10,6 +10,8 @@ pub enum Error {
     Sqlite(#[from] rusqlite::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
+    #[error(transparent)]
+    Watch(#[from] notify::Error),
     #[error("git {args}: {stderr}")]
     Git { args: String, stderr: String },
     #[error("{0} not found")]
