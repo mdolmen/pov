@@ -48,7 +48,7 @@ test("checking or unchecking a parent does the same to all its subtasks", async 
       "- [x] parent\n  - [x] one\n  - [x] two\n- [ ] other\n",
     ),
   );
-  expect(doneSection()?.getByText("two")).toBeInTheDocument();
+  await waitFor(() => expect(doneSection()?.getByText("two")).toBeInTheDocument());
 
   await user.click(checkbox("parent"));
   await waitFor(() => expect(readFileSync(project.file_path, "utf8")).toBe(TODO));

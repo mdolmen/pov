@@ -313,7 +313,7 @@ See DECISIONS.md (2026-10-08).
 
 ### Commands (one commit per router, frontend switched in the same commit)
 
-- [ ] `pov-core::api::dispatch` + a single `api` Tauri command; test-only HTTP bridge
+- [x] `pov-core::api::dispatch` + a single `api` Tauri command; test-only HTTP bridge
   (`pov-bridge`) so the UI tests call the same dispatch
 - [ ] tasks → projects → timelog → activity through the dispatch
 - [ ] Frontend: replace `apiFetch` calls (14, in hooks and modals) with

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch } from "@/lib/backend";
+import { listTasks, selectTask, toggleTask, unselectTask } from "@/lib/backend";
 import type { ListItem, Task } from "@/types";
 
 export function useTasks(projectId: string) {
@@ -7,8 +7,11 @@ export function useTasks(projectId: string) {
   const [loading, setLoading] = useState(true);
 
   const fetchTasks = useCallback(async () => {
-    const r = await apiFetch(`/projects/${projectId}/tasks`);
-    if (r.ok) setItems(await r.json());
+    try {
+      setItems(await listTasks(projectId));
+    } catch {
+      // Keep the current list; the next fetch will retry.
+    }
     setLoading(false);
   }, [projectId]);
 
@@ -49,9 +52,8 @@ export function useTasks(projectId: string) {
       });
     });
 
-    const r = await apiFetch(`/projects/${projectId}/tasks/${hash}`, { method: "PATCH" });
-    if (r.ok) {
-      const updated: Task = await r.json();
+    try {
+      const updated = await toggleTask(projectId, hash);
       setItems((prev) =>
         prev.map((i) => {
           if (i.kind !== "task") return i;
@@ -61,7 +63,7 @@ export function useTasks(projectId: string) {
           return i;
         })
       );
-    } else {
+    } catch {
       fetchTasks();
     }
   }
@@ -70,14 +72,14 @@ export function useTasks(projectId: string) {
     setItems((prev) =>
       prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: true } : i)
     );
-    await apiFetch(`/projects/${projectId}/tasks/${hash}/select`, { method: "POST" });
+    await selectTask(projectId, hash);
   }
 
   async function unselect(hash: string) {
     setItems((prev) =>
       prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: false } : i)
     );
-    await apiFetch(`/projects/${projectId}/tasks/${hash}/select`, { method: "DELETE" });
+    await unselectTask(projectId, hash);
   }
 
   return { items, tasks, loading, toggle, select, unselect };

@@ -44,5 +44,5 @@ test("tasks with the same text toggle independently", async () => {
   await waitFor(() =>
     expect(readFileSync(project.file_path, "utf8")).toBe("- [ ] same\n- [x] same\n"),
   );
-  expect(doneSection()?.getAllByText("same")).toHaveLength(1);
+  await waitFor(() => expect(doneSection()?.getAllByText("same")).toHaveLength(1));
 });

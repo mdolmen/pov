@@ -14,6 +14,20 @@ fn get_backend_port() -> u16 {
     *BACKEND_PORT.get().expect("backend port not set")
 }
 
+/// Runs a pov-core command (see `pov_core::api`). Off the UI thread: commands run git and SQLite.
+#[tauri::command]
+async fn api(
+    paths: tauri::State<'_, pov_core::Paths>,
+    cmd: String,
+    args: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let paths = paths.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || pov_core::api::dispatch(&paths, &cmd, args))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn open_in_editor(path: String) {
     // -t opens the file in the default text editor registered with Launch Services.
@@ -105,6 +119,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            api,
             get_backend_port,
             open_in_editor,
             install_cli,
@@ -117,6 +132,7 @@ pub fn run() {
             pov_core::db::init(&paths)?;
             // Kept in app state: watching stops when the watcher is dropped.
             app.manage(pov_core::watcher::start(&paths)?);
+            app.manage(paths);
 
             // Spawn the Python backend and wait for it to print its port.
             #[cfg(debug_assertions)]

@@ -64,8 +64,11 @@ test("checking a next task sends it to Done and unselects it", async () => {
 
   await waitFor(() => expect(doneSection()?.getByText("beta")).toBeInTheDocument());
   await user.click(screen.getByRole("button", { name: "Back" }));
-  const card = await screen.findByRole("button", { name: /^P/ });
-  await waitFor(() => expect(card).toHaveTextContent(/^P2 tasks/));
+  // The checkbox updates the UI before the toggle is saved; the list catches up on its next poll.
+  await waitFor(
+    () => expect(screen.getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
+    { timeout: 5000 },
+  );
 });
 
 test("refresh clears next tasks checked outside the app", async () => {

@@ -4,16 +4,26 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mockIPC } from "@tauri-apps/api/mocks";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { inject } from "vitest";
+import { expect, inject } from "vitest";
 import App from "@/App";
-import type { Project } from "@/types";
+import type { ListItem, Project } from "@/types";
 
 const baseUrl = () => `http://127.0.0.1:${inject("backendPort")}`;
 
 /** The backend's data dir (`~/.local/share/pov-dev` under the temp HOME). */
 export const dataDir = () => join(inject("povHome"), ".local/share/pov-dev");
+
+/** Runs a Rust command through the test bridge, as the app's `api` command would. */
+async function bridge<T>(cmd: string, args: unknown = {}): Promise<T> {
+  const r = await fetch(`http://127.0.0.1:${inject("bridgePort")}/${cmd}`, {
+    method: "POST",
+    body: JSON.stringify(args),
+  });
+  if (!r.ok) throw await r.text();
+  return r.json();
+}
 
 async function api(path: string, init?: RequestInit): Promise<Response> {
   const r = await fetch(`${baseUrl()}${path}`, init);
@@ -57,7 +67,7 @@ export async function addProject(seed: Seed): Promise<Project> {
 }
 
 export async function selectTask(projectId: string, hash: string) {
-  await api(`/projects/${projectId}/tasks/${hash}/select`, { method: "POST" });
+  await bridge("select_task", { project_id: projectId, task_hash: hash });
 }
 
 export async function recordTime(projectId: string, minutes: number, date: string, topic?: string) {
@@ -69,11 +79,12 @@ export async function recordTime(projectId: string, minutes: number, date: strin
 }
 
 export async function taskHash(projectId: string, text: string): Promise<string> {
-  const items = await (await api(`/projects/${projectId}/tasks`)).json();
-  const all = items.flatMap((i: { kind: string; subtasks?: { text: string }[] }) =>
-    i.kind === "task" ? [i, ...(i.subtasks ?? [])] : [],
-  );
-  return all.find((t: { text: string }) => t.text === text).hash;
+  const items = await bridge<ListItem[]>("list_tasks", { project_id: projectId });
+  const match = items
+    .flatMap((i) => (i.kind === "task" ? [i, ...i.subtasks] : []))
+    .find((t) => t.text === text);
+  if (!match) throw new Error(`no task "${text}"`);
+  return match.hash;
 }
 
 /** Commit subjects of the data repo, newest first. */
@@ -103,6 +114,10 @@ export function mockNative(native: Native = {}): [string, unknown][] {
     switch (cmd) {
       case "get_backend_port":
         return inject("backendPort");
+      case "api": {
+        const { cmd: command, args: commandArgs } = args as { cmd: string; args: unknown };
+        return bridge(command, commandArgs);
+      }
       case "plugin:dialog|open":
         return native.dialogPath ?? null;
       case "is_cli_installed":
@@ -128,6 +143,7 @@ export function renderApp(native: Native = {}) {
 export async function openProject(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
   await screen.findByRole("button", { name: "Back" });
+  await waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
 }
 
 /** The section of the task list under a "Done" label, if any. */
@@ -176,7 +192,7 @@ export async function showArchived(user: ReturnType<typeof userEvent.setup>) {
 }
 
 export async function toggleTask(projectId: string, hash: string) {
-  await api(`/projects/${projectId}/tasks/${hash}`, { method: "PATCH" });
+  await bridge("toggle_task", { project_id: projectId, task_hash: hash });
 }
 
 export function daysAgo(n: number): string {

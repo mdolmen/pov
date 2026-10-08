@@ -3,6 +3,7 @@
 //! No Tauri types here, so the app, the CLI and tests share it.
 
 pub mod activity;
+pub mod api;
 pub mod db;
 pub mod error;
 pub mod git;
