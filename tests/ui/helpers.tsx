@@ -10,8 +10,6 @@ import { expect, inject } from "vitest";
 import App from "@/App";
 import type { ListItem, Project } from "@/types";
 
-const baseUrl = () => `http://127.0.0.1:${inject("backendPort")}`;
-
 /** The backend's data dir (`~/.local/share/pov-dev` under the temp HOME). */
 export const dataDir = () => join(inject("povHome"), ".local/share/pov-dev");
 
@@ -23,12 +21,6 @@ async function bridge<T>(cmd: string, args: unknown = {}): Promise<T> {
   });
   if (!r.ok) throw await r.text();
   return r.json();
-}
-
-async function api(path: string, init?: RequestInit): Promise<Response> {
-  const r = await fetch(`${baseUrl()}${path}`, init);
-  if (!r.ok) throw new Error(`${init?.method ?? "GET"} ${path}: ${r.status} ${await r.text()}`);
-  return r;
 }
 
 /** Deletes every project, so each test starts from an empty list. */
@@ -66,11 +58,7 @@ export async function selectTask(projectId: string, hash: string) {
 }
 
 export async function recordTime(projectId: string, minutes: number, date: string, topic?: string) {
-  await api(`/projects/${projectId}/time`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ minutes, date, topic }),
-  });
+  await bridge("add_time", { project_id: projectId, minutes, date, topic });
 }
 
 export async function taskHash(projectId: string, text: string): Promise<string> {

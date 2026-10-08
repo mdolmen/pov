@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { apiFetch } from "@/lib/backend";
+import { addTime, listTopics } from "@/lib/backend";
 import { formatMinutes } from "@/lib/utils";
 
 const STEP_MINUTES = 15;
@@ -37,9 +37,9 @@ export function AddTimeModal({ open: isOpen, projectId, onClose, onRecorded }: P
     if (!isOpen) return;
     let cancelled = false;
     (async () => {
-      const r = await apiFetch(`/projects/${projectId}/time/topics`);
-      if (!r.ok || cancelled) return;
-      setTopics(await r.json());
+      const used = await listTopics(projectId).catch(() => null);
+      if (!used || cancelled) return;
+      setTopics(used);
     })();
     return () => {
       cancelled = true;
@@ -49,12 +49,7 @@ export function AddTimeModal({ open: isOpen, projectId, onClose, onRecorded }: P
   async function submit() {
     setLoading(true);
     try {
-      const r = await apiFetch(`/projects/${projectId}/time`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date, minutes, topic: topic.trim() || null }),
-      });
-      if (!r.ok) throw new Error(await r.text());
+      await addTime(projectId, { date, minutes, topic: topic.trim() || null });
       onRecorded();
       handleClose();
     } finally {

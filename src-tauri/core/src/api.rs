@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::projects::{self, NewProject, ProjectUpdate};
-use crate::{Error, Paths, Result, db, tasks};
+use crate::{Error, Paths, Result, db, tasks, timelog};
 
 #[derive(Deserialize)]
 struct ProjectArgs {
@@ -57,6 +57,27 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
     d: D,
 ) -> std::result::Result<Option<T>, D::Error> {
     T::deserialize(d).map(Some)
+}
+
+#[derive(Deserialize)]
+struct ListTimeArgs {
+    project_id: String,
+    #[serde(default = "default_days")]
+    days: u64,
+}
+
+fn default_days() -> u64 {
+    120
+}
+
+#[derive(Deserialize)]
+struct AddTimeArgs {
+    project_id: String,
+    minutes: i64,
+    #[serde(default)]
+    date: Option<String>,
+    #[serde(default)]
+    topic: Option<String>,
 }
 
 fn parse<T: DeserializeOwned>(args: Value) -> Result<T> {
@@ -110,6 +131,25 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
                 paused_until: a.paused_until,
             };
             json(projects::update(&conn, paths, &a.project_id, &changes)?)
+        }
+        "list_time" => {
+            let a: ListTimeArgs = parse(args)?;
+            json(timelog::list_days(&conn, &a.project_id, a.days)?)
+        }
+        "add_time" => {
+            let a: AddTimeArgs = parse(args)?;
+            let entry = timelog::add_entry(
+                &conn,
+                &a.project_id,
+                a.minutes,
+                a.date.as_deref(),
+                a.topic.as_deref(),
+            )?;
+            json(entry)
+        }
+        "list_topics" => {
+            let a: ProjectArgs = parse(args)?;
+            json(timelog::topics(&conn, &a.project_id)?)
         }
         "remove_project" => {
             let a: ProjectArgs = parse(args)?;

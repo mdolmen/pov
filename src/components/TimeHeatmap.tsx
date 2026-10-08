@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Heatmap, windowDays } from "@/components/Heatmap";
-import { apiFetch } from "@/lib/backend";
+import { listTime } from "@/lib/backend";
 import { formatMinutes } from "@/lib/utils";
-
-interface Day {
-  date: string; // YYYY-MM-DD
-  minutes: number;
-}
 
 interface Props {
   projectId: string;
@@ -30,12 +25,13 @@ export function TimeHeatmap({ projectId, months = 10, refreshKey = 0 }: Props) {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const r = await apiFetch(`/projects/${projectId}/time?days=${queryDays}`);
-      if (!r.ok) {
+      let rows;
+      try {
+        rows = await listTime(projectId, queryDays);
+      } catch {
         if (!cancelled) setLoading(false);
         return;
       }
-      const rows: Day[] = await r.json();
       if (cancelled) return;
       const map: Record<string, number> = {};
       for (const row of rows) map[row.date] = row.minutes;

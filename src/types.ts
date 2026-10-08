@@ -39,6 +39,23 @@ export interface Task {
 
 export type ListItem = HeadingItem | Task;
 
+export interface TimeDay {
+  date: string; // YYYY-MM-DD
+  minutes: number;
+}
+
+export interface TimeEntry {
+  id: number;
+  date: string;
+  minutes: number;
+  topic: string | null;
+}
+
+export interface ActivityDay {
+  date: string; // YYYY-MM-DD
+  count: number;
+}
+
 export interface Project {
   id: string;
   name: string;

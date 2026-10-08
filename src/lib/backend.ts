@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ListItem, Project, Status, SubStatus, Task } from "@/types";
+import type { ListItem, Project, Status, SubStatus, Task, TimeDay, TimeEntry } from "@/types";
 
 let baseUrl: string | null = null;
 
@@ -60,3 +60,14 @@ export const updateProject = (projectId: string, changes: ProjectChanges) =>
 
 export const removeProject = (projectId: string) =>
   call<null>("remove_project", { project_id: projectId });
+
+export const listTime = (projectId: string, days: number) =>
+  call<TimeDay[]>("list_time", { project_id: projectId, days });
+
+export const addTime = (
+  projectId: string,
+  entry: { minutes: number; date: string; topic: string | null },
+) => call<TimeEntry>("add_time", { project_id: projectId, ...entry });
+
+export const listTopics = (projectId: string) =>
+  call<string[]>("list_topics", { project_id: projectId });
