@@ -334,6 +334,26 @@ See DECISIONS.md (2026-10-08).
 - [ ] `CLAUDE.md`: drop the Python style section
 - [ ] Check cold launch time, memory and `.dmg` size before / after
 
+## Tests
+
+UI feature tests (Vitest + React Testing Library, real backend, see DECISIONS.md), written
+before the Phase 13 Commands block as its safety net.
+
+- [ ] Setup: Vitest + jsdom, backend on a temp `HOME`, Tauri IPC mocks
+- [ ] Project list: counts, tabs, ordering, archived section, empty state
+- [ ] Sidebar: open/close, open/archived filters per tab, settings link
+- [ ] Task list: headings and tasks, back to the right tab, markdown links, open in editor
+- [ ] Toggle task: moves to Done, file updated, activity commit, untoggle
+- [ ] Subtasks: single toggle, last subtask completes parent, parent cascade
+- [ ] Next tasks: select with "+" and double-click, unselect, done unselects, card count,
+  cleanup
+- [ ] Add project: dialog, name from folder, hardlink + commit, learning tab, archived status
+- [ ] Project settings: rename, pause date, archive, delete with confirmation
+- [ ] Activity heatmap: per-day counts, hide/show per tab
+- [ ] Time tracking: stepper, record time, topic suggestions, activity, hide/show per project
+- [ ] Settings: install CLI, already installed, install error
+- [ ] Smoke test: launch the real app, Rust storage init and watcher commit
+
 ## Maintenance
 
 - [x] Fix `pov add`, returns 128

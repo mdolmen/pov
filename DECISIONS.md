@@ -28,3 +28,16 @@
 - **Why:** golden tests can then tell a porting bug from a deliberate change.
 - **Constraints:** quirks found are listed in TODO.md › Maintenance and fixed later, one commit
   each.
+
+## 2026-10-08 — UI tests with Vitest + React Testing Library
+
+- **Decision:** one test file per UI feature, Vitest + React Testing Library in jsdom, against the
+  real backend on a temp data dir; each test writes its own TODO.md files. Only native calls are mocked
+  (`mockIPC`: backend port, file dialog, open in editor, install CLI, opener).
+- **Why:** no framework can drive the Tauri window on macOS (WKWebView has no automation
+  protocol; tauri-driver is Linux/Windows only). Vitest reuses the Vite config and is fast.
+- **Constraints:**
+  - No CSS in jsdom: hover visibility and layout aren't tested.
+  - Rust startup (storage, db, watcher) is covered by a separate launch smoke test.
+  - Once routes become Tauri commands, the tests reach them through a test-only bridge.
+- **Plan:** written now, before the Phase 13 Commands block, as its safety net.
