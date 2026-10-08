@@ -7,6 +7,7 @@ rust-version = "1.85"
 publish = false
 
 [dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 thiserror = "2"
 
 [dev-dependencies]

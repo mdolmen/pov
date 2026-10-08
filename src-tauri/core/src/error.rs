@@ -5,6 +5,8 @@ use std::io;
 pub enum Error {
     #[error(transparent)]
     Io(#[from] io::Error),
+    #[error(transparent)]
+    Sqlite(#[from] rusqlite::Error),
     #[error("git {args}: {stderr}")]
     Git { args: String, stderr: String },
     #[error("HOME is not set")]
