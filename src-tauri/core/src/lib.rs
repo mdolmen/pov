@@ -6,7 +6,9 @@ pub mod db;
 pub mod error;
 pub mod git;
 pub mod paths;
+pub mod pyline;
 pub mod storage;
+pub mod tasks;
 
 pub use error::{Error, Result};
 pub use paths::Paths;

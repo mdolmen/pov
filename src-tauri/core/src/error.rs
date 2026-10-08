@@ -9,6 +9,8 @@ pub enum Error {
     Sqlite(#[from] rusqlite::Error),
     #[error("git {args}: {stderr}")]
     Git { args: String, stderr: String },
+    #[error("{0} not found")]
+    NotFound(&'static str),
     #[error("HOME is not set")]
     NoHome,
 }
