@@ -1,10 +1,9 @@
-"""Build standalone binaries for the Tauri bundle.
+"""Build the standalone CLI binary for the Tauri bundle.
 
-Produces two PyInstaller --onefile binaries, named with the Rust target triple
-so Tauri can find them as sidecars:
+Produces a PyInstaller --onefile binary, named with the Rust target triple so
+Tauri can find it as an external binary:
 
-  src-tauri/binaries/pov-backend-<triple>   (FastAPI server)
-  src-tauri/binaries/pov-<triple>           (CLI tool)
+  src-tauri/binaries/pov-cli-<triple>
 """
 
 import subprocess
@@ -31,8 +30,6 @@ def _build(name: str, script: Path, out_dir: Path) -> None:
             "--onefile",
             "--name", name,
             "--distpath", str(out_dir),
-            # uvicorn uses dynamic imports
-            "--collect-all", "uvicorn",
             # clean build artefacts out of source tree
             "--workpath", str(out_dir / "_build"),
             "--specpath", str(out_dir / "_build"),
@@ -54,7 +51,6 @@ def main() -> None:
     out_dir = backend_dir.parent / "src-tauri" / "binaries"
     out_dir.mkdir(exist_ok=True)
 
-    _build("pov-backend", backend_dir / "main.py", out_dir)
     # Named pov-cli (not pov) to avoid conflicting with the Cargo package name.
     # install_cli() copies it to ~/.local/bin/pov at install time.
     _build("pov-cli", backend_dir / "pov" / "cli.py", out_dir)

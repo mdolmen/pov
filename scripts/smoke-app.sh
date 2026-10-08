@@ -11,7 +11,6 @@ pid=""
 
 cleanup() {
   if [ -n "$pid" ]; then
-    pkill -TERM -P "$pid" 2>/dev/null || true
     kill "$pid" 2>/dev/null || true
     wait "$pid" 2>/dev/null || true
   fi
@@ -33,12 +32,9 @@ wait_for() {
 
 (cd "$root/src-tauri" && cargo build --quiet -p pov)
 
-# HOME is a temp dir: give git an identity, and keep uv on the real caches since debug builds
-# start the backend with `uv run`.
+# HOME is a temp dir, so git can't see the user's identity.
 export GIT_AUTHOR_NAME="pov smoke" GIT_AUTHOR_EMAIL="smoke@pov"
 export GIT_COMMITTER_NAME="pov smoke" GIT_COMMITTER_EMAIL="smoke@pov"
-export UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
-export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-$HOME/.local/share/uv/python}"
 
 HOME="$home" "$root/src-tauri/target/debug/pov" >/dev/null 2>&1 &
 pid=$!

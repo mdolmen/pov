@@ -1,6 +1,6 @@
 # Projects Overview (pov)
 
-A macOS desktop app for tracking TODO.md files across projects. Built with Tauri + React frontend and a FastAPI Python backend.
+A macOS desktop app for tracking TODO.md files across projects. Built with Tauri, a React frontend and a Rust core (`src-tauri/core/`). The `pov` CLI is Python for now (`backend/`).
 
 ![Project Overview](screens/projects.png)
 
@@ -8,7 +8,7 @@ A macOS desktop app for tracking TODO.md files across projects. Built with Tauri
 
 - [Rust](https://rustup.rs/)
 - [Node.js](https://nodejs.org/) (v18+)
-- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- [uv](https://docs.astral.sh/uv/) (Python package manager, for the CLI)
 
 ## Development
 
@@ -19,26 +19,26 @@ npm install
 uv sync --directory backend
 ```
 
-Run the app in dev mode (hot-reloading frontend, live Python backend):
+Run the app in dev mode (hot-reloading frontend):
 
 ```sh
 npm run tauri dev
 ```
 
-The backend uses `~/.local/share/pov-dev/` for data in dev mode, keeping it separate from production data.
+Dev builds use `~/.local/share/pov-dev/` for data, keeping it separate from production data.
 
 ## Testing
 
-Backend tests use pytest and run against a real SQLite database (no mocks):
+CLI tests use pytest and run against a real SQLite database (no mocks):
 
 ```sh
 cd backend
 uv run pytest
 ```
 
-UI feature tests use Vitest + React Testing Library. They render the real frontend against the
-real backend, started on a temp `HOME`, and fake only native calls (file dialog, editor, CLI
-install):
+UI feature tests use Vitest + React Testing Library. They render the real frontend and run
+the real Rust commands through a test-only HTTP bridge (`pov-bridge`) on a temp `HOME`, faking
+only native calls (file dialog, editor, CLI install):
 
 ```sh
 npm test
@@ -59,13 +59,13 @@ npm run smoke
 
 ## Build
 
-Before the first build, generate the standalone Python binaries that get bundled into the app:
+Before the first build, generate the standalone CLI binary that gets bundled into the app:
 
 ```sh
 cd backend && uv run python build.py
 ```
 
-This produces `src-tauri/binaries/pov-backend-*` and `src-tauri/binaries/pov-cli-*` via PyInstaller. The binaries are gitignored and must be regenerated after backend changes.
+This produces `src-tauri/binaries/pov-cli-*` via PyInstaller. The binary is gitignored and must be regenerated after CLI changes.
 
 Then build the app:
 

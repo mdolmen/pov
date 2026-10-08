@@ -9,17 +9,20 @@ tracked fixtures/*.md, plus edge cases defined below.
 """
 
 import json
+import re
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
 
-from pov.routers.projects import _count_tasks
 from pov.tasks import Task, parse_items, toggle_cascade
 from pov.timelog import TimeLogParseError, parse_time_log
 
 REPO_ROOT = Path(__file__).parent.parent.parent
 OUT_DIR = REPO_ROOT / "src-tauri" / "core" / "tests" / "golden"
+
+# The Python API's task count: unchecked checkbox lines, subtasks included.
+OPEN_TASK_RE = re.compile(r"^\s*- \[ \]", re.MULTILINE)
 
 EDGE_TASKS: dict[str, bytes] = {
     "crlf": b"# Title\r\n- [ ] one\r\n  - [x] sub\r\n- [x] two\r\n",
@@ -148,6 +151,13 @@ def _input_json(data: bytes) -> dict:
         return {"input": data.decode()}
     except UnicodeDecodeError:
         return {"input_bytes": list(data)}
+
+
+def _count_tasks(path: Path) -> int:
+    try:
+        return len(OPEN_TASK_RE.findall(path.read_text()))
+    except (OSError, UnicodeDecodeError):
+        return 0
 
 
 def _tasks_golden(data: bytes, work: Path) -> dict:

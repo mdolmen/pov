@@ -41,7 +41,6 @@
       "icons/icon.ico"
     ],
     "externalBin": [
-      "binaries/pov-backend",
       "binaries/pov-cli"
     ]
   }

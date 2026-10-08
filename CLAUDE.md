@@ -1,8 +1,9 @@
 # CLAUDE.md — pov
 
-macOS desktop app tracking TODO.md files across projects: Tauri + React frontend, Python
-FastAPI sidecar backend, being ported to Rust (`TODO.md` Phase 13). Read `TODO.md` for the
-build plan and `DECISIONS.md` for past decisions before making changes.
+macOS desktop app tracking TODO.md files across projects: Tauri + React frontend, Rust core
+(`pov-core`, `src-tauri/core/`). The `pov` CLI is still Python (`backend/`) until the CLI block of
+`TODO.md` Phase 13. Read `TODO.md` for the build plan and `DECISIONS.md` for past decisions
+before making changes.
 
 These are behavioral guidelines (derived from Karpathy's notes on LLM coding pitfalls). They
 bias toward caution over speed; use judgment on trivial tasks.

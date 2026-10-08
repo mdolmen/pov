@@ -95,8 +95,6 @@ export function mockNative(native: Native = {}): [string, unknown][] {
   mockIPC((cmd, args) => {
     calls.push([cmd, args]);
     switch (cmd) {
-      case "get_backend_port":
-        return inject("backendPort");
       case "api": {
         const { cmd: command, args: commandArgs } = args as { cmd: string; args: unknown };
         return bridge(command, commandArgs);

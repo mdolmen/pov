@@ -62,11 +62,3 @@ async def init_db() -> None:
             # ISO 8601 date string (YYYY-MM-DD); SQLite has no native DATE type.
             await db.execute("ALTER TABLE projects ADD COLUMN paused_until TEXT")
         await db.commit()
-
-
-async def get_db() -> aiosqlite.Connection:
-    """FastAPI dependency — yields an open DB connection."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("PRAGMA foreign_keys = ON")
-        db.row_factory = aiosqlite.Row
-        yield db

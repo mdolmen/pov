@@ -318,7 +318,7 @@ See DECISIONS.md (2026-10-08).
 - [x] tasks → projects → timelog → activity through the dispatch
 - [x] Frontend: replace `apiFetch` calls (14, in hooks and modals) with
   typed wrappers over `invoke("api")` in `src/lib/backend.ts`
-- [ ] Remove the Python server: sidecar spawn, `get_backend_port`, `tauri-plugin-shell` +
+- [x] Remove the Python server: sidecar spawn, `get_backend_port`, `tauri-plugin-shell` +
   `shell:*` capabilities, `pov-backend` in `externalBin`, `main.py` and the routers (the
   Python CLI stays until the CLI block)
 

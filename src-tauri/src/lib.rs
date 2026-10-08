@@ -1,18 +1,7 @@
-use std::sync::OnceLock;
-
 use tauri::Manager;
-use tauri_plugin_shell::process::CommandEvent;
-use tauri_plugin_shell::ShellExt;
-
-static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
 
 #[cfg(debug_assertions)]
 const BACKEND_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../backend");
-
-#[tauri::command]
-fn get_backend_port() -> u16 {
-    *BACKEND_PORT.get().expect("backend port not set")
-}
 
 /// Runs a pov-core command (see `pov_core::api`). Off the UI thread: commands run git and SQLite.
 #[tauri::command]
@@ -116,11 +105,9 @@ fn install_cli() -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             api,
-            get_backend_port,
             open_in_editor,
             install_cli,
             is_cli_installed
@@ -133,38 +120,6 @@ pub fn run() {
             // Kept in app state: watching stops when the watcher is dropped.
             app.manage(pov_core::watcher::start(&paths)?);
             app.manage(paths);
-
-            // Spawn the Python backend and wait for it to print its port.
-            #[cfg(debug_assertions)]
-            let backend_cmd = app
-                .shell()
-                .command("uv")
-                .args(["--directory", BACKEND_DIR, "run", "python", "main.py"])
-                .env("POV_ENV", "dev");
-
-            #[cfg(not(debug_assertions))]
-            let backend_cmd = app
-                .shell()
-                .sidecar("pov-backend")
-                .expect("pov-backend sidecar not configured");
-
-            let (mut rx, _child) = backend_cmd.spawn().expect("failed to spawn backend");
-
-            tauri::async_runtime::block_on(async {
-                while let Some(event) = rx.recv().await {
-                    if let CommandEvent::Stdout(line) = event {
-                        if let Ok(text) = String::from_utf8(line) {
-                            if let Ok(val) = serde_json::from_str::<serde_json::Value>(&text) {
-                                if let Some(port) = val["port"].as_u64() {
-                                    BACKEND_PORT.set(port as u16).ok();
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
             Ok(())
         })
         .run(tauri::generate_context!())
