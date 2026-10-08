@@ -347,8 +347,8 @@ before the Phase 13 Commands block as its safety net.
 - [x] Subtasks: single toggle, last subtask completes parent, parent cascade
 - [x] Next tasks: select with "+" and double-click, unselect, done unselects, card count,
   cleanup
-- [ ] Add project: dialog, name from folder, hardlink + commit, learning tab, archived status
-- [ ] Project settings: rename, pause date, archive, delete with confirmation
+- [x] Add project: dialog, name from folder, hardlink + commit, learning tab, archived status
+- [x] Project settings: rename, pause date, archive, delete with confirmation
 - [ ] Activity heatmap: per-day counts, hide/show per tab
 - [ ] Time tracking: stepper, record time, topic suggestions, activity, hide/show per project
 - [ ] Settings: install CLI, already installed, install error

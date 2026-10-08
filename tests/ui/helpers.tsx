@@ -152,3 +152,25 @@ export function inOrder(...texts: string[]): boolean {
   const positions = texts.map((t) => body.indexOf(t));
   return positions.every((p, i) => p >= 0 && (i === 0 || p > positions[i - 1]));
 }
+
+export async function getProject(id: string): Promise<Project> {
+  const projects: Project[] = await (await api("/projects")).json();
+  return projects.find((p) => p.id === id) as Project;
+}
+
+/** Picks an option in a Select, found by the index of its trigger in the dialog. */
+export async function choose(
+  user: ReturnType<typeof userEvent.setup>,
+  trigger: number,
+  option: string,
+) {
+  await user.click(screen.getAllByRole("combobox")[trigger]);
+  await user.click(await screen.findByRole("option", { name: option }));
+}
+
+/** Turns on the "Archived" filter of the Projects tab. */
+export async function showArchived(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Menu" }));
+  await user.click(screen.getAllByRole("button", { name: "Archived" })[0]);
+  await user.click(screen.getByRole("button", { name: "Menu" }));
+}
