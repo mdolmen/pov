@@ -1,0 +1,71 @@
+{
+ "input": "- [ ] same\n- [x] same\n- [ ] parent\n  - [ ] same\n  - [ ] child\n- [ ] parent\n  - [ ] child\n",
+ "items": [
+  {
+   "kind": "task",
+   "hash": "79f9bfe627d0f1a0",
+   "text": "same",
+   "checked": false,
+   "line_number": 0,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "9a279b2499034527",
+   "text": "same",
+   "checked": true,
+   "line_number": 1,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "97a6d2b0b09287cb",
+   "text": "parent",
+   "checked": false,
+   "line_number": 2,
+   "is_done": false,
+   "subtasks": [
+    {
+     "hash": "25075bbec59f1a07",
+     "text": "same",
+     "checked": false,
+     "line_number": 3
+    },
+    {
+     "hash": "07828450b7d4a686",
+     "text": "child",
+     "checked": false,
+     "line_number": 4
+    }
+   ]
+  },
+  {
+   "kind": "task",
+   "hash": "09b8e786cde208ec",
+   "text": "parent",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": [
+    {
+     "hash": "42294b2c76c15702",
+     "text": "child",
+     "checked": false,
+     "line_number": 6
+    }
+   ]
+  }
+ ],
+ "count_tasks": 4,
+ "toggles": {
+  "79f9bfe627d0f1a0": "- [x] same\n- [x] same\n- [ ] parent\n  - [ ] same\n  - [ ] child\n- [ ] parent\n  - [ ] child\n",
+  "9a279b2499034527": "- [ ] same\n- [ ] same\n- [ ] parent\n  - [ ] same\n  - [ ] child\n- [ ] parent\n  - [ ] child\n",
+  "97a6d2b0b09287cb": "- [ ] same\n- [x] same\n- [x] parent\n  - [x] same\n  - [x] child\n- [ ] parent\n  - [ ] child\n",
+  "25075bbec59f1a07": "- [ ] same\n- [x] same\n- [ ] parent\n  - [x] same\n  - [ ] child\n- [ ] parent\n  - [ ] child\n",
+  "07828450b7d4a686": "- [ ] same\n- [x] same\n- [ ] parent\n  - [ ] same\n  - [x] child\n- [ ] parent\n  - [ ] child\n",
+  "09b8e786cde208ec": "- [ ] same\n- [x] same\n- [ ] parent\n  - [ ] same\n  - [ ] child\n- [x] parent\n  - [x] child\n",
+  "42294b2c76c15702": "- [ ] same\n- [x] same\n- [ ] parent\n  - [ ] same\n  - [ ] child\n- [x] parent\n  - [x] child\n"
+ }
+}

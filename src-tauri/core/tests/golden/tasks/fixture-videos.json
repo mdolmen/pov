@@ -1,0 +1,53 @@
+{
+ "input": "# Videos\n\n- [x] 3Blue1Brown \u2014 Essence of Linear Algebra\n- [ ] Andrej Karpathy \u2014 Neural Networks: Zero to Hero\n- [ ] MIT 6.006 Introduction to Algorithms\n- [ ] Stanford CS231n Lecture series\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Videos",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "565e238706c745a4",
+   "text": "3Blue1Brown \u2014 Essence of Linear Algebra",
+   "checked": true,
+   "line_number": 2,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "66a5fb66e9515e0f",
+   "text": "Andrej Karpathy \u2014 Neural Networks: Zero to Hero",
+   "checked": false,
+   "line_number": 3,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "54a2ce2df2fd6f9d",
+   "text": "MIT 6.006 Introduction to Algorithms",
+   "checked": false,
+   "line_number": 4,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "77049ead74c107f9",
+   "text": "Stanford CS231n Lecture series",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 2,
+ "toggles": {
+  "565e238706c745a4": "# Videos\n\n- [ ] 3Blue1Brown \u2014 Essence of Linear Algebra\n- [ ] Andrej Karpathy \u2014 Neural Networks: Zero to Hero\n- [ ] MIT 6.006 Introduction to Algorithms\n- [ ] Stanford CS231n Lecture series\n",
+  "66a5fb66e9515e0f": "# Videos\n\n- [x] 3Blue1Brown \u2014 Essence of Linear Algebra\n- [x] Andrej Karpathy \u2014 Neural Networks: Zero to Hero\n- [ ] MIT 6.006 Introduction to Algorithms\n- [ ] Stanford CS231n Lecture series\n",
+  "54a2ce2df2fd6f9d": "# Videos\n\n- [x] 3Blue1Brown \u2014 Essence of Linear Algebra\n- [ ] Andrej Karpathy \u2014 Neural Networks: Zero to Hero\n- [x] MIT 6.006 Introduction to Algorithms\n- [ ] Stanford CS231n Lecture series\n",
+  "77049ead74c107f9": "# Videos\n\n- [x] 3Blue1Brown \u2014 Essence of Linear Algebra\n- [ ] Andrej Karpathy \u2014 Neural Networks: Zero to Hero\n- [ ] MIT 6.006 Introduction to Algorithms\n- [x] Stanford CS231n Lecture series\n"
+ }
+}

@@ -1,0 +1,35 @@
+{
+ "input": "# Time\n\n| DATE       | TIME | TOPIC      |\n| ---------- | ---- | ---------- |\n| 2026-01-31 | 2,00 | Proba      |\n| 2026-02-01 | 1.5  | Algebra    |\n| 2026-02-02 | 0,25 |            |\n| 2026-02-03 | 1    |\n|| 2026-02-04 | 1e0 | Doubled pipes ||\n| 20260205 | +0,75 | Basic date format |\nnot a table row\n",
+ "rows": [
+  {
+   "date": "2026-01-31",
+   "minutes": 120,
+   "topic": "Proba"
+  },
+  {
+   "date": "2026-02-01",
+   "minutes": 90,
+   "topic": "Algebra"
+  },
+  {
+   "date": "2026-02-02",
+   "minutes": 15,
+   "topic": null
+  },
+  {
+   "date": "2026-02-03",
+   "minutes": 60,
+   "topic": null
+  },
+  {
+   "date": "2026-02-04",
+   "minutes": 60,
+   "topic": "Doubled pipes"
+  },
+  {
+   "date": "2026-02-05",
+   "minutes": 45,
+   "topic": "Basic date format"
+  }
+ ]
+}

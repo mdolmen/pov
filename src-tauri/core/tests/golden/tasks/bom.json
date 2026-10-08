@@ -1,0 +1,18 @@
+{
+ "input": "\ufeff# Title\n- [ ] first\n",
+ "items": [
+  {
+   "kind": "task",
+   "hash": "a3a2be9dfca72d61",
+   "text": "first",
+   "checked": false,
+   "line_number": 1,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 0,
+ "toggles": {
+  "a3a2be9dfca72d61": "\ufeff# Title\n- [x] first\n"
+ }
+}

@@ -1,0 +1,63 @@
+{
+ "input": "# Books\n\n- [x] The Pragmatic Programmer\n- [x] Designing Data-Intensive Applications\n- [ ] Structure and Interpretation of Computer Programs\n- [ ] The Art of Problem Solving vol. 1\n- [ ] G\u00f6del, Escher, Bach\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Books",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "6960fa03e92a6cdd",
+   "text": "The Pragmatic Programmer",
+   "checked": true,
+   "line_number": 2,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "7d41ef85e91dd47c",
+   "text": "Designing Data-Intensive Applications",
+   "checked": true,
+   "line_number": 3,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "3c55db5ede23908a",
+   "text": "Structure and Interpretation of Computer Programs",
+   "checked": false,
+   "line_number": 4,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "ce66174ccbc2565a",
+   "text": "The Art of Problem Solving vol. 1",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "4b68ba6ae0ea9280",
+   "text": "G\u00f6del, Escher, Bach",
+   "checked": false,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 2,
+ "toggles": {
+  "6960fa03e92a6cdd": "# Books\n\n- [ ] The Pragmatic Programmer\n- [x] Designing Data-Intensive Applications\n- [ ] Structure and Interpretation of Computer Programs\n- [ ] The Art of Problem Solving vol. 1\n- [ ] G\u00f6del, Escher, Bach\n",
+  "7d41ef85e91dd47c": "# Books\n\n- [x] The Pragmatic Programmer\n- [ ] Designing Data-Intensive Applications\n- [ ] Structure and Interpretation of Computer Programs\n- [ ] The Art of Problem Solving vol. 1\n- [ ] G\u00f6del, Escher, Bach\n",
+  "3c55db5ede23908a": "# Books\n\n- [x] The Pragmatic Programmer\n- [x] Designing Data-Intensive Applications\n- [x] Structure and Interpretation of Computer Programs\n- [ ] The Art of Problem Solving vol. 1\n- [ ] G\u00f6del, Escher, Bach\n",
+  "ce66174ccbc2565a": "# Books\n\n- [x] The Pragmatic Programmer\n- [x] Designing Data-Intensive Applications\n- [ ] Structure and Interpretation of Computer Programs\n- [x] The Art of Problem Solving vol. 1\n- [ ] G\u00f6del, Escher, Bach\n",
+  "4b68ba6ae0ea9280": "# Books\n\n- [x] The Pragmatic Programmer\n- [x] Designing Data-Intensive Applications\n- [ ] Structure and Interpretation of Computer Programs\n- [ ] The Art of Problem Solving vol. 1\n- [x] G\u00f6del, Escher, Bach\n"
+ }
+}

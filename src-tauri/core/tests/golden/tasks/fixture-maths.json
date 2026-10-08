@@ -1,0 +1,93 @@
+{
+ "input": "# Maths\n\n## Linear Algebra\n\n- [x] Vector spaces and subspaces\n- [x] Eigenvalues and eigenvectors\n- [ ] Singular value decomposition \u2014 `A = U S V^T`\n- [ ] Principal component analysis\n\n## Probability\n\n- [x] Bayes theorem and applications\n- [ ] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [ ] Stochastic processes\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Maths",
+   "level": 1
+  },
+  {
+   "kind": "heading",
+   "text": "Linear Algebra",
+   "level": 2
+  },
+  {
+   "kind": "task",
+   "hash": "c81970ea54260be4",
+   "text": "Vector spaces and subspaces",
+   "checked": true,
+   "line_number": 4,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "81667366f4a33bab",
+   "text": "Eigenvalues and eigenvectors",
+   "checked": true,
+   "line_number": 5,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "4928f36ac3da4d83",
+   "text": "Singular value decomposition \u2014 `A = U S V^T`",
+   "checked": false,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "c3b252b284ff81e2",
+   "text": "Principal component analysis",
+   "checked": false,
+   "line_number": 7,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "heading",
+   "text": "Probability",
+   "level": 2
+  },
+  {
+   "kind": "task",
+   "hash": "04ae12aadc5b1064",
+   "text": "Bayes theorem and applications",
+   "checked": true,
+   "line_number": 11,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "f975f1e2abfcc2d2",
+   "text": "Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)",
+   "checked": false,
+   "line_number": 12,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "c138aa6a4a82ca8a",
+   "text": "Stochastic processes",
+   "checked": false,
+   "line_number": 13,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 3,
+ "toggles": {
+  "c81970ea54260be4": "# Maths\n\n## Linear Algebra\n\n- [ ] Vector spaces and subspaces\n- [x] Eigenvalues and eigenvectors\n- [ ] Singular value decomposition \u2014 `A = U S V^T`\n- [ ] Principal component analysis\n\n## Probability\n\n- [x] Bayes theorem and applications\n- [ ] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [ ] Stochastic processes\n",
+  "81667366f4a33bab": "# Maths\n\n## Linear Algebra\n\n- [x] Vector spaces and subspaces\n- [ ] Eigenvalues and eigenvectors\n- [ ] Singular value decomposition \u2014 `A = U S V^T`\n- [ ] Principal component analysis\n\n## Probability\n\n- [x] Bayes theorem and applications\n- [ ] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [ ] Stochastic processes\n",
+  "4928f36ac3da4d83": "# Maths\n\n## Linear Algebra\n\n- [x] Vector spaces and subspaces\n- [x] Eigenvalues and eigenvectors\n- [x] Singular value decomposition \u2014 `A = U S V^T`\n- [ ] Principal component analysis\n\n## Probability\n\n- [x] Bayes theorem and applications\n- [ ] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [ ] Stochastic processes\n",
+  "c3b252b284ff81e2": "# Maths\n\n## Linear Algebra\n\n- [x] Vector spaces and subspaces\n- [x] Eigenvalues and eigenvectors\n- [ ] Singular value decomposition \u2014 `A = U S V^T`\n- [x] Principal component analysis\n\n## Probability\n\n- [x] Bayes theorem and applications\n- [ ] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [ ] Stochastic processes\n",
+  "04ae12aadc5b1064": "# Maths\n\n## Linear Algebra\n\n- [x] Vector spaces and subspaces\n- [x] Eigenvalues and eigenvectors\n- [ ] Singular value decomposition \u2014 `A = U S V^T`\n- [ ] Principal component analysis\n\n## Probability\n\n- [ ] Bayes theorem and applications\n- [ ] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [ ] Stochastic processes\n",
+  "f975f1e2abfcc2d2": "# Maths\n\n## Linear Algebra\n\n- [x] Vector spaces and subspaces\n- [x] Eigenvalues and eigenvectors\n- [ ] Singular value decomposition \u2014 `A = U S V^T`\n- [ ] Principal component analysis\n\n## Probability\n\n- [x] Bayes theorem and applications\n- [x] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [ ] Stochastic processes\n",
+  "c138aa6a4a82ca8a": "# Maths\n\n## Linear Algebra\n\n- [x] Vector spaces and subspaces\n- [x] Eigenvalues and eigenvectors\n- [ ] Singular value decomposition \u2014 `A = U S V^T`\n- [ ] Principal component analysis\n\n## Probability\n\n- [x] Bayes theorem and applications\n- [ ] Markov chains \u2014 see [Norris ch. 1](https://www.statslab.cam.ac.uk/~james/Markov/)\n- [x] Stochastic processes\n"
+ }
+}

@@ -1,0 +1,41 @@
+{
+ "input": "  - [ ] orphan before any task\n- [ ] task\n  - [ ] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
+ "items": [
+  {
+   "kind": "task",
+   "hash": "d628cf044c3b6f32",
+   "text": "task",
+   "checked": false,
+   "line_number": 1,
+   "is_done": false,
+   "subtasks": [
+    {
+     "hash": "e57beb206670a962",
+     "text": "sub",
+     "checked": false,
+     "line_number": 2
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "text": "Heading",
+   "level": 2
+  },
+  {
+   "kind": "task",
+   "hash": "89a3b95c52235cd5",
+   "text": "other",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 4,
+ "toggles": {
+  "d628cf044c3b6f32": "  - [ ] orphan before any task\n- [x] task\n  - [x] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
+  "e57beb206670a962": "  - [ ] orphan before any task\n- [x] task\n  - [x] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
+  "89a3b95c52235cd5": "  - [ ] orphan before any task\n- [ ] task\n  - [ ] sub\n## Heading\n  - [ ] orphan after heading\n- [x] other\n"
+ }
+}

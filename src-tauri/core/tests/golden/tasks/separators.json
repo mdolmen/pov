@@ -1,0 +1,78 @@
+{
+ "input": "- [ ] form\ffeed\n- [ ] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",
+ "items": [
+  {
+   "kind": "task",
+   "hash": "c7a4143f26f14964",
+   "text": "form",
+   "checked": false,
+   "line_number": 0,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "a85794047d6c3dbb",
+   "text": "vertical",
+   "checked": false,
+   "line_number": 2,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "2b1b9ed80d55dce3",
+   "text": "file",
+   "checked": false,
+   "line_number": 4,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "6d53846e3e754eed",
+   "text": "line",
+   "checked": false,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "317d9733828d4fa7",
+   "text": "next",
+   "checked": false,
+   "line_number": 8,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "f580534a6ad53f90",
+   "text": "trailing",
+   "checked": true,
+   "line_number": 10,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "b064648b918966fd",
+   "text": "after",
+   "checked": false,
+   "line_number": 12,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 5,
+ "toggles": {
+  "c7a4143f26f14964": "- [x] form\ffeed\n- [ ] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",
+  "a85794047d6c3dbb": "- [ ] form\ffeed\n- [x] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",
+  "2b1b9ed80d55dce3": "- [ ] form\ffeed\n- [ ] vertical\u000btab\n- [x] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",
+  "6d53846e3e754eed": "- [ ] form\ffeed\n- [ ] vertical\u000btab\n- [ ] file\u001csep\n- [x] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",
+  "317d9733828d4fa7": "- [ ] form\ffeed\n- [ ] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [x] next\u0085line\n- [x] trailing\u001c\n- [ ] after\n",
+  "f580534a6ad53f90": "- [ ] form\ffeed\n- [ ] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [ ] trailing\u001c\n- [ ] after\n",
+  "b064648b918966fd": "- [ ] form\ffeed\n- [ ] vertical\u000btab\n- [ ] file\u001csep\n- [ ] line\u2028sep\n- [ ] next\u0085line\n- [x] trailing\u001c\n- [x] after\n"
+ }
+}

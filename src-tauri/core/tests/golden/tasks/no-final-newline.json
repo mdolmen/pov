@@ -1,0 +1,23 @@
+{
+ "input": "# Title\n- [ ] last",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Title",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "15921d46a9cbf031",
+   "text": "last",
+   "checked": false,
+   "line_number": 1,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 0,
+ "toggles": {
+  "15921d46a9cbf031": "# Title\n- [x] last"
+ }
+}

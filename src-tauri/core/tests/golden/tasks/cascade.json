@@ -1,0 +1,86 @@
+{
+ "input": "- [ ] partial\n  - [x] a\n  - [ ] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
+ "items": [
+  {
+   "kind": "task",
+   "hash": "a686f0f26546b334",
+   "text": "partial",
+   "checked": false,
+   "line_number": 0,
+   "is_done": false,
+   "subtasks": [
+    {
+     "hash": "15fd1e57b167375c",
+     "text": "a",
+     "checked": true,
+     "line_number": 1
+    },
+    {
+     "hash": "53ed1b364fae581c",
+     "text": "b",
+     "checked": false,
+     "line_number": 2
+    }
+   ]
+  },
+  {
+   "kind": "task",
+   "hash": "75256f01be4037bd",
+   "text": "all done",
+   "checked": false,
+   "line_number": 3,
+   "is_done": true,
+   "subtasks": [
+    {
+     "hash": "541460fd80f73cc4",
+     "text": "a",
+     "checked": true,
+     "line_number": 4
+    },
+    {
+     "hash": "3b8e3d3729c2518a",
+     "text": "b",
+     "checked": true,
+     "line_number": 5
+    }
+   ]
+  },
+  {
+   "kind": "task",
+   "hash": "78a44b01351469cb",
+   "text": "checked parent, open subs",
+   "checked": true,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": [
+    {
+     "hash": "f6722dba9ccd3743",
+     "text": "a",
+     "checked": false,
+     "line_number": 7
+    }
+   ]
+  },
+  {
+   "kind": "task",
+   "hash": "ee24509246839428",
+   "text": "single",
+   "checked": true,
+   "line_number": 8,
+   "is_done": true,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 5,
+ "toggles": {
+  "a686f0f26546b334": "- [x] partial\n  - [x] a\n  - [x] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
+  "15fd1e57b167375c": "- [ ] partial\n  - [ ] a\n  - [ ] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
+  "53ed1b364fae581c": "- [x] partial\n  - [x] a\n  - [x] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
+  "75256f01be4037bd": "- [ ] partial\n  - [x] a\n  - [ ] b\n- [ ] all done\n  - [ ] a\n  - [ ] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
+  "541460fd80f73cc4": "- [ ] partial\n  - [x] a\n  - [ ] b\n- [ ] all done\n  - [ ] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
+  "3b8e3d3729c2518a": "- [ ] partial\n  - [x] a\n  - [ ] b\n- [ ] all done\n  - [x] a\n  - [ ] b\n- [x] checked parent, open subs\n  - [ ] a\n- [x] single\n",
+  "78a44b01351469cb": "- [ ] partial\n  - [x] a\n  - [ ] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [x] a\n- [x] single\n",
+  "f6722dba9ccd3743": "- [ ] partial\n  - [x] a\n  - [ ] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [x] a\n- [x] single\n",
+  "ee24509246839428": "- [ ] partial\n  - [x] a\n  - [ ] b\n- [ ] all done\n  - [x] a\n  - [x] b\n- [x] checked parent, open subs\n  - [ ] a\n- [ ] single\n"
+ }
+}

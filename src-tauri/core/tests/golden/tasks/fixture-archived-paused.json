@@ -1,0 +1,63 @@
+{
+ "input": "# Mobile App\n\n- [x] Design wireframes\n- [x] Set up project structure\n- [ ] Implement navigation\n- [ ] Build onboarding flow\n- [ ] Connect to backend API\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Mobile App",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "6a9b0d0f7347a3c6",
+   "text": "Design wireframes",
+   "checked": true,
+   "line_number": 2,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "c71fc41788bb99cd",
+   "text": "Set up project structure",
+   "checked": true,
+   "line_number": 3,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "f3e014dddbbb4be0",
+   "text": "Implement navigation",
+   "checked": false,
+   "line_number": 4,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "40d6afc7ab3c9cc3",
+   "text": "Build onboarding flow",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "58eb85c8d2a88bd6",
+   "text": "Connect to backend API",
+   "checked": false,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 2,
+ "toggles": {
+  "6a9b0d0f7347a3c6": "# Mobile App\n\n- [ ] Design wireframes\n- [x] Set up project structure\n- [ ] Implement navigation\n- [ ] Build onboarding flow\n- [ ] Connect to backend API\n",
+  "c71fc41788bb99cd": "# Mobile App\n\n- [x] Design wireframes\n- [ ] Set up project structure\n- [ ] Implement navigation\n- [ ] Build onboarding flow\n- [ ] Connect to backend API\n",
+  "f3e014dddbbb4be0": "# Mobile App\n\n- [x] Design wireframes\n- [x] Set up project structure\n- [x] Implement navigation\n- [ ] Build onboarding flow\n- [ ] Connect to backend API\n",
+  "40d6afc7ab3c9cc3": "# Mobile App\n\n- [x] Design wireframes\n- [x] Set up project structure\n- [ ] Implement navigation\n- [x] Build onboarding flow\n- [ ] Connect to backend API\n",
+  "58eb85c8d2a88bd6": "# Mobile App\n\n- [x] Design wireframes\n- [x] Set up project structure\n- [ ] Implement navigation\n- [ ] Build onboarding flow\n- [x] Connect to backend API\n"
+ }
+}

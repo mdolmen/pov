@@ -1,0 +1,53 @@
+{
+ "input": "# Website Redesign\n\n- [x] Define design system\n- [x] Create mockups\n- [x] Implement landing page\n- [x] Review and sign off\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Website Redesign",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "4c0f962c046af160",
+   "text": "Define design system",
+   "checked": true,
+   "line_number": 2,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "05f3b2d8ed6f459d",
+   "text": "Create mockups",
+   "checked": true,
+   "line_number": 3,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "14e5e70a276f1699",
+   "text": "Implement landing page",
+   "checked": true,
+   "line_number": 4,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "306c2291dbf0d58e",
+   "text": "Review and sign off",
+   "checked": true,
+   "line_number": 5,
+   "is_done": true,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 1,
+ "toggles": {
+  "4c0f962c046af160": "# Website Redesign\n\n- [ ] Define design system\n- [x] Create mockups\n- [x] Implement landing page\n- [x] Review and sign off\n",
+  "05f3b2d8ed6f459d": "# Website Redesign\n\n- [x] Define design system\n- [ ] Create mockups\n- [x] Implement landing page\n- [x] Review and sign off\n",
+  "14e5e70a276f1699": "# Website Redesign\n\n- [x] Define design system\n- [x] Create mockups\n- [ ] Implement landing page\n- [x] Review and sign off\n",
+  "306c2291dbf0d58e": "# Website Redesign\n\n- [x] Define design system\n- [x] Create mockups\n- [x] Implement landing page\n- [ ] Review and sign off\n"
+ }
+}

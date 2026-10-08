@@ -1,0 +1,68 @@
+{
+ "input": "- [ ] trailing spaces   \n- [ ] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [ ] parent\n\t- [ ] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",
+ "items": [
+  {
+   "kind": "task",
+   "hash": "9d5cd02f4e5f2d13",
+   "text": "trailing spaces   ",
+   "checked": false,
+   "line_number": 0,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "18b423493e5075df",
+   "text": "trailing tab\t",
+   "checked": false,
+   "line_number": 1,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "4a101c5e6d5036b1",
+   "text": "trailing nbsp\u00a0",
+   "checked": false,
+   "line_number": 2,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "97a6d2b0b09287cb",
+   "text": "parent",
+   "checked": false,
+   "line_number": 3,
+   "is_done": false,
+   "subtasks": [
+    {
+     "hash": "ea90f85824ee0341",
+     "text": "tab sub",
+     "checked": false,
+     "line_number": 4
+    },
+    {
+     "hash": "5eb6c39ef99d9c08",
+     "text": "four spaces sub",
+     "checked": true,
+     "line_number": 5
+    }
+   ]
+  },
+  {
+   "kind": "heading",
+   "text": "Spaced heading",
+   "level": 3
+  }
+ ],
+ "count_tasks": 6,
+ "toggles": {
+  "9d5cd02f4e5f2d13": "- [x] trailing spaces   \n- [ ] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [ ] parent\n\t- [ ] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",
+  "18b423493e5075df": "- [ ] trailing spaces   \n- [x] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [ ] parent\n\t- [ ] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",
+  "4a101c5e6d5036b1": "- [ ] trailing spaces   \n- [ ] trailing tab\t\n- [x] trailing nbsp\u00a0\n- [ ] parent\n\t- [ ] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",
+  "97a6d2b0b09287cb": "- [ ] trailing spaces   \n- [ ] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [x] parent\n\t- [x] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",
+  "ea90f85824ee0341": "- [ ] trailing spaces   \n- [ ] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [x] parent\n\t- [x] tab sub\n    - [x] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n",
+  "5eb6c39ef99d9c08": "- [ ] trailing spaces   \n- [ ] trailing tab\t\n- [ ] trailing nbsp\u00a0\n- [ ] parent\n\t- [ ] tab sub\n    - [ ] four spaces sub\n   \n#Not a heading\n####### seven hashes\n###   Spaced heading   \n"
+ }
+}

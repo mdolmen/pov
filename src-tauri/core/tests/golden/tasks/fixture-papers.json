@@ -1,0 +1,63 @@
+{
+ "input": "# Papers\n\n- [x] Attention Is All You Need\n- [x] RLHF \u2014 Ouyang et al. 2022\n- [ ] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [ ] **Scaling Laws** for Neural Language Models\n- [ ] Chain-of-Thought Prompting \u2014 *re-read section 3*\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Papers",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "b262122785f363a7",
+   "text": "Attention Is All You Need",
+   "checked": true,
+   "line_number": 2,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "0776efc7d032971f",
+   "text": "RLHF \u2014 Ouyang et al. 2022",
+   "checked": true,
+   "line_number": 3,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "7606629e1295354a",
+   "text": "[Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022",
+   "checked": false,
+   "line_number": 4,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "19017f4f2ad64e47",
+   "text": "**Scaling Laws** for Neural Language Models",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "6411555d4f132413",
+   "text": "Chain-of-Thought Prompting \u2014 *re-read section 3*",
+   "checked": false,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 2,
+ "toggles": {
+  "b262122785f363a7": "# Papers\n\n- [ ] Attention Is All You Need\n- [x] RLHF \u2014 Ouyang et al. 2022\n- [ ] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [ ] **Scaling Laws** for Neural Language Models\n- [ ] Chain-of-Thought Prompting \u2014 *re-read section 3*\n",
+  "0776efc7d032971f": "# Papers\n\n- [x] Attention Is All You Need\n- [ ] RLHF \u2014 Ouyang et al. 2022\n- [ ] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [ ] **Scaling Laws** for Neural Language Models\n- [ ] Chain-of-Thought Prompting \u2014 *re-read section 3*\n",
+  "7606629e1295354a": "# Papers\n\n- [x] Attention Is All You Need\n- [x] RLHF \u2014 Ouyang et al. 2022\n- [x] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [ ] **Scaling Laws** for Neural Language Models\n- [ ] Chain-of-Thought Prompting \u2014 *re-read section 3*\n",
+  "19017f4f2ad64e47": "# Papers\n\n- [x] Attention Is All You Need\n- [x] RLHF \u2014 Ouyang et al. 2022\n- [ ] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [x] **Scaling Laws** for Neural Language Models\n- [ ] Chain-of-Thought Prompting \u2014 *re-read section 3*\n",
+  "6411555d4f132413": "# Papers\n\n- [x] Attention Is All You Need\n- [x] RLHF \u2014 Ouyang et al. 2022\n- [ ] [Constitutional AI](https://arxiv.org/abs/2212.08073) \u2014 Bai et al. 2022\n- [ ] **Scaling Laws** for Neural Language Models\n- [x] Chain-of-Thought Prompting \u2014 *re-read section 3*\n"
+ }
+}

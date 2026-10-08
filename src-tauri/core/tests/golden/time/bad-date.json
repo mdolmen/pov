@@ -1,0 +1,4 @@
+{
+ "input": "| DATE | TIME |\n| 2026-13-01 | 1 |\n",
+ "error_line": 2
+}

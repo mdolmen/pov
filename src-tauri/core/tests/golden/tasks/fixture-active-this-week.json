@@ -1,0 +1,330 @@
+{
+ "input": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Sprint",
+   "level": 1
+  },
+  {
+   "kind": "heading",
+   "text": "API",
+   "level": 2
+  },
+  {
+   "kind": "task",
+   "hash": "bfb86eb730c51954",
+   "text": "Set up database schema in `backend/pov/db.py`",
+   "checked": false,
+   "line_number": 4,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "91921f59d3444e8f",
+   "text": "Add authentication endpoints \u2014 **blocked** on the token spec",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "4e3f38df9a59f689",
+   "text": "Implement rate limiting",
+   "checked": true,
+   "line_number": 6,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "f00620c3bd578aaf",
+   "text": "Add request logging middleware 0",
+   "checked": false,
+   "line_number": 7,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "8d3162ad94f7f94c",
+   "text": "Add request logging middleware 1",
+   "checked": false,
+   "line_number": 8,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "2ec808b64071ff60",
+   "text": "Add request logging middleware 2",
+   "checked": false,
+   "line_number": 9,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "dba91e7d02cb100d",
+   "text": "Add request logging middleware 3",
+   "checked": false,
+   "line_number": 10,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "b9cc99228ba6b3f1",
+   "text": "Add request logging middleware 4",
+   "checked": false,
+   "line_number": 11,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "987ce30b1d4b41ae",
+   "text": "Add request logging middleware 5",
+   "checked": false,
+   "line_number": 12,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "bedb112c2b9845f9",
+   "text": "Add request logging middleware 6",
+   "checked": false,
+   "line_number": 13,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "heading",
+   "text": "Get something",
+   "level": 3
+  },
+  {
+   "kind": "task",
+   "hash": "38b505bb5a2e042f",
+   "text": "Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)",
+   "checked": false,
+   "line_number": 17,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "054336385c1942c3",
+   "text": "Implement",
+   "checked": false,
+   "line_number": 18,
+   "is_done": false,
+   "subtasks": [
+    {
+     "hash": "66638a2cbb55f5b7",
+     "text": "Sub implement 0 \u2014 reuse `parse_items()`",
+     "checked": false,
+     "line_number": 19
+    },
+    {
+     "hash": "b01834903503df2f",
+     "text": "Sub implement 1",
+     "checked": false,
+     "line_number": 20
+    },
+    {
+     "hash": "5bd0e7879747bd59",
+     "text": "Sub implement 2",
+     "checked": false,
+     "line_number": 21
+    }
+   ]
+  },
+  {
+   "kind": "task",
+   "hash": "0ef1e76d64c3ce8c",
+   "text": "Test",
+   "checked": false,
+   "line_number": 22,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "heading",
+   "text": "Frontend",
+   "level": 2
+  },
+  {
+   "kind": "task",
+   "hash": "4b147014cf0eaf31",
+   "text": "Create login page",
+   "checked": true,
+   "line_number": 26,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "4ba03da93ee07ded",
+   "text": "Build user dashboard",
+   "checked": false,
+   "line_number": 27,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "ec10823314ea4db7",
+   "text": "Add error boundaries around `<TaskList />`",
+   "checked": false,
+   "line_number": 28,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "5455d6d355925e18",
+   "text": "Write *integration* tests",
+   "checked": false,
+   "line_number": 29,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "heading",
+   "text": "Rendering `InlineMarkdown`",
+   "level": 2
+  },
+  {
+   "kind": "task",
+   "hash": "afe257157cc7237d",
+   "text": "~~Pull in react-markdown~~ superseded by the inline tokenizer",
+   "checked": false,
+   "line_number": 33,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "0162457be487d5ea",
+   "text": "Keep a literal \\*asterisk\\* unformatted in task text",
+   "checked": false,
+   "line_number": 34,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "50d5d0acdaf21cde",
+   "text": "Confirm `a * b * c` and `2*3*4` match CommonMark",
+   "checked": false,
+   "line_number": 35,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "heading",
+   "text": "Done (older)",
+   "level": 2
+  },
+  {
+   "kind": "task",
+   "hash": "a141957329a2489e",
+   "text": "Bootstrap project repository",
+   "checked": false,
+   "line_number": 39,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "66d2ab586ffc93ed",
+   "text": "Configure CI pipeline",
+   "checked": false,
+   "line_number": 40,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "c689ce037f8396dd",
+   "text": "Write API specification",
+   "checked": true,
+   "line_number": 41,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "20a1756e8fc44637",
+   "text": "Set up staging environment",
+   "checked": true,
+   "line_number": 42,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "bfb6ffc802ffbd3f",
+   "text": "Migrate legacy data",
+   "checked": true,
+   "line_number": 43,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "512247f437570c02",
+   "text": "Load testing and benchmarks",
+   "checked": true,
+   "line_number": 44,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "7d27b8a4e879980e",
+   "text": "Security audit",
+   "checked": true,
+   "line_number": 45,
+   "is_done": true,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 24,
+ "toggles": {
+  "bfb86eb730c51954": "# Sprint\n\n## API\n\n- [x] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "91921f59d3444e8f": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [x] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "4e3f38df9a59f689": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [ ] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "f00620c3bd578aaf": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [x] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "8d3162ad94f7f94c": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [x] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "2ec808b64071ff60": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [x] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "dba91e7d02cb100d": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [x] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "b9cc99228ba6b3f1": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [x] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "987ce30b1d4b41ae": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [x] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "bedb112c2b9845f9": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [x] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "38b505bb5a2e042f": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [x] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "054336385c1942c3": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [x] Implement\n    - [x] Sub implement 0 \u2014 reuse `parse_items()`\n    - [x] Sub implement 1\n    - [x] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "66638a2cbb55f5b7": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [x] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "b01834903503df2f": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [x] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "5bd0e7879747bd59": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [x] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "0ef1e76d64c3ce8c": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [x] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "4b147014cf0eaf31": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [ ] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "4ba03da93ee07ded": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [x] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "ec10823314ea4db7": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [x] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "5455d6d355925e18": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [x] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "afe257157cc7237d": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [x] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "0162457be487d5ea": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [x] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "50d5d0acdaf21cde": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [x] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "a141957329a2489e": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [x] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "66d2ab586ffc93ed": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [x] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "c689ce037f8396dd": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [ ] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "20a1756e8fc44637": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [ ] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "bfb6ffc802ffbd3f": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [ ] Migrate legacy data\n- [x] Load testing and benchmarks\n- [x] Security audit\n",
+  "512247f437570c02": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [ ] Load testing and benchmarks\n- [x] Security audit\n",
+  "7d27b8a4e879980e": "# Sprint\n\n## API\n\n- [ ] Set up database schema in `backend/pov/db.py`\n- [ ] Add authentication endpoints \u2014 **blocked** on the token spec\n- [x] Implement rate limiting\n- [ ] Add request logging middleware 0\n- [ ] Add request logging middleware 1\n- [ ] Add request logging middleware 2\n- [ ] Add request logging middleware 3\n- [ ] Add request logging middleware 4\n- [ ] Add request logging middleware 5\n- [ ] Add request logging middleware 6\n\n### Get something\n\n- [ ] Define the API \u2014 see [the OpenAPI spec](https://spec.openapis.org/oas/latest.html)\n- [ ] Implement\n    - [ ] Sub implement 0 \u2014 reuse `parse_items()`\n    - [ ] Sub implement 1\n    - [ ] Sub implement 2\n- [ ] Test\n\n## Frontend\n\n- [x] Create login page\n- [ ] Build user dashboard\n- [ ] Add error boundaries around `<TaskList />`\n- [ ] Write *integration* tests\n\n## Rendering `InlineMarkdown`\n\n- [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer\n- [ ] Keep a literal \\*asterisk\\* unformatted in task text\n- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark\n\n## Done (older)\n\n- [ ] Bootstrap project repository\n- [ ] Configure CI pipeline\n- [x] Write API specification\n- [x] Set up staging environment\n- [x] Migrate legacy data\n- [x] Load testing and benchmarks\n- [ ] Security audit\n"
+ }
+}

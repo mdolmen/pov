@@ -1,0 +1,73 @@
+{
+ "input": "# Legacy Refactor\n\n- [ ] Audit existing codebase\n- [ ] Document current architecture\n- [x] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [x] Update dependencies\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Legacy Refactor",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "f0bfa55ca3c3552c",
+   "text": "Audit existing codebase",
+   "checked": false,
+   "line_number": 2,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "817d898d37eef71c",
+   "text": "Document current architecture",
+   "checked": false,
+   "line_number": 3,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "fba27c70b197a7f7",
+   "text": "Identify tech debt",
+   "checked": true,
+   "line_number": 4,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "65b08fe544b1296e",
+   "text": "Extract shared utilities into `src/lib/utils.ts`",
+   "checked": false,
+   "line_number": 5,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "a5f5e8edc726422d",
+   "text": "Add missing tests",
+   "checked": false,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "28a2eb830b742ceb",
+   "text": "Update dependencies",
+   "checked": true,
+   "line_number": 7,
+   "is_done": true,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 5,
+ "toggles": {
+  "f0bfa55ca3c3552c": "# Legacy Refactor\n\n- [x] Audit existing codebase\n- [ ] Document current architecture\n- [x] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [x] Update dependencies\n",
+  "817d898d37eef71c": "# Legacy Refactor\n\n- [ ] Audit existing codebase\n- [x] Document current architecture\n- [x] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [x] Update dependencies\n",
+  "fba27c70b197a7f7": "# Legacy Refactor\n\n- [ ] Audit existing codebase\n- [ ] Document current architecture\n- [ ] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [x] Update dependencies\n",
+  "65b08fe544b1296e": "# Legacy Refactor\n\n- [ ] Audit existing codebase\n- [ ] Document current architecture\n- [x] Identify tech debt\n- [x] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [x] Update dependencies\n",
+  "a5f5e8edc726422d": "# Legacy Refactor\n\n- [ ] Audit existing codebase\n- [ ] Document current architecture\n- [x] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [x] Add missing tests\n- [x] Update dependencies\n",
+  "28a2eb830b742ceb": "# Legacy Refactor\n\n- [ ] Audit existing codebase\n- [ ] Document current architecture\n- [x] Identify tech debt\n- [ ] Extract shared utilities into `src/lib/utils.ts`\n- [ ] Add missing tests\n- [ ] Update dependencies\n"
+ }
+}

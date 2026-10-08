@@ -1,0 +1,56 @@
+{
+ "input": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
+ "items": [
+  {
+   "kind": "task",
+   "hash": "2c2aa40915e7c2f7",
+   "text": "see [a] and [ ] here",
+   "checked": false,
+   "line_number": 0,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "d8502f75b679ad39",
+   "text": "see [b] and [ ] here",
+   "checked": false,
+   "line_number": 1,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "16e19c7f8500d293",
+   "text": "done [ ] inner",
+   "checked": true,
+   "line_number": 2,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "26b8ed2fba8c307f",
+   "text": "parent [ ] text",
+   "checked": false,
+   "line_number": 3,
+   "is_done": true,
+   "subtasks": [
+    {
+     "hash": "e57beb206670a962",
+     "text": "sub",
+     "checked": true,
+     "line_number": 4
+    }
+   ]
+  }
+ ],
+ "count_tasks": 4,
+ "toggles": {
+  "2c2aa40915e7c2f7": "- [x] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
+  "d8502f75b679ad39": "- [ ] see [a] and [ ] here\n- [x] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
+  "16e19c7f8500d293": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [ ] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
+  "26b8ed2fba8c307f": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [ ] sub\n",
+  "e57beb206670a962": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [ ] sub\n"
+ }
+}

@@ -1,0 +1,41 @@
+{
+ "input": "# Title\r\n- [ ] one\r\n  - [x] sub\r\n- [x] two\r\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Title",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "96ee26405bff04aa",
+   "text": "one",
+   "checked": false,
+   "line_number": 1,
+   "is_done": true,
+   "subtasks": [
+    {
+     "hash": "e57beb206670a962",
+     "text": "sub",
+     "checked": true,
+     "line_number": 2
+    }
+   ]
+  },
+  {
+   "kind": "task",
+   "hash": "f3b813159f6c7022",
+   "text": "two",
+   "checked": true,
+   "line_number": 3,
+   "is_done": true,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 2,
+ "toggles": {
+  "96ee26405bff04aa": "# Title\n- [ ] one\n  - [ ] sub\n- [x] two\n",
+  "e57beb206670a962": "# Title\n- [ ] one\n  - [ ] sub\n- [x] two\n",
+  "f3b813159f6c7022": "# Title\n- [ ] one\n  - [x] sub\n- [ ] two\n"
+ }
+}

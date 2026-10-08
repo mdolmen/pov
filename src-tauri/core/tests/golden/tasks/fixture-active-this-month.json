@@ -1,0 +1,63 @@
+{
+ "input": "# Research\n\n- [x] Read intro papers\n- [ ] Set up experiment environment\n- [x] Run baseline experiments\n- [x] Analyze results\n- [ ] Write summary\n",
+ "items": [
+  {
+   "kind": "heading",
+   "text": "Research",
+   "level": 1
+  },
+  {
+   "kind": "task",
+   "hash": "a368c9075f1f1d6b",
+   "text": "Read intro papers",
+   "checked": true,
+   "line_number": 2,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "659d48df8b2aa46e",
+   "text": "Set up experiment environment",
+   "checked": false,
+   "line_number": 3,
+   "is_done": false,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "900f5292f786ae2a",
+   "text": "Run baseline experiments",
+   "checked": true,
+   "line_number": 4,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "003600a662cb3e29",
+   "text": "Analyze results",
+   "checked": true,
+   "line_number": 5,
+   "is_done": true,
+   "subtasks": []
+  },
+  {
+   "kind": "task",
+   "hash": "2c2e041fe62b2696",
+   "text": "Write summary",
+   "checked": false,
+   "line_number": 6,
+   "is_done": false,
+   "subtasks": []
+  }
+ ],
+ "count_tasks": 1,
+ "toggles": {
+  "a368c9075f1f1d6b": "# Research\n\n- [ ] Read intro papers\n- [ ] Set up experiment environment\n- [x] Run baseline experiments\n- [x] Analyze results\n- [ ] Write summary\n",
+  "659d48df8b2aa46e": "# Research\n\n- [x] Read intro papers\n- [x] Set up experiment environment\n- [x] Run baseline experiments\n- [x] Analyze results\n- [ ] Write summary\n",
+  "900f5292f786ae2a": "# Research\n\n- [x] Read intro papers\n- [ ] Set up experiment environment\n- [ ] Run baseline experiments\n- [x] Analyze results\n- [ ] Write summary\n",
+  "003600a662cb3e29": "# Research\n\n- [x] Read intro papers\n- [ ] Set up experiment environment\n- [x] Run baseline experiments\n- [ ] Analyze results\n- [ ] Write summary\n",
+  "2c2e041fe62b2696": "# Research\n\n- [x] Read intro papers\n- [ ] Set up experiment environment\n- [x] Run baseline experiments\n- [x] Analyze results\n- [x] Write summary\n"
+ }
+}
