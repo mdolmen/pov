@@ -122,7 +122,10 @@ fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project>
         [&row.id],
         |r| r.get(0),
     )?;
-    let mut level = activity::level(paths, &row.file_path, row.has_hardlink);
+    let hardlink = row
+        .has_hardlink
+        .then(|| paths.hardlink(&row.id, &row.project_type));
+    let mut level = activity::level(paths, &row.file_path, hardlink.as_deref());
     if let Some(day) = last_time_entry {
         level = activity::most_recent(level, activity::classify_day(&day));
     }

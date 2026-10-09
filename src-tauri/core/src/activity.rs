@@ -57,15 +57,16 @@ pub fn most_recent(a: Level, b: Level) -> Level {
     a.max(b)
 }
 
-fn last_commit_date(paths: &Paths, file_path: &Path) -> Option<DateTime<Utc>> {
+fn last_commit_date(paths: &Paths, hardlink: &Path) -> Option<DateTime<Utc>> {
     let out = git::run(
         &paths.root,
         &[
             "log".as_ref(),
             "-1".as_ref(),
+            "--grep=^activity:".as_ref(),
             "--format=%aI".as_ref(),
             "--".as_ref(),
-            file_path.as_os_str(),
+            hardlink.as_os_str(),
         ],
     )
     .ok()?;
@@ -81,10 +82,10 @@ fn mtime(file_path: &Path) -> Option<DateTime<Utc>> {
         .map(DateTime::from)
 }
 
-/// Activity level of a project file: last commit in the data repo when it has a hardlink,
+/// Activity level of a project file: last `activity:` commit of its hardlink in the data repo,
 /// falling back to the file's mtime.
-pub fn level(paths: &Paths, file_path: &Path, has_hardlink: bool) -> Level {
-    if has_hardlink && let Some(when) = last_commit_date(paths, file_path) {
+pub fn level(paths: &Paths, file_path: &Path, hardlink: Option<&Path>) -> Level {
+    if let Some(when) = hardlink.and_then(|h| last_commit_date(paths, h)) {
         return classify(Some(when));
     }
     classify(mtime(file_path))
@@ -261,9 +262,22 @@ mod tests {
         fs::write(&md, "- [ ] task\n").unwrap();
         let dst = env.paths.projects.join("test.md");
         fs::hard_link(&md, &dst).unwrap();
-        git::add_commit(&env.paths.root, &dst, "add test").unwrap();
+        git::add_commit(&env.paths.root, &dst, "activity: test.md").unwrap();
 
-        assert_eq!(level(&env.paths, &dst, true), Level::ThisWeek);
+        assert_eq!(level(&env.paths, &md, Some(&dst)), Level::ThisWeek);
+    }
+
+    #[test]
+    fn level_reads_the_hardlink_history() {
+        let env = Env::new();
+        let md = env.tmp.path().join("test.md");
+        fs::write(&md, "- [ ] task\n").unwrap();
+        let dst = env.paths.projects.join("test.md");
+        fs::hard_link(&md, &dst).unwrap();
+        git::run(&env.paths.root, &["add".as_ref(), dst.as_os_str()]).unwrap();
+        commit_at(&env.paths.root, days_ago(40), "activity: test.md");
+
+        assert_eq!(level(&env.paths, &md, Some(&dst)), Level::Older);
     }
 
     #[test]
@@ -272,9 +286,9 @@ mod tests {
         let md = env.tmp.path().join("untracked.md");
         fs::write(&md, "- [ ] task\n").unwrap();
 
-        assert_eq!(level(&env.paths, &md, false), Level::ThisWeek);
+        assert_eq!(level(&env.paths, &md, None), Level::ThisWeek);
         // Not in the data repo: git log prints nothing.
-        assert_eq!(level(&env.paths, &md, true), Level::ThisWeek);
+        assert_eq!(level(&env.paths, &md, Some(&md)), Level::ThisWeek);
     }
 
     #[test]
