@@ -188,86 +188,101 @@ git source of truth — it lives in SQLite.
 
 ## Phase 11 — Queue stage
 
-Task list goes from three piles (next / backlog / done) to four:
-next → queue → backlog → done. "Queue" = committed to, but not yet
-next. Same left-band visual cue as "next", in amber instead of violet.
-A task is in at most one stage; both stages live in the existing
-`selected_tasks` table, so done-task cleanup and project deletion
-cascade cover both for free.
+Tasks get a second mark next to "next": "queue" = committed to, but not yet next. A task is
+backlog, queued or next, never two. Both marks live in `selected_tasks`, so the done-task
+cleanup and the project-deletion cascade cover both for free. In the split view (Phase 14)
+queued tasks stay in place, like next ones, marked by an amber band instead of violet. Next up
+is unchanged: it only reads next tasks.
 
-### Backend
+### Backend (`pov-core`)
 
-- [ ] `selected_tasks.stage` column (`TEXT NOT NULL DEFAULT 'next'`,
-  `'next' | 'queue'`), added via the `PRAGMA table_info` migration in
-  `init_db` (existing rows become `next`)
-- [ ] `TaskResponse.is_queued: bool`; `is_selected` now means
-  `stage = 'next'` only
-- [ ] `POST /projects/:id/tasks/:hash/select` upserts `stage = 'next'`
-  (moves a queued task up)
-- [ ] `POST /projects/:id/tasks/:hash/queue` upserts `stage = 'queue'`;
-  `DELETE /projects/:id/tasks/:hash/queue` removes the row
-- [ ] `ProjectResponse.queued_count`; `selected_count` counts `next` only
-- [ ] Tests: migration keeps existing rows as `next`, select ↔ queue
-  moves (never two rows), unqueue, counts per stage, `/tasks/cleanup`
-  removes done queued tasks
+- [ ] `db::init`: `selected_tasks.stage` column (`TEXT NOT NULL DEFAULT 'next'`, `'next' |
+  'queue'`), added with `has_column` like `paused_until`; existing rows become `next`
+- [ ] `tasks`: `TaskView.is_queued`; `is_selected` now means `stage = 'next'` only, so
+  `selected_hashes` (and through it `next_up`) only reads next rows
+- [ ] `tasks::select` upserts `stage = 'next'` (`ON CONFLICT(project_id, task_hash) DO UPDATE`,
+  moves a queued task up); new `tasks::queue` upserts `stage = 'queue'`, `tasks::unqueue`
+  deletes the row. `toggle` and `cleanup_selected` already delete any stage
+- [ ] `projects::Project.queued_count`; `selected_count` counts `next` only
+- [ ] `queue_task` / `unqueue_task` in `api::dispatch` (`TaskArgs`)
+- [ ] Tests (`#[cfg(test)]` in `db`, `tasks`, `projects`, `api`): old `selected_tasks` without
+  `stage` migrates to `next`, select ↔ queue moves (never two rows), unqueue, counts per stage,
+  done queued task removed by `toggle` and `cleanup_selected`, queued tasks absent from
+  `next_up`
 
 ### Frontend
 
-- [ ] `Task.is_queued`, `Project.queued_count` in `types.ts`;
-  `queue` / `unqueue` in `useTasks` with the same optimistic update
-  pattern as `select`
-- [ ] `QUEUED_BAND = "#f59e0b"` (amber) left band in `TaskCard`
-- [ ] Queue section between "next" and backlog in `TaskList`, separated by
-  a `Divider`; `renderPendingItems` skips queued tasks like selected ones
-- [ ] Hover actions: backlog task gets "+" (→ next) and a second icon
-  (→ queue); queued task gets "↑" (→ next) and "×" (→ backlog); next
-  task keeps "×". Double-click stays backlog ↔ next
-- [ ] `ProjectCard`: queued count shown muted (stone-400, regular weight)
-  left of the bold next count; project ordering unchanged (next count)
+- [ ] `Task.is_queued`, `Project.queued_count` in `types.ts`; `queueTask` / `unqueueTask` in
+  `backend.ts`; `queue` / `unqueue` in `useTasks`, optimistic like `select` (setting one stage
+  clears the other)
+- [ ] `--pov-queue` / `--pov-queue-soft` amber tokens in `index.css` (+ `--color-queue*`), next
+  to `--pov-next`
+- [ ] `TaskRow`: amber inset band for queued tasks. Pills: backlog shows "Queue" and "Mark next"
+  on hover; queued shows "Queued" (click → backlog) and "Mark next" on hover; next keeps "Next"
+  (click → backlog). Double-click stays backlog ↔ next, and moves a queued task to next
+- [ ] `ProjectTile`: "N next · M queued of K open", queued in muted ink, regular weight;
+  `ProjectTiles` ordering unchanged (next count)
+
+### Tests (`tests/ui`)
+
+- [ ] New `queue-task.test.tsx`: queue from backlog, queued → next, queued → backlog, next
+  task can't be queued and next at once, tile counts, queued task absent from Next up, done
+  queued task loses its mark
 
 ## Phase 12 — MCP server
 
-Let external tools (Claude Code, other MCP clients) add tasks to a
-tracked project. Runs as a stdio MCP server spawned by the client via the
-CLI (`pov mcp`), independent of the app being open. It writes the
-TODO.md through the hardlink, so the watcher commits it like any external
-edit, and writes stages straight to `pov.db` like the CLI does.
+Let external tools (Claude Code, other MCP clients) add tasks to a tracked project. A stdio MCP
+server spawned by the client as `pov mcp` (the `pov-cli` binary), independent of the app being
+open. Like the CLI it works on the data dir directly: it writes the project's file in place and
+commits it to the data repo itself, as `toggle` does, since the watcher only runs with the app.
+Needs Phase 11 for the `queue` stage.
 
-### Core
+### Core (`pov-core`, sync, no MCP types)
 
-- [ ] `append_task(file_path, text, heading=None) -> str` in
-  `pov/tasks.py`: append `- [ ] <text>` at the end of the section under
-  `heading` (exact heading text match), or at end of file when `None`;
-  returns the new task's hash. Reject empty / multi-line text and unknown
-  headings (`ValueError`)
-- [ ] Tests: append to end of file, append inside a section followed by
-  another heading, trailing-newline handling, duplicate text gets a
-  distinct hash (occurrence counter), unknown heading rejected
+- [ ] `tasks::append_task(path, text, section) -> Result<String>`: append `- [ ] <text>` at the
+  end of the section under heading `section` (exact text match, any level; a section ends at
+  the next heading of the same or higher level), or at end of file when `None`. Writes in place
+  (never rename-replace, which would break the hardlink), keeps CRLF files CRLF, returns the new
+  task's hash (with its occurrence). `Error::Invalid` on empty / multi-line text or an unknown
+  heading
+- [ ] `tasks::sections(path) -> Vec<HeadingView>`: the file's headings (text, level), for the
+  client to target one
+- [ ] `projects::resolve(conn, query) -> Result<ProjectRow>`: exact id, else case-insensitive
+  name; on miss or ambiguity an error listing the candidates
+- [ ] `tasks::add(conn, paths, project_id, text, section, stage)`: `append_task`, commit
+  `activity: <id>.md` on the hardlink like `toggle`, then `select` / `queue` per `stage`
+  (`backlog | queue | next`)
+- [ ] Tests: append at end of file, inside a section followed by another heading, inside a
+  section with `###` children, missing trailing newline, CRLF kept, hardlink still shares the
+  inode, duplicate text gets a distinct hash, unknown heading and multi-line text rejected;
+  `resolve` by id, by name in any case, ambiguous, unknown; `add` persists the stage and commits
 
-### Server
+### Server (`pov-cli mcp`)
 
-- [ ] Add the `mcp` Python SDK dependency; `pov/mcp_server.py` built with
-  `FastMCP`
-- [ ] Tool `list_projects()` — id, name, type, status, task / next /
-  queued counts (open projects first)
-- [ ] Tool `list_sections(project)` — headings of the project's TODO.md,
-  so the client can target one
-- [ ] Tool `add_task(project, text, section=None, stage="backlog")` —
-  `stage` ∈ `backlog | queue | next`; `project` matches by id or
-  case-insensitive name, error listing candidates on miss / ambiguity;
-  returns the task hash
-- [ ] `pov mcp` subcommand in `cli.py` runs the server over stdio
-- [ ] Tests: each tool against a temp `POV_DIR` (unknown project,
-  ambiguous name, stage persisted in `selected_tasks`, section targeting)
+- [ ] `rmcp` (`server`, `transport-io`) + `tokio` (`rt`, `macros`, `io-std`) as optional
+  dependencies behind the `cli` feature: the runtime lives in the binary only, the core stays
+  sync. Split `src/bin/pov-cli.rs` into `src/bin/pov-cli/{main,mcp}.rs`
+- [ ] Tool `list_projects()`: id, name, type, status, `task_count` / `selected_count` /
+  `queued_count`, open projects first (reuses `projects::list`)
+- [ ] Tool `list_sections(project)`
+- [ ] Tool `add_task(project, text, section?, stage = "backlog")`: returns the task hash; core
+  errors become tool errors (`is_error`), not protocol errors
+- [ ] Each tool call opens its own connection and calls the core through `spawn_blocking`;
+  `db::open`'s busy timeout covers the app writing at the same time
+- [ ] `pov mcp` subcommand runs the server over stdio until stdin closes
+- [ ] Test (`tests/cli.rs`): spawn `pov-cli mcp` on a temp `HOME`, `initialize`, `tools/list`,
+  `tools/call add_task`; the task is in the file and the stage in `pov.db`
 
 ### Integration
 
-- [ ] Refetch tasks / projects on window focus so tasks added while the
-  app is open show up without navigating away
-- [ ] README: how to register the server
-  (`claude mcp add pov -- pov mcp`, generic JSON config for other clients)
-- [ ] Check the PyInstaller bundle still builds with the `mcp` dependency
-  (the CLI symlink points into the bundle)
+- [ ] App refetches projects, Next up and the open task list on window focus, so tasks added
+  while the app is open show up without navigating away (`useTasks` exposes `refresh`); UI test
+  writes the file directly, fires `focus`, sees the task
+- [ ] README + NOTES.md CLI section: register the server with
+  `claude mcp add pov -- ~/.local/bin/pov mcp` (absolute path: GUI clients don't get the shell
+  `PATH`), generic JSON config for other clients; a debug `pov-cli` uses `pov-dev`
+- [ ] Release build via `scripts/build-cli.sh` still bundles; record the `pov-cli` and `.dmg`
+  size change with `rmcp` + `tokio` in NOTES.md
 
 ## Phase 13 — Port the backend to Rust
 
