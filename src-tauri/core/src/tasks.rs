@@ -165,7 +165,7 @@ fn parse_text(text: &str) -> Vec<Item> {
             continue;
         }
         let Some(m) = checkbox(line) else { continue };
-        let checked = &m[2] == "x" || &m[2] == "X";
+        let checked = &m[2] != " ";
         let hash = seen.hash(line);
         let text = m[3].to_string();
 
@@ -486,6 +486,18 @@ Some plain text here.
         assert!(tasks_of("- [x] Task\n")[0].is_done());
         assert!(tasks_of("- [ ] Task\n  - [x] Sub A\n  - [x] Sub B\n")[0].is_done());
         assert!(!tasks_of("- [ ] Task\n  - [x] Sub A\n  - [ ] Sub B\n")[0].is_done());
+    }
+
+    #[test]
+    fn other_states_are_closed() {
+        assert!(tasks_of("- [-] Cancelled\n")[0].is_done());
+        assert!(tasks_of("- [~] Deferred\n")[0].is_done());
+        assert!(tasks_of("- [ ] Task\n  - [x] Sub A\n  - [-] Sub B\n")[0].is_done());
+
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), "- [-] Cancelled\n");
+        assert!(toggle_cascade(&path, &task_hash("- [-] Cancelled", 1)).unwrap());
+        assert_eq!(fs::read_to_string(&path).unwrap(), "- [ ] Cancelled\n");
     }
 
     #[test]

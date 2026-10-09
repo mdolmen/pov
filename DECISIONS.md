@@ -62,3 +62,11 @@
 - **Constraints:**
   - A debug `pov-cli` uses `pov-dev`, like the app (the Python dev CLI used prod data).
   - The goldens are frozen fixtures; new behavior is tested in Rust only.
+
+## 2026-10-09 — Checkbox states and open task count
+
+- **Decision:** any checkbox state other than `[ ]` (`[x]`, `[-]`, `[~]`, …) closes a task;
+  toggling a closed task writes `[ ]`, toggling an open one writes `[x]`. A project's
+  `task_count` counts its top-level tasks that aren't done.
+- **Why:** `[-]` (cancelled) and `[~]` (deferred) were open forever, since toggling couldn't
+  clear them; counting subtasks inflated the card count against what the task list shows open.

@@ -369,7 +369,7 @@ Phase 13:
 - [x] `_set_checked` replaces the first `[ ]` / `[x]` of the line: checking an already checked
   parent ticks a `[ ]` written in its text
 - [x] Toggling a task rewrites a CRLF file with LF line endings
-- [ ] `[-]`, `[~]` and other states count as unchecked, and toggling can't clear them
+- [x] `[-]`, `[~]` and other states count as unchecked, and toggling can't clear them
 - [ ] `task_count` counts unchecked subtasks too
 - [ ] Project activity level passes the original path to `git log` in the data repo, which is
   outside it: the level always comes from the file's mtime
