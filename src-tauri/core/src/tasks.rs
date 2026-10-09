@@ -18,7 +18,6 @@ static CHECKBOX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([\s\x1c-\x1f]*)- \[(.)\] (.+)$").unwrap());
 static HEADING_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(#{1,6})[\s\x1c-\x1f]+(.+)$").unwrap());
-static ANY_BOX_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[.\]").unwrap());
 static CHECKED_BOX_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[[xX]\]").unwrap());
 static OPEN_TASK_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?m)^[\s\x1c-\x1f]*- \[ \]").unwrap());
@@ -85,9 +84,17 @@ fn checkbox(line: &str) -> Option<regex::Captures<'_>> {
     CHECKBOX_RE.captures(line.strip_suffix('\n').unwrap_or(line))
 }
 
-/// Replaces every `[.]` with `[ ]` so the hash doesn't depend on the checkbox state.
+/// Writes `state` in the checkbox of a checkbox line; other lines are returned unchanged.
+fn with_state(line: &str, state: char) -> String {
+    let Some(old) = checkbox(line).and_then(|m| m.get(2)) else {
+        return line.to_string();
+    };
+    format!("{}{state}{}", &line[..old.start()], &line[old.end()..])
+}
+
+/// Blanks the checkbox so the hash doesn't depend on the checkbox state.
 fn normalize(line: &str) -> String {
-    ANY_BOX_RE.replace_all(rstrip(line), "[ ]").into_owned()
+    with_state(rstrip(line), ' ')
 }
 
 /// Hashes a checkbox line, disambiguated by occurrence among identical lines.
@@ -481,6 +488,12 @@ Some plain text here.
         let before = tasks_of("- [ ] Task one\n- [ ] Task two\n");
         let after = tasks_of("- [ ] Task one\n- [ ] Inserted\n- [ ] Task two\n");
         assert_eq!(before[1].hash, after[2].hash);
+    }
+
+    #[test]
+    fn hash_keeps_brackets_in_the_text() {
+        assert_ne!(task_hash("- [ ] see [a]", 1), task_hash("- [ ] see [b]", 1));
+        assert_eq!(task_hash("- [x] see [a]", 1), task_hash("- [ ] see [a]", 1));
     }
 
     #[test]

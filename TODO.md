@@ -364,7 +364,7 @@ before the Phase 13 Commands block as its safety net.
 Python quirks kept by the Rust port (DECISIONS.md, exact parity); fix one per commit, after
 Phase 13:
 
-- [ ] `_normalize` replaces every `[.]` in a line, not just the checkbox: tasks differing only
+- [x] `_normalize` replaces every `[.]` in a line, not just the checkbox: tasks differing only
   by `[a]` / `[b]` in their text share a hash (told apart by occurrence only)
 - [ ] `_set_checked` replaces the first `[ ]` / `[x]` of the line: checking an already checked
   parent ticks a `[ ]` written in its text
