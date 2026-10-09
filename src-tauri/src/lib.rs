@@ -1,8 +1,5 @@
 use tauri::Manager;
 
-#[cfg(debug_assertions)]
-const BACKEND_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../backend");
-
 /// Runs a pov-core command (see `pov_core::api`). Off the UI thread: commands run git and SQLite.
 #[tauri::command]
 async fn api(
@@ -28,12 +25,12 @@ fn open_in_editor(path: String) {
 
 /// Path to the `pov` CLI binary.
 ///
-/// Dev: the uv-managed venv script. Release: the PyInstaller binary bundled
+/// Dev: the debug `pov-cli` build in the workspace target dir. Release: the binary bundled
 /// alongside the app executable in Contents/MacOS/.
 fn resolve_pov_binary() -> std::path::PathBuf {
     #[cfg(debug_assertions)]
     {
-        std::path::PathBuf::from(BACKEND_DIR).join(".venv/bin/pov")
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/pov-cli")
     }
     #[cfg(not(debug_assertions))]
     {
@@ -60,7 +57,12 @@ fn is_cli_installed() -> bool {
 fn install_cli() -> Result<String, String> {
     let src = resolve_pov_binary();
     if !src.exists() {
-        return Err(format!("pov binary not found at {}.", src.display()));
+        let hint = if cfg!(debug_assertions) {
+            "\n\nBuild it with `cargo build -p pov-core --features cli --bin pov-cli`."
+        } else {
+            ""
+        };
+        return Err(format!("pov binary not found at {}.{hint}", src.display()));
     }
     let dst = install_dst();
 

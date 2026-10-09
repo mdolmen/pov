@@ -328,7 +328,7 @@ See DECISIONS.md (2026-10-08).
   `add`, `list`, `remove`, `import-time` (+ `mcp` via `rmcp` if Phase 12
   is done), same flags and output as today
 - [x] Test: CLI cases from `test_cli.py`
-- [ ] Bundle it next to the app executable; `install_cli` unchanged
+- [x] Bundle it next to the app executable; `install_cli` unchanged
 
 ### Cleanup
 
