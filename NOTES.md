@@ -9,32 +9,30 @@ Read-only markdown rendering with interactive checkboxes that sync back to the s
 
 | Layer | Technology |
 |---|---|
-| App shell | Tauri (system tray, file browser, packaging) |
+| App shell | Tauri (window, file browser, packaging) |
 | Frontend | Vite + React + TailwindCSS + Shadcn |
-| Backend | Python FastAPI (Tauri sidecar) |
-| File watching | Python watchdog |
-| Persistence | SQLite |
+| Backend | Rust `pov-core` crate, called in-process through one Tauri command |
+| File watching | `notify` crate |
+| Persistence | SQLite (`rusqlite`) + a git repo of hardlinks |
+| CLI | `pov-cli`, a binary of `pov-core` (`clap`) |
 
 Everything runs locally. The app packages into a native macOS `.app`, launchable without any terminal.
+The backend started as a Python FastAPI sidecar and was ported to Rust (DECISIONS.md, 2026-10-08).
 
 ## Data & File Layout
 
 ```
-~/.local/share/pov/
-  config.json          # list of projects (path, name, status, type)
+~/.local/share/pov/    # pov-dev/ for dev builds (debug or POV_ENV=dev)
+  config.json          # list of projects (id, name, path)
   pov.db               # SQLite database
   projects/
-    my-project.md      # hardlink → original TODO.md (same inode)
-    other-project.md   # hardlink → original TODO.md
+    <project-id>.md    # hardlink → original TODO.md (same inode)
   learning/
-    maths.md           # hardlink → Maths/TODO.md
-    papers.md          # hardlink → Papers/TODO.md
-    books.md           # hardlink → Books/TODO.md
-    videos.md          # hardlink → Videos/TODO.md
+    <project-id>.md    # hardlink → e.g. Maths/TODO.md
   .git/                # git repo tracking all hardlinked files
 ```
 
-Hardlinks (not symlinks) are used so the pov folder shares the same inode as the original file. Changes to either path are immediately visible to both. The pov folder is a git repo — watchdog detects changes and auto-commits, giving a clean activity history per project independent of the original repo. Writes from the app go through the hardlink and reach the original file directly.
+Hardlinks (not symlinks) are used so the pov folder shares the same inode as the original file. Changes to either path are immediately visible to both. The pov folder is a git repo — the watcher detects changes and auto-commits (`activity: <id>.md`), giving a clean activity history per project independent of the original repo. Writes from the app go through the hardlink and reach the original file directly.
 
 Fallback: files on a different filesystem can't be hardlinked — use mtime-only activity tracking for those (edge case).
 
@@ -43,30 +41,38 @@ Activity tracking = last git commit date in the pov repo for that file (falls ba
 ## Architecture
 
 ```
-Tauri (.app)
+Tauri (.app, one process)
 ├── WebView  →  Vite + React frontend
-└── Sidecar  →  Python FastAPI server (http://127.0.0.1:PORT)
-                ├── /projects      CRUD + metadata
-                ├── /tasks         read, toggle checkbox, mark selected
-                └── /activity      mtime-based activity data
+│                 └── invoke("api", {cmd, args})   via src/lib/backend.ts
+└── Rust     →  pov_core::api::dispatch
+                ├── tasks      list, toggle checkbox, select / unselect, cleanup
+                ├── projects   list, add, update, remove
+                ├── time       per-day totals, add entry, topics
+                └── activity   heatmap from the data repo's git log
+                + watcher thread (notify) committing edits to the data repo
 ```
 
-The frontend talks to the FastAPI sidecar over localhost. Tauri handles:
+The frontend calls a single `api` Tauri command; `pov_core::api::dispatch` maps the command name
+to a core function. No HTTP server, no port. Tauri itself handles:
 - Regular app with Dock icon (standard macOS window, movable and resizable)
-- System tray icon (menu bar, top-right) — satellite display: shows up to 3 selected tasks even when the main window is closed; left-click brings the window to front
-- Right-click tray icon → context menu: Show pov, Quit
 - Native file browser dialog (to pick a TODO.md when adding a project)
-- App lifecycle (start/stop the sidecar)
+- Opening a TODO.md in the default text editor
+- Installing the CLI (Settings → Install CLI)
+
+The UI tests reach the same dispatch through `pov-bridge`, a test-only HTTP server that never ships.
 
 ## CLI
 
 ```bash
-pov add <path/to/TODO.md>   # add a project from terminal
-pov list                    # list tracked projects
-pov remove <name>           # remove a project (keeps original file)
+pov add <path/to/TODO.md> [--name N] [--type project|learning] [--status open|archived]
+pov list                          # list tracked projects
+pov remove <name>                 # remove a project (keeps original file)
+pov import-time <name> <TIME.md>  # import a time log [--append | --replace]
 ```
 
-The CLI is a thin Python script, installed alongside the app. It writes to the same config.json and creates the symlink.
+The CLI is `pov-cli`, a binary of `pov-core` bundled in the `.app` and copied to
+`~/.local/bin/pov` by Settings → Install CLI. It shares the core with the app, so it writes the
+same `pov.db`, config.json and hardlinks; the app doesn't need to be running.
 
 ## UI
 
@@ -122,28 +128,33 @@ Border color (Archived):
 - Renders the TODO.md as markdown (headings, checkboxes, plain text)
 - Click a checkbox → toggles done/undone in the UI and writes to the original file
 - Double-click a task (or click the "+" icon aligned to the right) → marks it as "selected" (handle next) — persisted in SQLite
-- Top-right edit icon → opens the file in vim in a terminal window
+- Top-right edit icon → opens the file in the default text editor
+- Done tasks move to the bottom of the list (UI only, the file is unchanged)
 
 ### Activity registration
 
-- Any checkbox toggle from the app registers activity on the project (updates a timestamp in SQLite)
-- File mtime changes (from external edits) are detected by watchdog and update activity
+- Any checkbox toggle from the app is committed to the data repo
+- External edits are detected by the watcher and committed too
+- The project card's color comes from the latest commit for its file (mtime fallback), or the
+  latest recorded time entry if more recent
+- A per-tab heatmap at the bottom of the project list counts these commits per day
 
 ### Selected tasks
 
 - "Selected" = flagged as "handle next"
-- State persisted in SQLite (keyed by file path + line number or task content hash)
-- Count of selected tasks shown on the project card
+- State persisted in SQLite, keyed by the task's content hash (survives line shifts)
+- Count of selected tasks shown on the project card; projects are ordered by it
 
 ## Continuous Learning
 
-Same task list rendering as projects. Each section (Maths, Papers, Books, Videos) maps to a single TODO.md file.
+Same task list rendering as projects, under a separate "learning" tab.
 
-Maths is the only section with time tracking (TIME.md). Deferred to post-MVP.
+Learning projects also have time tracking: a blue heatmap below the task list, entries added
+from a modal (15-minute steps, optional topic) or imported from a TIME.md with
+`pov import-time`. Time entries live in SQLite only.
 
 ## Out of scope for MVP
 
-- TIME.md / time tracking
 - Analytics on file edits
 - Any sync or cloud features
 
