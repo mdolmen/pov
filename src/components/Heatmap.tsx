@@ -10,6 +10,8 @@ interface Props {
   /** Tooltip text for a day; receives the raw value and the YYYY-MM-DD key. */
   tooltip: (value: number, date: string) => string;
   loading?: boolean;
+  /** Cell size in px. */
+  cell?: number;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -21,7 +23,7 @@ function dateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function quantileThresholds(values: number[]): number[] {
+export function quantileThresholds(values: number[]): number[] {
   // Returns 4 thresholds defining 5 buckets (including the 0 bucket).
   // Computed from the non-zero values so a few quiet days don't flatten the scale.
   const nonZero = values.filter((v) => v > 0).sort((a, b) => a - b);
@@ -30,7 +32,7 @@ function quantileThresholds(values: number[]): number[] {
   return [at(0.25), at(0.5), at(0.75), at(0.9)];
 }
 
-function shadeFor(value: number, thresholds: number[], shades: readonly string[]): string {
+export function shadeFor(value: number, thresholds: number[], shades: readonly string[]): string {
   if (value <= 0) return shades[0];
   if (value <= thresholds[0]) return shades[1];
   if (value <= thresholds[1]) return shades[2];
@@ -38,7 +40,7 @@ function shadeFor(value: number, thresholds: number[], shades: readonly string[]
   return shades[4];
 }
 
-export function Heatmap({ data, months, shades, tooltip, loading = false }: Props) {
+export function Heatmap({ data, months, shades, tooltip, loading = false, cell = 11 }: Props) {
   // Calendar-aligned window: first day of (current month - (months - 1)) → today.
   const { windowStart, windowEnd } = useMemo(() => {
     const today = new Date();
@@ -97,7 +99,6 @@ export function Heatmap({ data, months, shades, tooltip, loading = false }: Prop
     return { weeks, monthLabels, thresholds };
   }, [data, windowStart, windowEnd]);
 
-  const cell = 11; // px
   const gap = 3; // px
   // Right padding so the last month label (anchored at the start of its
   // column) isn't clipped by the SVG edge.
@@ -144,7 +145,7 @@ export function Heatmap({ data, months, shades, tooltip, loading = false }: Prop
                   height={cell}
                   rx={2}
                   ry={2}
-                  fill={shadeFor(day.value, thresholds, shades)}
+                  style={{ fill: shadeFor(day.value, thresholds, shades) }}
                 >
                   <title>{tooltip(day.value, day.key)}</title>
                 </rect>

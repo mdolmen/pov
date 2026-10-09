@@ -8,13 +8,14 @@ interface Props {
   months?: number;
   /** Increment to trigger a re-fetch. */
   refreshKey?: number;
+  /** Cell size in px. */
+  cell?: number;
 }
 
-// Stone-100 base, then green ramp inspired by GitHub's contribution graph but
-// muted to fit the warm app palette.
-const SHADES = ["#ebe9e2", "#c6e3c2", "#86c98a", "#4ea862", "#2a7a3f"];
+// The activity ramp in index.css: empty, then four greens.
+export const SHADES = [0, 1, 2, 3, 4].map((i) => `var(--pov-heat-${i})`);
 
-export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
+export function ActivityHeatmap({ type, months = 4, refreshKey = 0, cell }: Props) {
   const [data, setData] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +49,7 @@ export function ActivityHeatmap({ type, months = 4, refreshKey = 0 }: Props) {
       months={months}
       shades={SHADES}
       loading={loading}
+      cell={cell}
       tooltip={(count, date) =>
         `${count} ${count === 1 ? "activity" : "activities"} on ${date}`
       }

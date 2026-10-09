@@ -6,6 +6,20 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    --color-ground: var(--pov-ground);
+    --color-pane: var(--pov-pane);
+    --color-surface: var(--pov-surface);
+    --color-ink: var(--pov-ink);
+    --color-ink-2: var(--pov-ink-2);
+    --color-ink-muted: var(--pov-ink-muted);
+    --color-line: var(--pov-line);
+    --color-divider: var(--pov-divider);
+    --color-hover: var(--pov-hover);
+    --color-check: var(--pov-check);
+    --color-next: var(--pov-next);
+    --color-next-soft: var(--pov-next-soft);
+    --color-live: var(--pov-live);
+    --color-track: var(--pov-track);
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
@@ -49,6 +63,27 @@
 }
 
 :root {
+    /* pov palette: left pane on the ground, right pane lighter, violet marks next tasks. */
+    --pov-ground: #f1f0ec;
+    --pov-pane: #fbfbfa;
+    --pov-surface: #fff;
+    --pov-ink: #1c1b22;
+    --pov-ink-2: #55535e;
+    --pov-ink-muted: #9d9ba5;
+    --pov-line: rgba(28, 27, 34, 0.08);
+    --pov-divider: rgba(28, 27, 34, 0.12);
+    --pov-hover: rgba(28, 27, 34, 0.05);
+    --pov-check: #cbc9d1;
+    --pov-next: #5b34c9;
+    --pov-next-soft: #eee9fb;
+    --pov-live: #2f8a48;
+    --pov-track: #e4e2e8;
+    /* Activity ramp: empty, then four steps. */
+    --pov-heat-0: #e4e3e7;
+    --pov-heat-1: #c6e3c2;
+    --pov-heat-2: #86c98a;
+    --pov-heat-3: #4ea862;
+    --pov-heat-4: #2a7a3f;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
