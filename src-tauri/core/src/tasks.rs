@@ -18,7 +18,6 @@ static CHECKBOX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([\s\x1c-\x1f]*)- \[(.)\] (.+)$").unwrap());
 static HEADING_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(#{1,6})[\s\x1c-\x1f]+(.+)$").unwrap());
-static CHECKED_BOX_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\[[xX]\]").unwrap());
 static OPEN_TASK_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?m)^[\s\x1c-\x1f]*- \[ \]").unwrap());
 
@@ -126,11 +125,7 @@ impl Occurrences {
 }
 
 fn set_checked(line: &str, checked: bool) -> String {
-    if checked {
-        line.replacen("[ ]", "[x]", 1)
-    } else {
-        CHECKED_BOX_RE.replace(line, "[ ]").into_owned()
-    }
+    with_state(line, if checked { 'x' } else { ' ' })
 }
 
 /// Parses headings and tasks of a TODO.md. Unreadable or non-UTF-8 files have none.
@@ -531,6 +526,18 @@ Some plain text here.
         let path = file(tmp.path(), "- [x] Task one\n");
         assert!(toggle_cascade(&path, &task_hash("- [x] Task one", 1)).unwrap());
         assert_eq!(fs::read_to_string(&path).unwrap(), "- [ ] Task one\n");
+    }
+
+    #[test]
+    fn toggle_leaves_brackets_in_the_text() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), "- [x] fix [ ] parser\n  - [ ] sub\n");
+        let hash = parse_tasks(&path)[0].hash.clone();
+        assert!(toggle_cascade(&path, &hash).unwrap());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [x] fix [ ] parser\n  - [x] sub\n"
+        );
     }
 
     #[test]

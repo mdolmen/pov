@@ -54,10 +54,10 @@
  "count_tasks": 3,
  "toggles": {
   "780df28fb8ce81d7": "- [ ] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [X] upper sub\n  - [-] dash sub\n",
-  "517d46d076ae413b": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [X] upper sub\n  - [-] dash sub\n",
-  "a93ee0f41aa73728": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [X] upper sub\n  - [-] dash sub\n",
-  "97a6d2b0b09287cb": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [x] parent\n  - [X] upper sub\n  - [-] dash sub\n",
+  "517d46d076ae413b": "- [X] upper\n- [x] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [X] upper sub\n  - [-] dash sub\n",
+  "a93ee0f41aa73728": "- [X] upper\n- [-] dash\n- [x] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [X] upper sub\n  - [-] dash sub\n",
+  "97a6d2b0b09287cb": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [x] parent\n  - [x] upper sub\n  - [x] dash sub\n",
   "fbc642b3cd8fc05e": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [ ] parent\n  - [ ] upper sub\n  - [-] dash sub\n",
-  "7ee2a3d7f890af5e": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [x] parent\n  - [X] upper sub\n  - [-] dash sub\n"
+  "7ee2a3d7f890af5e": "- [X] upper\n- [-] dash\n- [~] tilde\n- [ ]\n- [ ] \n-  [ ] two spaces\n* [ ] star\n- [x] parent\n  - [X] upper sub\n  - [x] dash sub\n"
  }
 }

@@ -366,7 +366,7 @@ Phase 13:
 
 - [x] `_normalize` replaces every `[.]` in a line, not just the checkbox: tasks differing only
   by `[a]` / `[b]` in their text share a hash (told apart by occurrence only)
-- [ ] `_set_checked` replaces the first `[ ]` / `[x]` of the line: checking an already checked
+- [x] `_set_checked` replaces the first `[ ]` / `[x]` of the line: checking an already checked
   parent ticks a `[ ]` written in its text
 - [ ] Toggling a task rewrites a CRLF file with LF line endings
 - [ ] `[-]`, `[~]` and other states count as unchecked, and toggling can't clear them
