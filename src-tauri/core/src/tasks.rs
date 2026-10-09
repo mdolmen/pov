@@ -20,8 +20,6 @@ static CHECKBOX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^([\s\x1c-\x1f]*)- \[(.)\] (.+)$").unwrap());
 static HEADING_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(#{1,6})[\s\x1c-\x1f]+(.+)$").unwrap());
-static OPEN_TASK_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^[\s\x1c-\x1f]*- \[ \]").unwrap());
 
 /// A checkbox line indented under a task.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -190,9 +188,9 @@ fn parse_text(text: &str) -> Vec<Item> {
     items
 }
 
-/// Counts unchecked checkbox lines, subtasks included.
+/// Counts the top-level tasks that aren't done.
 pub fn count_tasks(path: &Path) -> usize {
-    read_text(path).map_or(0, |text| OPEN_TASK_RE.find_iter(&text).count())
+    parse_tasks(path).iter().filter(|t| !t.is_done()).count()
 }
 
 /// Toggles a task or subtask, keeping parents and subtasks consistent.
@@ -486,6 +484,18 @@ Some plain text here.
         assert!(tasks_of("- [x] Task\n")[0].is_done());
         assert!(tasks_of("- [ ] Task\n  - [x] Sub A\n  - [x] Sub B\n")[0].is_done());
         assert!(!tasks_of("- [ ] Task\n  - [x] Sub A\n  - [ ] Sub B\n")[0].is_done());
+    }
+
+    #[test]
+    fn count_tasks_counts_open_top_level_tasks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), "- [ ] One\n  - [ ] Sub A\n  - [x] Sub B\n");
+        assert_eq!(count_tasks(&path), 1);
+        let path = file(
+            tmp.path(),
+            "- [ ] One\n  - [x] Sub A\n- [-] Two\n- [ ] Three\n",
+        );
+        assert_eq!(count_tasks(&path), 1);
     }
 
     #[test]

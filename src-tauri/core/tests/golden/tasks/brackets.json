@@ -45,7 +45,7 @@
    ]
   }
  ],
- "count_tasks": 3,
+ "count_tasks": 2,
  "toggles": {
   "407243a1d684f0ea": "- [x] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
   "13190668d7c5f52c": "- [ ] see [a] and [ ] here\n- [x] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",

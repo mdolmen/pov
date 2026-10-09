@@ -32,7 +32,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 1,
+ "count_tasks": 0,
  "toggles": {
   "96ee26405bff04aa": "# Title\r\n- [ ] one\r\n  - [ ] sub\r\n- [x] two\r\n",
   "e57beb206670a962": "# Title\r\n- [ ] one\r\n  - [ ] sub\r\n- [x] two\r\n",

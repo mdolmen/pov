@@ -370,7 +370,7 @@ Phase 13:
   parent ticks a `[ ]` written in its text
 - [x] Toggling a task rewrites a CRLF file with LF line endings
 - [x] `[-]`, `[~]` and other states count as unchecked, and toggling can't clear them
-- [ ] `task_count` counts unchecked subtasks too
+- [x] `task_count` counts unchecked subtasks too
 - [ ] Project activity level passes the original path to `git log` in the data repo, which is
   outside it: the level always comes from the file's mtime
 - [ ] Heatmap buckets commits by the commit's own timezone, not local time

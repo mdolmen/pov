@@ -32,7 +32,7 @@
    "subtasks": []
   }
  ],
- "count_tasks": 5,
+ "count_tasks": 2,
  "toggles": {
   "d628cf044c3b6f32": "  - [ ] orphan before any task\n- [x] task\n  - [x] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
   "e57beb206670a962": "  - [ ] orphan before any task\n- [x] task\n  - [x] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
