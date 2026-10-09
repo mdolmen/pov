@@ -333,8 +333,8 @@ See DECISIONS.md (2026-10-08).
 ### Cleanup
 
 - [x] Delete `backend/`, `build.py`, `beforeBuildCommand` Python step
-- [ ] README: prerequisites (no uv), dev, test (`cargo test`), build
-- [ ] `CLAUDE.md`: drop the Python style section
+- [x] README: prerequisites (no uv), dev, test (`cargo test`), build
+- [x] `CLAUDE.md`: drop the Python style section
 - [ ] Check cold launch time, memory and `.dmg` size before / after
 
 ## Tests

@@ -1,9 +1,9 @@
 # CLAUDE.md — pov
 
 macOS desktop app tracking TODO.md files across projects: Tauri + React frontend, Rust core
-(`pov-core`, `src-tauri/core/`). The `pov` CLI is still Python (`backend/`) until the CLI block of
-`TODO.md` Phase 13. Read `TODO.md` for the build plan and `DECISIONS.md` for past decisions
-before making changes.
+(`pov-core`, `src-tauri/core/`). The `pov` CLI is the `pov-cli` binary of `pov-core` (`cli`
+feature). Read `TODO.md` for the build plan and `DECISIONS.md` for past decisions before making
+changes.
 
 These are behavioral guidelines (derived from Karpathy's notes on LLM coding pitfalls). They
 bias toward caution over speed; use judgment on trivial tasks.
@@ -46,10 +46,6 @@ bias toward caution over speed; use judgment on trivial tasks.
 - **No data migration by accident.** `pov.db` schema and the `~/.local/share/pov/` layout are
   shared by the app and the CLI; schema changes go through the migration in `init_db`.
 - **Tests hit real SQLite and real files** in a temp dir. No mocks.
-
-## Python (until the Rust port is done)
-
-- Python 3.11+, type hints on all function signatures.
 
 ## Rust
 

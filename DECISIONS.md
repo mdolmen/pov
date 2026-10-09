@@ -51,3 +51,14 @@
   be missing or wired differently in the app.
 - **Constraints:** the frontend calls typed wrappers in `src/lib/backend.ts`, never
   `invoke("api")` directly; `pov-bridge` never ships.
+
+## 2026-10-09 — Rust CLI and the end of Python
+
+- **Decision:** the CLI is `pov-cli`, a `pov-core` binary behind the `cli` feature; all Python is
+  removed, including `dev/seed.py` and `dev/golden.py`.
+- **Why:** a `pov-core` binary named `pov` would overwrite the app binary in `target/`;
+  `install_cli` already installs `pov-cli` as `~/.local/bin/pov`. Parity is done, so the goldens
+  no longer need a recorder.
+- **Constraints:**
+  - A debug `pov-cli` uses `pov-dev`, like the app (the Python dev CLI used prod data).
+  - The goldens are frozen fixtures; new behavior is tested in Rust only.

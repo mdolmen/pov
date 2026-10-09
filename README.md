@@ -1,6 +1,6 @@
 # Projects Overview (pov)
 
-A macOS desktop app for tracking TODO.md files across projects. Built with Tauri, a React frontend and a Rust core (`src-tauri/core/`). The `pov` CLI is Python for now (`backend/`).
+A macOS desktop app for tracking TODO.md files across projects. Built with Tauri, a React frontend and a Rust core (`src-tauri/core/`), which also provides the `pov` CLI.
 
 ![Project Overview](screens/projects.png)
 
@@ -8,7 +8,6 @@ A macOS desktop app for tracking TODO.md files across projects. Built with Tauri
 
 - [Rust](https://rustup.rs/)
 - [Node.js](https://nodejs.org/) (v18+)
-- [uv](https://docs.astral.sh/uv/) (Python package manager, for the CLI)
 
 ## Development
 
@@ -16,7 +15,6 @@ Install dependencies:
 
 ```sh
 npm install
-uv sync --directory backend
 ```
 
 Run the app in dev mode (hot-reloading frontend):
@@ -27,14 +25,13 @@ npm run tauri dev
 
 Dev builds use `~/.local/share/pov-dev/` for data, keeping it separate from production data.
 
-## Testing
-
-CLI tests use pytest and run against a real SQLite database (no mocks):
+Build the dev CLI (used by **Settings → Install CLI** in dev mode, which symlinks it):
 
 ```sh
-cd backend
-uv run pytest
+cd src-tauri && cargo build -p pov-core --features cli --bin pov-cli
 ```
+
+## Testing
 
 UI feature tests use Vitest + React Testing Library. They render the real frontend and run
 the real Rust commands through a test-only HTTP bridge (`pov-bridge`) on a temp `HOME`, faking
@@ -44,10 +41,10 @@ only native calls (file dialog, editor, CLI install):
 npm test
 ```
 
-Rust core tests:
+Rust core and CLI tests, against real SQLite and files in a temp dir (no mocks):
 
 ```sh
-cd src-tauri && cargo test -p pov-core
+cd src-tauri && cargo test -p pov-core --all-features
 ```
 
 A launch smoke test starts the real debug app on a temp `HOME` and checks the Rust startup and
@@ -59,15 +56,7 @@ npm run smoke
 
 ## Build
 
-Before the first build, generate the standalone CLI binary that gets bundled into the app:
-
-```sh
-cd backend && uv run python build.py
-```
-
-This produces `src-tauri/binaries/pov-cli-*` via PyInstaller. The binary is gitignored and must be regenerated after CLI changes.
-
-Then build the app:
+Build the app:
 
 ```sh
 npm run tauri build
@@ -75,7 +64,7 @@ npm run tauri build
 
 The output is a `.dmg` at `src-tauri/target/release/bundle/dmg/`.
 
-> `npm run tauri build` runs `build.py` automatically via `beforeBuildCommand`, so the manual step above is only needed when iterating on the binaries without a full app rebuild.
+`beforeBuildCommand` also runs `scripts/build-cli.sh`, which builds the release `pov-cli` and copies it to `src-tauri/binaries/` (gitignored) for bundling.
 
 ## Gatekeeper (first launch)
 
