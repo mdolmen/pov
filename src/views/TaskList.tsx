@@ -24,6 +24,22 @@ function writeTimeVisible(projectId: string, visible: boolean) {
   }
 }
 
+function readDoneHidden(projectId: string): boolean {
+  try {
+    return localStorage.getItem(`pov.done.${projectId}.hidden`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeDoneHidden(projectId: string, hidden: boolean) {
+  try {
+    localStorage.setItem(`pov.done.${projectId}.hidden`, hidden ? "1" : "0");
+  } catch {
+    // localStorage might not exist (e.g. private mode); silently ignore.
+  }
+}
+
 /** Where to scroll: `m:<milestone>` or `t:<task hash>`; a new `nonce` scrolls again. */
 export interface Focus {
   key: string;
@@ -148,26 +164,31 @@ function TaskRow({
 
 interface Section {
   heading: HeadingItem | null;
-  /** Progress of the `##` milestone the section belongs to. */
-  progress: { done: number; total: number } | null;
+  /** Progress of the `##` milestone the section belongs to; `shown` counts tasks not hidden. */
+  progress: { done: number; total: number; shown: number } | null;
   tasks: Task[];
 }
 
-/** Splits items into sections at each heading (level 1 is the file title and starts none). */
-function sectionsOf(items: ListItem[]): Section[] {
+/**
+ * Splits items into sections at each heading (level 1 is the file title and starts none),
+ * leaving out done tasks when `hideDone` is set.
+ */
+function sectionsOf(items: ListItem[], hideDone: boolean): Section[] {
   const sections: Section[] = [{ heading: null, progress: null, tasks: [] }];
   let milestone: Section["progress"] = null;
   for (const item of items) {
     if (item.kind === "heading") {
-      if (item.level === 2) milestone = { done: 0, total: 0 };
+      if (item.level === 2) milestone = { done: 0, total: 0, shown: 0 };
       if (item.level === 1) milestone = null;
       sections.push({ heading: item.level === 1 ? null : item, progress: milestone, tasks: [] });
       continue;
     }
-    sections[sections.length - 1].tasks.push(item);
+    const shown = !(hideDone && item.is_done);
+    if (shown) sections[sections.length - 1].tasks.push(item);
     if (milestone) {
       milestone.total++;
       if (item.is_done) milestone.done++;
+      if (shown) milestone.shown++;
     }
   }
   return sections;
@@ -204,6 +225,7 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const [addTimeOpen, setAddTimeOpen] = useState(false);
   const [timeRefreshKey, setTimeRefreshKey] = useState(0);
   const [timeVisible, setTimeVisible] = useState<boolean>(() => readTimeVisible(project.id));
+  const [doneHidden, setDoneHidden] = useState<boolean>(() => readDoneHidden(project.id));
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const tracksTime = project.type === "learning";
@@ -214,6 +236,11 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
     writeTimeVisible(project.id, next);
   }
 
+  function toggleDoneHidden() {
+    setDoneHidden(!doneHidden);
+    writeDoneHidden(project.id, !doneHidden);
+  }
+
   // Scroll to the milestone or task picked under Next up, once the tasks are shown.
   useEffect(() => {
     if (!focus || loading) return;
@@ -221,10 +248,11 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
     [...targets].find((el) => el.dataset.focus === focus.key)?.scrollIntoView({ block: "start" });
   }, [focus?.key, focus?.nonce, loading]);
 
-  // A milestone caption shows when its milestone has tasks, even if they're all under `###`.
-  const sections = sectionsOf(items).filter(
-    (s) => s.tasks.length > 0 || (s.heading?.level === 2 && s.progress!.total > 0),
+  // A milestone caption shows when its milestone shows tasks, even if they're all under `###`.
+  const sections = sectionsOf(items, doneHidden).filter(
+    (s) => s.tasks.length > 0 || (s.heading?.level === 2 && s.progress!.shown > 0),
   );
+  const doneCount = tasks.filter((t) => t.is_done).length;
 
   async function openInEditor() {
     try {
@@ -243,6 +271,20 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
         <span className="flex-1 text-[19px] font-bold tracking-tight text-ink truncate">
           {project.name}
         </span>
+
+        {doneCount > 0 && (
+          <button
+            onClick={toggleDoneHidden}
+            aria-pressed={doneHidden}
+            title={`${doneHidden ? "Show" : "Hide"} the ${doneCount} done tasks`}
+            className={
+              "mr-1.5 text-[12px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap cursor-pointer " +
+              (doneHidden ? "text-next bg-next-soft" : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
+            }
+          >
+            {doneHidden ? `${doneCount} done hidden` : "Hide done"}
+          </button>
+        )}
 
         <button
           onClick={openInEditor}
@@ -318,6 +360,15 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
                 )}
               </div>
             ))}
+
+            {tasks.length > 0 && sections.length === 0 && (
+              <p className="my-[18px] mx-1 text-[13px] text-ink-muted">
+                All tasks are done.{" "}
+                <button onClick={toggleDoneHidden} className="text-next cursor-pointer">
+                  Show done
+                </button>
+              </p>
+            )}
 
             {tasks.length === 0 && (
               <div className="flex items-center justify-center h-32">

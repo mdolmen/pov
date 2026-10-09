@@ -401,7 +401,7 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 - [x] `TaskList` → right pane: no back button, × closes; tasks in file order under milestone
   captions with "x of y done"; next tasks keep their place, marked by the violet band, with a
   "Mark next" / "Next" button (double-click kept); no separate Next or Done sections
-- [ ] Done tasks shown by default, struck through in place; "Hide done" in the header, saved
+- [x] Done tasks shown by default, struck through in place; "Hide done" in the header, saved
   per project in `localStorage` (`pov.done.<id>.hidden`, like `pov.time.<id>.visible`);
   "All tasks are done" + "Show done" when nothing is left
 - [x] Learning projects keep the time heatmap at the bottom of the right pane
@@ -416,7 +416,7 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 - [x] Replace "back returns to the tab": closing the pane keeps the tab
 - [x] New `next-up.test.tsx`: one entry per project, ordering, milestone / task fallback,
   click opens and scrolls, updates after select and toggle, empty state
-- [ ] New `hide-done.test.tsx`: hides per project, survives a remount, all-done state
+- [x] New `hide-done.test.tsx`: hides per project, survives a remount, all-done state
 
 ## Maintenance
 
