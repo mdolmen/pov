@@ -68,6 +68,7 @@ pub struct TaskView {
     pub subtasks: Vec<Subtask>,
     pub is_done: bool,
     pub is_selected: bool,
+    pub is_queued: bool,
 }
 
 /// A task list entry as the frontend sees it (`ListItem` in `src/types.ts`).
@@ -275,16 +276,19 @@ pub fn toggle_cascade(path: &Path, target: &str) -> Result<bool> {
     Ok(true)
 }
 
-fn selected_hashes(conn: &Connection, project_id: &str) -> Result<HashSet<String>> {
-    let mut stmt = conn.prepare("SELECT task_hash FROM selected_tasks WHERE project_id = ?")?;
-    let hashes = stmt.query_map([project_id], |row| row.get(0))?;
+/// The hashes of a project's tasks marked `stage` (`next` or `queue`).
+fn hashes(conn: &Connection, project_id: &str, stage: &str) -> Result<HashSet<String>> {
+    let mut stmt =
+        conn.prepare("SELECT task_hash FROM selected_tasks WHERE project_id = ? AND stage = ?")?;
+    let hashes = stmt.query_map([project_id, stage], |row| row.get(0))?;
     Ok(hashes.collect::<rusqlite::Result<_>>()?)
 }
 
-fn view(task: Task, selected: &HashSet<String>) -> TaskView {
+fn view(task: Task, next: &HashSet<String>, queued: &HashSet<String>) -> TaskView {
     TaskView {
         is_done: task.is_done(),
-        is_selected: selected.contains(&task.hash),
+        is_selected: next.contains(&task.hash),
+        is_queued: queued.contains(&task.hash),
         hash: task.hash,
         text: task.text,
         checked: task.checked,
@@ -293,21 +297,22 @@ fn view(task: Task, selected: &HashSet<String>) -> TaskView {
     }
 }
 
-/// Lists a project's headings and tasks, with their selection state.
+/// Lists a project's headings and tasks, with their next / queue marks.
 pub fn list(conn: &Connection, project_id: &str) -> Result<Vec<ListItem>> {
     let (file_path, _) = projects::file_and_type(conn, project_id)?;
-    let selected = selected_hashes(conn, project_id)?;
+    let next = hashes(conn, project_id, "next")?;
+    let queued = hashes(conn, project_id, "queue")?;
     Ok(parse_items(&file_path)
         .into_iter()
         .map(|item| match item {
             Item::Heading { text, level } => ListItem::Heading { text, level },
-            Item::Task(task) => ListItem::Task(view(task, &selected)),
+            Item::Task(task) => ListItem::Task(view(task, &next, &queued)),
         })
         .collect())
 }
 
 /// Toggles a task or subtask in the project's file, commits the change to the data repo, and
-/// unselects the task if it is now done. Returns the task (the parent, for a subtask).
+/// clears its next / queue mark if it is now done. Returns the task (the parent, for a subtask).
 pub fn toggle(
     conn: &Connection,
     paths: &Paths,
@@ -343,15 +348,38 @@ pub fn toggle(
             [project_id, &task.hash],
         )?;
     }
-    let selected = selected_hashes(conn, project_id)?;
-    Ok(view(task, &selected))
+    let next = hashes(conn, project_id, "next")?;
+    let queued = hashes(conn, project_id, "queue")?;
+    Ok(view(task, &next, &queued))
 }
 
-/// Marks a task as selected ("next"). Selecting twice is a no-op.
-pub fn select(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
+/// Marks a task `stage` (`next` or `queue`), replacing its other mark.
+fn set_stage(conn: &Connection, project_id: &str, task_hash: &str, stage: &str) -> Result<()> {
     projects::file_and_type(conn, project_id)?;
     conn.execute(
-        "INSERT OR IGNORE INTO selected_tasks (project_id, task_hash) VALUES (?, ?)",
+        "INSERT INTO selected_tasks (project_id, task_hash, stage) VALUES (?, ?, ?)
+         ON CONFLICT(project_id, task_hash) DO UPDATE SET stage = excluded.stage",
+        [project_id, task_hash, stage],
+    )?;
+    Ok(())
+}
+
+/// Marks a task as selected ("next"), moving it up if it was queued. Selecting twice is a
+/// no-op.
+pub fn select(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
+    set_stage(conn, project_id, task_hash, "next")
+}
+
+/// Queues a task: committed to, but not next yet. Queuing a next task moves it down.
+pub fn queue(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
+    set_stage(conn, project_id, task_hash, "queue")
+}
+
+/// Removes a task from the queue; a next task keeps its mark.
+pub fn unqueue(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
+    projects::file_and_type(conn, project_id)?;
+    conn.execute(
+        "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ? AND stage = 'queue'",
         [project_id, task_hash],
     )?;
     Ok(())
@@ -411,7 +439,7 @@ pub fn next_up(conn: &Connection) -> Result<Vec<NextUpEntry>> {
         if row.status != "open" {
             continue;
         }
-        let selected = selected_hashes(conn, &row.id)?;
+        let selected = hashes(conn, &row.id, "next")?;
         let is_next = |t: &Task| selected.contains(&t.hash) && !t.is_done();
         let Some((milestone, tasks)) = milestones(parse_items(&row.file_path))
             .into_iter()
@@ -453,7 +481,7 @@ pub fn next_up(conn: &Connection) -> Result<Vec<NextUpEntry>> {
     Ok(entries)
 }
 
-/// Removes selections whose task is done in the source file.
+/// Removes the next / queue marks of tasks that are done in the source file.
 pub fn cleanup_selected(conn: &Connection) -> Result<()> {
     let projects: Vec<(String, PathBuf)> = conn
         .prepare("SELECT id, file_path FROM projects")?
@@ -799,6 +827,90 @@ Some plain text here.
             .query_row("SELECT task_hash FROM selected_tasks", (), |r| r.get(0))
             .unwrap();
         assert_eq!(left, task_hash("- [ ] Task one", 1));
+    }
+
+    /// The (next, queued) marks of a task in the project's list.
+    fn marks(conn: &Connection, id: &str, hash: &str) -> (bool, bool) {
+        let items = list(conn, id).unwrap();
+        let task = tasks_of_list(&items)
+            .into_iter()
+            .find(|t| t.hash == hash)
+            .unwrap();
+        (task.is_selected, task.is_queued)
+    }
+
+    fn mark_rows(conn: &Connection) -> i64 {
+        conn.query_row("SELECT COUNT(*) FROM selected_tasks", (), |r| r.get(0))
+            .unwrap()
+    }
+
+    #[test]
+    fn queue_and_select_move_a_task_between_stages() {
+        let (_tmp, _paths, conn, _todo, id) = project();
+        let hash = task_hash("- [ ] Task one", 1);
+
+        queue(&conn, &id, &hash).unwrap();
+        queue(&conn, &id, &hash).unwrap();
+        assert_eq!(marks(&conn, &id, &hash), (false, true));
+
+        select(&conn, &id, &hash).unwrap();
+        assert_eq!(marks(&conn, &id, &hash), (true, false));
+
+        queue(&conn, &id, &hash).unwrap();
+        assert_eq!(marks(&conn, &id, &hash), (false, true));
+        assert_eq!(mark_rows(&conn), 1);
+
+        unqueue(&conn, &id, &hash).unwrap();
+        assert_eq!(marks(&conn, &id, &hash), (false, false));
+        assert_eq!(mark_rows(&conn), 0);
+    }
+
+    #[test]
+    fn unqueue_leaves_a_next_task_alone() {
+        let (_tmp, _paths, conn, _todo, id) = project();
+        let hash = task_hash("- [ ] Task one", 1);
+        select(&conn, &id, &hash).unwrap();
+
+        unqueue(&conn, &id, &hash).unwrap();
+
+        assert_eq!(marks(&conn, &id, &hash), (true, false));
+    }
+
+    #[test]
+    fn queue_unknown_project_is_not_found() {
+        let (_tmp, _paths, conn, _todo, _id) = project();
+        assert!(matches!(
+            queue(&conn, "nope", "h"),
+            Err(Error::NotFound("project"))
+        ));
+        assert!(matches!(
+            unqueue(&conn, "nope", "h"),
+            Err(Error::NotFound("project"))
+        ));
+    }
+
+    #[test]
+    fn done_queued_tasks_lose_their_mark() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        let one = task_hash("- [ ] Task one", 1);
+        queue(&conn, &id, &one).unwrap();
+        queue(&conn, &id, &task_hash("- [x] Task two (done)", 1)).unwrap();
+
+        cleanup_selected(&conn).unwrap();
+        assert_eq!(mark_rows(&conn), 1);
+
+        let task = toggle(&conn, &paths, &id, &one).unwrap();
+        assert!(task.is_done && !task.is_queued);
+        assert_eq!(mark_rows(&conn), 0);
+    }
+
+    #[test]
+    fn next_up_ignores_queued_tasks() {
+        let (tmp, _paths, conn, _todo, _id) = project();
+        add_project(&conn, tmp.path(), "Q", "open", "## M\n- [ ] a\n", &[]);
+        queue(&conn, "Q", &task_hash("- [ ] a", 1)).unwrap();
+
+        assert!(next_up(&conn).unwrap().is_empty());
     }
 
     /// Adds a project tracking `content`, with the tasks named in `next` selected.

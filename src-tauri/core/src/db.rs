@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS selected_tasks (
     project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     task_hash   TEXT NOT NULL,
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    stage       TEXT NOT NULL DEFAULT 'next',
     UNIQUE(project_id, task_hash)
 );
 
@@ -60,6 +61,13 @@ pub fn init(paths: &Paths) -> Result<()> {
         // ISO 8601 date string (YYYY-MM-DD); SQLite has no native DATE type.
         conn.execute("ALTER TABLE projects ADD COLUMN paused_until TEXT", ())?;
     }
+    if !has_column(&conn, "selected_tasks", "stage")? {
+        // 'next' or 'queue'; rows from before the queue stage are next tasks.
+        conn.execute(
+            "ALTER TABLE selected_tasks ADD COLUMN stage TEXT NOT NULL DEFAULT 'next'",
+            (),
+        )?;
+    }
     Ok(())
 }
 
@@ -89,6 +97,7 @@ mod tests {
         let conn = open(&paths).unwrap();
         assert!(has_column(&conn, "projects", "paused_until").unwrap());
         assert!(has_column(&conn, "time_entries", "topic").unwrap());
+        assert!(has_column(&conn, "selected_tasks", "stage").unwrap());
     }
 
     #[test]
@@ -103,6 +112,12 @@ mod tests {
                  has_hardlink INTEGER NOT NULL DEFAULT 1,
                  created_at TEXT NOT NULL DEFAULT (datetime('now')));
              INSERT INTO projects (id, name, file_path) VALUES ('p1', 'Old', '/tmp/TODO.md');
+             CREATE TABLE selected_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                 task_hash TEXT NOT NULL,
+                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                 UNIQUE(project_id, task_hash));
+             INSERT INTO selected_tasks (project_id, task_hash) VALUES ('p1', 'h');
              CREATE TABLE activity (id INTEGER PRIMARY KEY);",
         )
         .unwrap();
@@ -116,6 +131,10 @@ mod tests {
             })
             .unwrap();
         assert_eq!(name, "Old");
+        let stage: String = conn
+            .query_row("SELECT stage FROM selected_tasks", (), |r| r.get(0))
+            .unwrap();
+        assert_eq!(stage, "next");
         let activity: i64 = conn
             .query_row(
                 "SELECT COUNT(*) FROM sqlite_master WHERE name = 'activity'",

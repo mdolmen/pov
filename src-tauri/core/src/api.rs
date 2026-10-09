@@ -118,6 +118,14 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
             let a: TaskArgs = parse(args)?;
             json(tasks::unselect(&conn, &a.project_id, &a.task_hash)?)
         }
+        "queue_task" => {
+            let a: TaskArgs = parse(args)?;
+            json(tasks::queue(&conn, &a.project_id, &a.task_hash)?)
+        }
+        "unqueue_task" => {
+            let a: TaskArgs = parse(args)?;
+            json(tasks::unqueue(&conn, &a.project_id, &a.task_hash)?)
+        }
         "cleanup_selected" => json(tasks::cleanup_selected(&conn)?),
         "next_up" => json(tasks::next_up(&conn)?),
         "list_projects" => json(projects::list(&conn, paths)?),
@@ -273,6 +281,30 @@ mod tests {
         assert_eq!(items[1]["hash"], hash);
         assert_eq!(items[1]["is_selected"], true);
         assert_eq!(items[1]["subtasks"], json!([]));
+    }
+
+    #[test]
+    fn queue_then_list_tasks() {
+        let (tmp, paths) = paths();
+        let todo = tmp.path().join("TODO.md");
+        fs::write(&todo, "- [ ] one\n").unwrap();
+        db::open(&paths)
+            .unwrap()
+            .execute(
+                "INSERT INTO projects (id, name, file_path) VALUES ('p', 'P', ?)",
+                [todo.to_str().unwrap()],
+            )
+            .unwrap();
+        let args = json!({"project_id": "p", "task_hash": tasks::task_hash("- [ ] one", 1)});
+
+        dispatch(&paths, "queue_task", args.clone()).unwrap();
+        let items = dispatch(&paths, "list_tasks", json!({"project_id": "p"})).unwrap();
+        assert_eq!(items[0]["is_queued"], true);
+        assert_eq!(items[0]["is_selected"], false);
+
+        dispatch(&paths, "unqueue_task", args).unwrap();
+        let items = dispatch(&paths, "list_tasks", json!({"project_id": "p"})).unwrap();
+        assert_eq!(items[0]["is_queued"], false);
     }
 
     #[test]

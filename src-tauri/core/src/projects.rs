@@ -39,6 +39,7 @@ pub struct Project {
     pub has_hardlink: bool,
     pub task_count: usize,
     pub selected_count: i64,
+    pub queued_count: i64,
     pub activity: Level,
     pub paused_until: Option<String>,
 }
@@ -110,10 +111,12 @@ fn find_row(conn: &Connection, project_id: &str) -> Result<ProjectRow> {
 }
 
 fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project> {
-    let selected_count = conn.query_row(
-        "SELECT COUNT(*) FROM selected_tasks WHERE project_id = ?",
+    let (selected_count, queued_count) = conn.query_row(
+        "SELECT COUNT(CASE WHEN stage = 'next' THEN 1 END),
+                COUNT(CASE WHEN stage = 'queue' THEN 1 END)
+         FROM selected_tasks WHERE project_id = ?",
         [&row.id],
-        |r| r.get(0),
+        |r| Ok((r.get(0)?, r.get(1)?)),
     )?;
     // Time recorded on a project counts as activity: reading a PDF or working off-file leaves
     // no trace in git, but the user did work on it.
@@ -140,6 +143,7 @@ fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project>
         project_type: row.project_type,
         has_hardlink: row.has_hardlink,
         selected_count,
+        queued_count,
         activity: level,
         paused_until: row.paused_until,
     })
@@ -411,6 +415,24 @@ mod tests {
         assert_eq!(env.config_ids(), [id]);
         let log = git::run(&env.paths.root, &["log", "--format=%s"]).unwrap();
         assert!(log.contains("add: My Project"), "{log}");
+    }
+
+    #[test]
+    fn counts_next_and_queued_tasks_apart() {
+        let env = Env::new();
+        let id = env.add("P", &env.todo, "project").unwrap();
+        tasks::select(&env.conn, &id, &tasks::task_hash("- [ ] Task one", 1)).unwrap();
+        tasks::queue(&env.conn, &id, &tasks::task_hash("- [ ] Task three", 1)).unwrap();
+        tasks::queue(
+            &env.conn,
+            &id,
+            &tasks::task_hash("- [x] Task two (done)", 1),
+        )
+        .unwrap();
+
+        let project = get(&env.conn, &env.paths, &id).unwrap();
+
+        assert_eq!((project.selected_count, project.queued_count), (1, 2));
     }
 
     #[test]
