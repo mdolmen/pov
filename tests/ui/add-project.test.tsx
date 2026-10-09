@@ -20,7 +20,7 @@ test("adding a project tracks it, names it after its folder, and commits it", as
   expect(screen.getByText(file)).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Add" }));
 
-  expect(await screen.findByRole("button", { name: /^Garden/ })).toHaveTextContent("2 tasks");
+  expect(await screen.findByRole("button", { name: /^Garden/ })).toHaveTextContent("2 open");
   expect(screen.queryByText("Add project", { selector: "h2" })).not.toBeInTheDocument();
   expect(readdirSync(join(dataDir(), "projects"))).toHaveLength(1);
   expect(gitSubjects()[0]).toBe("add: Garden");
@@ -37,7 +37,7 @@ test("a learning project goes to the learning tab", async () => {
     expect(screen.queryByText("Add project", { selector: "h2" })).not.toBeInTheDocument(),
   );
   expect(screen.queryByRole("button", { name: /^Physics/ })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "learning" }));
+  await user.click(screen.getByRole("button", { name: "Learning" }));
   expect(await screen.findByRole("button", { name: /^Physics/ })).toBeInTheDocument();
 });
 

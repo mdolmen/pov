@@ -135,9 +135,14 @@ export function projectTiles() {
   return within(screen.getByRole("group", { name: "Project list" }));
 }
 
+/** Matches the accessible name of a project's tile: its name, then its counts. */
+export function tileName(name: string): RegExp {
+  return new RegExp(`^${name}(\\d+ next of )?\\d+ open`);
+}
+
 /** Opens a project from the list. */
 export async function openProject(user: ReturnType<typeof userEvent.setup>, name: string) {
-  await user.click(await projectTiles().findByRole("button", { name: new RegExp(`^${name}`) }));
+  await user.click(await projectTiles().findByRole("button", { name: tileName(name) }));
   await screen.findByRole("button", { name: "Close project" });
   await waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
 }

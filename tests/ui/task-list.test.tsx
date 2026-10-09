@@ -38,7 +38,7 @@ test("closing the pane keeps the tab", async () => {
   await addProject({ name: "Work" });
   await addProject({ name: "Maths", type: "learning" });
   const { user } = renderApp();
-  await user.click(await screen.findByRole("button", { name: "learning" }));
+  await user.click(await screen.findByRole("button", { name: "Learning" }));
   await openProject(user, "Maths");
 
   await user.click(screen.getByRole("button", { name: "Close project" }));
@@ -88,7 +88,7 @@ test("a file that isn't text has no tasks", async () => {
   writeFileSync(pdf, Buffer.from("%PDF-1.4\n\xe2\x28\xa1 binary\n", "latin1"));
   await addProject({ name: "Scan", file: pdf, type: "learning" });
   const { user } = renderApp();
-  await user.click(await screen.findByRole("button", { name: "learning" }));
+  await user.click(await screen.findByRole("button", { name: "Learning" }));
   await openProject(user, "Scan");
 
   expect(await screen.findByText("No tasks.")).toBeInTheDocument();

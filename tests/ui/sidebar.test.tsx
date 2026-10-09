@@ -31,7 +31,7 @@ test("filters show or hide open and archived projects, per tab", async () => {
   expect(screen.getByRole("button", { name: "Archived (1)" })).toBeInTheDocument();
 
   // Learning keeps its own filters.
-  await user.click(screen.getByRole("button", { name: "learning" }));
+  await user.click(screen.getByRole("button", { name: "Learning" }));
   expect(await screen.findByRole("button", { name: /^Course/ })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /^Archived/ })).not.toBeInTheDocument();
 

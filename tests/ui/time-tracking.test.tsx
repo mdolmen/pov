@@ -15,7 +15,7 @@ import {
 type User = ReturnType<typeof renderApp>["user"];
 
 async function openLearning(user: User, name: string) {
-  await user.click(await screen.findByRole("button", { name: "learning" }));
+  await user.click(await screen.findByRole("button", { name: "Learning" }));
   await openProject(user, name);
 }
 

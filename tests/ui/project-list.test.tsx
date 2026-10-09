@@ -1,14 +1,14 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { addProject, projectTiles, renderApp, selectTask, taskHash } from "./helpers";
+import { addProject, projectTiles, renderApp, selectTask, taskHash, toggleTask } from "./helpers";
 
-test("open projects show with their task count", async () => {
+test("open projects show with their open task count", async () => {
   await addProject({ name: "Alpha", content: "- [ ] one\n- [ ] two\n- [x] done\n" });
   await addProject({ name: "Beta", content: "- [ ] only\n" });
   renderApp();
 
-  expect(await screen.findByRole("button", { name: /^Alpha/ })).toHaveTextContent("2 tasks");
-  expect(screen.getByRole("button", { name: /^Beta/ })).toHaveTextContent("1 task");
+  expect(await screen.findByRole("button", { name: /^Alpha/ })).toHaveTextContent("2 open");
+  expect(screen.getByRole("button", { name: /^Beta/ })).toHaveTextContent("1 open");
 });
 
 test("tabs show only their own projects", async () => {
@@ -19,7 +19,7 @@ test("tabs show only their own projects", async () => {
   await screen.findByRole("button", { name: /^Work/ });
   expect(screen.queryByRole("button", { name: /^Maths/ })).not.toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: "learning" }));
+  await user.click(screen.getByRole("button", { name: "Learning" }));
   await screen.findByRole("button", { name: /^Maths/ });
   expect(screen.queryByRole("button", { name: /^Work/ })).not.toBeInTheDocument();
 });
@@ -33,10 +33,12 @@ test("projects are ordered by next task count, then by name", async () => {
   renderApp();
 
   await projectTiles().findByRole("button", { name: /^Zulu/ });
-  const open = screen.getByText("Open").parentElement as HTMLElement;
-  const names = within(open).getAllByRole("button").map((b) => b.textContent);
+  const names = projectTiles()
+    .getAllByRole("button")
+    .map((b) => b.textContent)
+    .filter((t) => !["Projects", "Learning"].includes(t ?? ""));
   expect(names).toEqual([
-    expect.stringMatching(/^Zulu2/),
+    expect.stringMatching(/^Zulu2 next of 2 open/),
     expect.stringMatching(/^Bravo/),
     expect.stringMatching(/^Charlie/),
   ]);
@@ -60,4 +62,26 @@ test("archived projects are collapsed until the section is opened", async () => 
 test("an empty list says so", async () => {
   renderApp();
   expect(await screen.findByText("No projects yet.")).toBeInTheDocument();
+});
+
+test("a tile shows its last 8 weeks of activity", async () => {
+  const project = await addProject({ name: "Busy", content: "- [ ] a\n- [ ] b\n" });
+  await toggleTask(project.id, await taskHash(project.id, "a"));
+  await toggleTask(project.id, await taskHash(project.id, "b"));
+  renderApp();
+
+  const tile = await projectTiles().findByRole("button", { name: /^Busy/ });
+  const row = tile.querySelector("[data-weeks]") as HTMLElement;
+  await waitFor(() => expect(row.dataset.weeks).toBe("0,0,0,0,0,0,0,2"));
+});
+
+test("the open project's tile is ringed", async () => {
+  await addProject({ name: "Work" });
+  const { user } = renderApp();
+  const tile = await projectTiles().findByRole("button", { name: /^Work/ });
+  expect(tile).not.toHaveClass("ring-next");
+
+  await user.click(tile);
+
+  expect(tile).toHaveClass("ring-next");
 });

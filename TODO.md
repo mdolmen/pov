@@ -392,11 +392,11 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
   or task text below, "N next" pill (milestones only), "x of y done"; click selects the
   project and scrolls the right pane to that milestone or task; selected row highlighted
 - [x] Empty Next up: "Nothing marked next" + how to mark tasks
-- [ ] `ProjectTiles` replaces the `ProjectCard` list: two columns, Projects / Learning segmented
+- [x] `ProjectTiles` replaces the `ProjectCard` list: two columns, Projects / Learning segmented
   control on the caption, tile = name, 8-week activity row, "N next of M open"; quiet style
   for older / no activity; selected tile ringed in violet; Archived disclosure under the
   tiles, per the sidebar filters
-- [ ] Footer: 30-day activity strip for the current tab; click shows the full
+- [x] Footer: 30-day activity strip for the current tab; click shows the full
   `ActivityHeatmap` (6 months, fits 400px); shown / hidden remembered per tab as today
 - [x] `TaskList` → right pane: no back button, × closes; tasks in file order under milestone
   captions with "x of y done"; next tasks keep their place, marked by the violet band, with a
@@ -410,7 +410,7 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 
 ### Tests (`tests/ui`)
 
-- [ ] Update: project list (tiles, segmented tabs, archived), task list (captions, done
+- [x] Update: project list (tiles, segmented tabs, archived), task list (captions, done
   inline), select task ("Mark next", band in place), toggle task (done stays in place),
   activity heatmap (strip, expand), sidebar (drawer over the left pane)
 - [x] Replace "back returns to the tab": closing the pane keeps the tab

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { ProjectList } from "@/views/ProjectList";
+import { ProjectTiles } from "@/views/ProjectTiles";
 import { TaskList, type Focus } from "@/views/TaskList";
 import { SettingsView } from "@/views/SettingsView";
+import { ActivityFooter } from "@/components/ActivityFooter";
 import { AddProjectModal } from "@/components/AddProjectModal";
 import { NextUp, entryKey } from "@/components/NextUp";
 import { Sidebar } from "@/components/Sidebar";
@@ -123,25 +124,25 @@ export default function App() {
           </button>
         </header>
 
-        <div className="shrink-0 max-h-[45%] overflow-y-auto px-3 pb-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 pt-0.5 pb-4">
           <NextUp
             entries={nextUp}
             selected={selectedProject && focus ? `${selectedProject.id}|${focus.key}` : null}
             onPick={pickEntry}
           />
-        </div>
-
-        <div className="flex-1 min-h-0">
-          <ProjectList
+          <ProjectTiles
             projects={projects}
             loading={loading}
-            onSelectProject={openProject}
             filters={filters}
-            activityRefreshKey={activityRefreshKey}
             activeTab={activeTab}
             onTabChange={setActiveTab}
+            selectedId={selectedProject?.id ?? null}
+            onSelect={openProject}
+            activityRefreshKey={activityRefreshKey}
           />
         </div>
+
+        <ActivityFooter tab={activeTab} refreshKey={activityRefreshKey} />
 
         {sidebarOpen && (
           <div className="absolute inset-0 z-10 flex" onClick={() => setSidebarOpen(false)}>

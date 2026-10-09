@@ -13,6 +13,7 @@ import {
   struck,
   taskHash,
   taskPane,
+  tileName,
 } from "./helpers";
 
 /** Whether a task carries the violet "next" band. */
@@ -73,7 +74,7 @@ test("checking a next task strikes it and unselects it", async () => {
   await waitFor(() => expect(struck("beta")).toBe(true));
   expect(banded("beta")).toBe(false);
   await waitFor(() =>
-    expect(projectTiles().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
+    expect(projectTiles().getByRole("button", { name: tileName("P") })).toHaveTextContent(/^P2 open/),
   );
 });
 
@@ -87,7 +88,7 @@ test("refresh clears next tasks checked outside the app", async () => {
   await user.click(screen.getByRole("button", { name: "Refresh activity" }));
 
   await waitFor(
-    () => expect(projectTiles().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
+    () => expect(projectTiles().getByRole("button", { name: tileName("P") })).toHaveTextContent(/^P2 open/),
     { timeout: 5000 },
   );
 });
