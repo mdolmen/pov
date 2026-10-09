@@ -7,11 +7,11 @@ use std::sync::LazyLock;
 
 use chrono::{DateTime, Local, TimeDelta, Utc};
 use regex::Regex;
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 use serde::Serialize;
 
 use crate::timelog::parse_iso_date;
-use crate::{Paths, Result, git};
+use crate::{Error, Paths, Result, git};
 
 // Watcher and toggle commit messages: "activity: <project_id>.md".
 static ACTIVITY_RE: LazyLock<Regex> =
@@ -165,6 +165,51 @@ pub fn heatmap(
         }
     }
 
+    Ok(counts
+        .into_iter()
+        .map(|(date, count)| ActivityDay { date, count })
+        .collect())
+}
+
+/// Per-day `activity:` commits of one project's hardlink over the last `days` days. A project
+/// without a hardlink has none.
+pub fn project_days(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    days: u64,
+) -> Result<Vec<ActivityDay>> {
+    let (project_type, has_hardlink): (String, bool) = conn
+        .query_row(
+            "SELECT type, has_hardlink FROM projects WHERE id = ?",
+            [project_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .optional()?
+        .ok_or(Error::NotFound("project"))?;
+    if !has_hardlink {
+        return Ok(vec![]);
+    }
+
+    let hardlink = paths.hardlink(project_id, &project_type);
+    let since = format!("--since={days} days ago");
+    let out = git::run(
+        &paths.root,
+        &[
+            "log".as_ref(),
+            since.as_ref(),
+            "--grep=^activity:".as_ref(),
+            "--pretty=format:%aI".as_ref(),
+            "--".as_ref(),
+            hardlink.as_os_str(),
+        ],
+    )
+    .unwrap_or_default();
+
+    let mut counts: BTreeMap<String, u32> = BTreeMap::new();
+    for day in out.lines().filter_map(|line| day_of(line.trim())) {
+        *counts.entry(day).or_default() += 1;
+    }
     Ok(counts
         .into_iter()
         .map(|(date, count)| ActivityDay { date, count })
@@ -414,5 +459,50 @@ mod tests {
         );
 
         assert_eq!(env.total("project", 120), 1);
+    }
+
+    #[test]
+    fn project_days_count_this_project_hardlink_only() {
+        let env = Env::new();
+        for id in ["a", "b"] {
+            let md = env.tmp.path().join(format!("{id}.md"));
+            fs::write(&md, "- [ ] x\n").unwrap();
+            let dst = env.paths.hardlink(id, "project");
+            fs::hard_link(&md, &dst).unwrap();
+            env.conn
+                .execute(
+                    "INSERT INTO projects (id, name, file_path, has_hardlink) VALUES (?, ?, ?, 1)",
+                    [id, id, md.to_str().unwrap()],
+                )
+                .unwrap();
+            git::add_commit(&env.paths.root, &dst, &format!("add: {id}")).unwrap();
+        }
+        let a = env.paths.hardlink("a", "project");
+        fs::write(&a, "- [x] x\n").unwrap();
+        git::add_commit(&env.paths.root, &a, "activity: a.md").unwrap();
+        fs::write(&a, "- [ ] x\n").unwrap();
+        git::add_commit(&env.paths.root, &a, "activity: a.md").unwrap();
+        let b = env.paths.hardlink("b", "project");
+        fs::write(&b, "- [x] x\n").unwrap();
+        git::add_commit(&env.paths.root, &b, "activity: b.md").unwrap();
+
+        let days = project_days(&env.conn, &env.paths, "a", 56).unwrap();
+
+        assert_eq!(days.iter().map(|d| d.count).sum::<u32>(), 2);
+    }
+
+    #[test]
+    fn project_days_without_hardlink_is_empty() {
+        let env = Env::new();
+        env.add("p", &env.dir("plain", false), "project");
+        assert!(
+            project_days(&env.conn, &env.paths, "p", 56)
+                .unwrap()
+                .is_empty()
+        );
+        assert!(matches!(
+            project_days(&env.conn, &env.paths, "nope", 56),
+            Err(Error::NotFound("project"))
+        ));
     }
 }
