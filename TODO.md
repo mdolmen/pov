@@ -380,7 +380,7 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 
 ### Frontend
 
-- [ ] Window 1040×760 in `tauri.conf.json` (min width so both panes fit)
+- [x] Window 1040×760 in `tauri.conf.json` (min width so both panes fit)
 - [ ] Color tokens in `index.css` (ground, pane, surface, ink, muted, line, next violet,
   activity ramp) in place of the inline hex values in the components this phase touches
 - [ ] `App`: split layout, left pane 400px on the darker ground, right pane lighter, hairline

@@ -15,9 +15,9 @@
       {
         "label": "main",
         "title": "Projects Overview",
-        "width": 600,
-        "height": 800,
-        "minWidth": 600,
+        "width": 1040,
+        "height": 760,
+        "minWidth": 860,
         "minHeight": 400,
         "resizable": true,
         "decorations": true,
