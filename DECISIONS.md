@@ -93,3 +93,15 @@
   Settings directly; the archived projects of a tab always show, under a collapsed "Archived
   (n)" disclosure, when there are any.
 - **Why:** the filters were rarely changed, and the drawer was one more step to reach Settings.
+
+## 2026-10-09 — Queue stage
+
+- **Decision:** a second task mark, "queued" (committed to, not next yet), stored as
+  `selected_tasks.stage` (`next` | `queue`); a task is next, queued or neither. Queued tasks stay
+  in place in the task pane with an amber band and "Queue" / "Queued" text pills, like "Mark
+  next" / "Next".
+- **Why:** separates what's planned from what's handled now, without a new table: done-task
+  cleanup and project deletion already cover the rows.
+- **Constraints:** Next up reads next tasks only; a project with only queued tasks isn't in it.
+  Tile ordering stays by next count.
+- **Plan:** TODO.md, Phase 11.

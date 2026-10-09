@@ -188,53 +188,49 @@ git source of truth — it lives in SQLite.
 
 ## Phase 11 — Queue stage
 
-Tasks get a second mark next to "next": "queue" = committed to, but not yet next. A task is
-backlog, queued or next, never two. Both marks live in `selected_tasks`, so the done-task
-cleanup and the project-deletion cascade cover both for free. In the split view (Phase 14)
-queued tasks stay in place, like next ones, marked by an amber band instead of violet. Next up
-is unchanged: it only reads next tasks.
+Tasks get a second mark next to "next": "queue" = committed to, but not yet next. A task is backlog, queued or next, never two. Both marks live in `selected_tasks`, so the done-task cleanup and the project-deletion cascade cover both for free. In the split view (Phase 14) queued tasks stay in place, like next ones, marked by an amber band instead of violet. Next up is unchanged: it only reads next tasks.
 
 ### Backend (`pov-core`)
 
-- [ ] `db::init`: `selected_tasks.stage` column (`TEXT NOT NULL DEFAULT 'next'`), added with `has_column`; existing rows become `next`
-- [ ] `TaskView.is_queued`
-- [ ] `is_selected` means `stage = 'next'` only: `selected_hashes` (so `next_up`) reads next rows only
-- [ ] `tasks::select` upserts `stage = 'next'` (`ON CONFLICT … DO UPDATE`, moves a queued task up)
-- [ ] `tasks::queue` upserts `stage = 'queue'`; `tasks::unqueue` deletes the row
-- [ ] `Project.queued_count`; `selected_count` counts `next` only
-- [ ] `queue_task` / `unqueue_task` in `api::dispatch`
-- [ ] Tests (`db`, `tasks`, `projects`, `api`):
-  - [ ] old `selected_tasks` without `stage` migrates to `next`
-  - [ ] select ↔ queue moves, never two rows
-  - [ ] unqueue removes the row
-  - [ ] counts per stage
-  - [ ] done queued task removed by `toggle` and `cleanup_selected`
-  - [ ] queued tasks absent from `next_up`
+- [x] `db::init`: `selected_tasks.stage` column (`TEXT NOT NULL DEFAULT 'next'`), added with `has_column`; existing rows become `next`
+- [x] `TaskView.is_queued`
+- [x] `is_selected` means `stage = 'next'` only: `selected_hashes` (so `next_up`) reads next rows only
+- [x] `tasks::select` upserts `stage = 'next'` (`ON CONFLICT … DO UPDATE`, moves a queued task up)
+- [x] `tasks::queue` upserts `stage = 'queue'`; `tasks::unqueue` deletes the row
+- [x] `Project.queued_count`; `selected_count` counts `next` only
+- [x] `queue_task` / `unqueue_task` in `api::dispatch`
+- [x] Tests (`db`, `tasks`, `projects`, `api`):
+  - [x] old `selected_tasks` without `stage` migrates to `next`
+  - [x] select ↔ queue moves, never two rows
+  - [x] unqueue removes the row
+  - [x] counts per stage
+  - [x] done queued task removed by `toggle` and `cleanup_selected`
+  - [x] queued tasks absent from `next_up`
 
 ### Frontend
 
-- [ ] `Task.is_queued`, `Project.queued_count` in `types.ts`
-- [ ] `queueTask` / `unqueueTask` in `backend.ts`
-- [ ] `queue` / `unqueue` in `useTasks`, optimistic like `select` (one stage clears the other)
-- [ ] Amber `--pov-queue` / `--pov-queue-soft` tokens (+ `--color-queue*`) in `index.css`
-- [ ] `TaskRow`:
-  - [ ] amber inset band for queued tasks
-  - [ ] backlog: "Queue" and "Mark next" pills on hover
-  - [ ] queued: "Queued" pill (click → backlog), "Mark next" on hover
-  - [ ] next: "Next" pill unchanged (click → backlog)
-  - [ ] double-click: backlog ↔ next, queued → next
-- [ ] `ProjectTile`: "N next · M queued of K open", queued muted, regular weight
-- [ ] `ProjectTiles` ordering unchanged (next count)
+- [x] `Task.is_queued`, `Project.queued_count` in `types.ts`
+- [x] `queueTask` / `unqueueTask` in `backend.ts`
+- [x] `queue` / `unqueue` in `useTasks`, optimistic like `select` (one stage clears the other)
+- [x] Amber `--pov-queue` / `--pov-queue-soft` tokens (+ `--color-queue*`) in `index.css`
+- [x] `TaskRow`:
+  - [x] amber inset band for queued tasks
+  - [x] backlog: "Queue" and "Mark next" pills on hover
+  - [x] queued: "Queued" pill (click → backlog), "Mark next" on hover
+  - [x] next: "Next" pill unchanged (click → backlog)
+  - [x] double-click: backlog ↔ next, queued → next
+- [x] `ProjectTile`: "N next · M queued of K open", queued muted, regular weight
+- [x] `ProjectTiles` ordering unchanged (next count)
 
 ### Tests (`tests/ui`)
 
-- [ ] New `queue-task.test.tsx`:
-  - [ ] queue from backlog
-  - [ ] queued → next, queued → backlog
-  - [ ] a task is never queued and next at once
-  - [ ] tile counts
-  - [ ] queued task absent from Next up
-  - [ ] done queued task loses its mark
+- [x] New `queue-task.test.tsx`:
+  - [x] queue from backlog
+  - [x] queued → next, queued → backlog
+  - [x] a task is never queued and next at once
+  - [x] tile counts
+  - [x] queued task absent from Next up
+  - [x] done queued task loses its mark
 
 ## Phase 12 — MCP server
 

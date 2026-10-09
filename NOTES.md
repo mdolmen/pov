@@ -144,6 +144,9 @@ Border color (Archived):
 - "Selected" = flagged as "handle next"
 - State persisted in SQLite, keyed by the task's content hash (survives line shifts)
 - Count of selected tasks shown on the project card; projects are ordered by it
+- "Queued" = committed to, but not next yet: amber band and "Queue" / "Queued" pill; a task is
+  next, queued or neither (`selected_tasks.stage`). Next up ignores queued tasks; the tile shows
+  "N next · M queued"
 
 ## Continuous Learning
 
