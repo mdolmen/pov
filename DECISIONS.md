@@ -70,3 +70,19 @@
   `task_count` counts its top-level tasks that aren't done.
 - **Why:** `[-]` (cancelled) and `[~]` (deferred) were open forever, since toggling couldn't
   clear them; counting subtasks inflated the card count against what the task list shows open.
+
+## 2026-10-09 — Split view UI with Next up
+
+- **Decision:** one window, two panes: projects on the left under a "Next up" list, the
+  selected project's tasks on the right. Next up shows one entry per open project: its first
+  `##` milestone holding a task marked next (the task itself when it sits before any `##`),
+  ordered by that milestone's next count, then name. In the task pane, done tasks stay in place
+  by default; "Hide done" is saved per project.
+- **Why:** opening on what to handle next beats opening on where it lives; milestones keep
+  Next up short and say which phase each project is in; no back-and-forth navigation.
+- **Constraints:**
+  - The window grows from 600×800 to 1040×760.
+  - Next up reads every open project's file: a new `next_up` command, not N `list_tasks`
+    calls.
+  - "Hide done" lives in `localStorage`, like the time heatmap toggle: UI state, not data.
+- **Plan:** TODO.md, Phase 14. Mock: `debug/ui/v2.html`.

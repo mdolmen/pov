@@ -357,6 +357,66 @@ before the Phase 13 Commands block as its safety net.
 - [x] Settings: install CLI, already installed, install error
 - [x] Smoke test: launch the real app, Rust storage init and watcher commit
 
+## Phase 14 — Split view UI
+
+See DECISIONS.md (2026-10-09, split view). Reference mock: `debug/ui/v2.html` (gitignored;
+open it in a browser). Built on proposal D of `debug/ui/index.html`.
+
+### Backend
+
+- [ ] `tasks::next_up(conn, paths)`: one entry per open project, its first `##` milestone (file
+  order) holding a selected, not-done task. `###` belongs to the `##` above it; `#` is the file
+  title and ignored. Fields: `project_id`, `project_name`, `project_type`, `milestone`
+  (`Option<String>`), `task_text` (the first next task when `milestone` is `None`),
+  `next_count`, `done`, `total` (the task's subtasks when `milestone` is `None`). Ordered by
+  `next_count` desc, then project name
+- [ ] Test: first milestone wins; `###` counts in its `##`; next tasks before any `##` give a
+  task entry with subtask progress; done tasks don't count as next; archived projects
+  excluded; ties ordered by name
+- [ ] `next_up` in `api::dispatch`; `listNextUp()` in `backend.ts`, `NextUpEntry` in `types.ts`
+- [ ] `activity` command: optional `project_id` limits the git log to that project's hardlink
+  (8-week row on each tile); test
+
+### Frontend
+
+- [ ] Window 1040×760 in `tauri.conf.json` (min width so both panes fit)
+- [ ] Color tokens in `index.css` (ground, pane, surface, ink, muted, line, next violet,
+  activity ramp) in place of the inline hex values in the components this phase touches
+- [ ] `App`: split layout, left pane 400px on the darker ground, right pane lighter, hairline
+  between; `selectedProject` stays in `App`; Esc closes the right pane
+- [ ] Right pane, nothing selected: "Choose a project to show its tasks"
+- [ ] Left header: date, "Next up" + entry count, refresh / add / menu (the existing `Sidebar`
+  drawer opens over the left pane)
+- [ ] `NextUp`: one row per entry: progress ring (done / total), project name (bold), milestone
+  or task text below, "N next" pill (milestones only), "x of y done"; click selects the
+  project and scrolls the right pane to that milestone or task; selected row highlighted
+- [ ] Empty Next up: "Nothing marked next" + how to mark tasks
+- [ ] `ProjectTiles` replaces the `ProjectCard` list: two columns, Projects / Learning segmented
+  control on the caption, tile = name, 8-week activity row, "N next of M open"; quiet style
+  for older / no activity; selected tile ringed in violet; Archived disclosure under the
+  tiles, per the sidebar filters
+- [ ] Footer: 30-day activity strip for the current tab; click shows the full
+  `ActivityHeatmap` (6 months, fits 400px); shown / hidden remembered per tab as today
+- [ ] `TaskList` → right pane: no back button, × closes; tasks in file order under milestone
+  captions with "x of y done"; next tasks keep their place, marked by the violet band, with a
+  "Mark next" / "Next" button (double-click kept); no separate Next or Done sections
+- [ ] Done tasks shown by default, struck through in place; "Hide done" in the header, saved
+  per project in `localStorage` (`pov.done.<id>.hidden`, like `pov.time.<id>.visible`);
+  "All tasks are done" + "Show done" when nothing is left
+- [ ] Learning projects keep the time heatmap at the bottom of the right pane
+- [ ] Toggling or (un)selecting a task refreshes Next up and the tile counts
+- [ ] Settings view and the modals unchanged
+
+### Tests (`tests/ui`)
+
+- [ ] Update: project list (tiles, segmented tabs, archived), task list (captions, done
+  inline), select task ("Mark next", band in place), toggle task (done stays in place),
+  activity heatmap (strip, expand), sidebar (drawer over the left pane)
+- [ ] Replace "back returns to the tab": closing the pane keeps the tab
+- [ ] New `next-up.test.tsx`: one entry per project, ordering, milestone / task fallback,
+  click opens and scrolls, updates after select and toggle, empty state
+- [ ] New `hide-done.test.tsx`: hides per project, survives a remount, all-done state
+
 ## Maintenance
 
 - [x] Fix `pov add`, returns 128
