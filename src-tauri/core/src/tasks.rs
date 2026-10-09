@@ -367,6 +367,92 @@ pub fn unselect(conn: &Connection, project_id: &str, task_hash: &str) -> Result<
     Ok(())
 }
 
+/// What a project should handle next (`NextUpEntry` in `src/types.ts`).
+///
+/// A milestone entry has `milestone` set, with `done` / `total` over its tasks. A task entry
+/// (next tasks before any `##`) has `task_text` and `task_hash` set, with `done` / `total` over
+/// that task's subtasks.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct NextUpEntry {
+    pub project_id: String,
+    pub project_name: String,
+    pub project_type: String,
+    pub milestone: Option<String>,
+    pub task_text: Option<String>,
+    pub task_hash: Option<String>,
+    pub next_count: usize,
+    pub done: usize,
+    pub total: usize,
+}
+
+/// Groups top-level tasks by their `##` milestone, in file order. Tasks before any `##` form a
+/// group without a name; `###` and deeper stay in the `##` above them; `#` is ignored.
+fn milestones(items: Vec<Item>) -> Vec<(Option<String>, Vec<Task>)> {
+    let mut groups: Vec<(Option<String>, Vec<Task>)> = vec![(None, vec![])];
+    for item in items {
+        match item {
+            Item::Heading { text, level: 2 } => groups.push((Some(text), vec![])),
+            Item::Heading { .. } => {}
+            Item::Task(task) => {
+                if let Some((_, tasks)) = groups.last_mut() {
+                    tasks.push(task);
+                }
+            }
+        }
+    }
+    groups
+}
+
+/// One entry per open project: its first milestone holding a selected task that isn't done.
+/// Most next tasks first, then by project name.
+pub fn next_up(conn: &Connection) -> Result<Vec<NextUpEntry>> {
+    let mut entries = Vec::new();
+    for row in projects::list_by_name(conn)? {
+        if row.status != "open" {
+            continue;
+        }
+        let selected = selected_hashes(conn, &row.id)?;
+        let is_next = |t: &Task| selected.contains(&t.hash) && !t.is_done();
+        let Some((milestone, tasks)) = milestones(parse_items(&row.file_path))
+            .into_iter()
+            .find(|(_, tasks)| tasks.iter().any(is_next))
+        else {
+            continue;
+        };
+        let next_count = tasks.iter().filter(|t| is_next(t)).count();
+        let (task_text, task_hash, done, total) = match milestone {
+            Some(_) => (
+                None,
+                None,
+                tasks.iter().filter(|t| t.is_done()).count(),
+                tasks.len(),
+            ),
+            None => {
+                let Some(task) = tasks.into_iter().find(is_next) else {
+                    continue;
+                };
+                let done = task.subtasks.iter().filter(|s| s.checked).count();
+                let total = task.subtasks.len();
+                (Some(task.text), Some(task.hash), done, total)
+            }
+        };
+        entries.push(NextUpEntry {
+            project_id: row.id,
+            project_name: row.name,
+            project_type: row.project_type,
+            milestone,
+            task_text,
+            task_hash,
+            next_count,
+            done,
+            total,
+        });
+    }
+    // Stable: ties keep the name order of `list_by_name`.
+    entries.sort_by_key(|e| std::cmp::Reverse(e.next_count));
+    Ok(entries)
+}
+
 /// Removes selections whose task is done in the source file.
 pub fn cleanup_selected(conn: &Connection) -> Result<()> {
     let projects: Vec<(String, PathBuf)> = conn
@@ -713,5 +799,116 @@ Some plain text here.
             .query_row("SELECT task_hash FROM selected_tasks", (), |r| r.get(0))
             .unwrap();
         assert_eq!(left, task_hash("- [ ] Task one", 1));
+    }
+
+    /// Adds a project tracking `content`, with the tasks named in `next` selected.
+    fn add_project(
+        conn: &Connection,
+        dir: &Path,
+        name: &str,
+        status: &str,
+        content: &str,
+        next: &[&str],
+    ) {
+        let path = dir.join(format!("{name}.md"));
+        fs::write(&path, content).unwrap();
+        conn.execute(
+            "INSERT INTO projects (id, name, file_path, status) VALUES (?, ?, ?, ?)",
+            [name, name, path.to_str().unwrap(), status],
+        )
+        .unwrap();
+        let tasks = parse_tasks(&path);
+        for text in next {
+            let task = tasks.iter().find(|t| t.text == *text).unwrap();
+            select(conn, name, &task.hash).unwrap();
+        }
+    }
+
+    #[test]
+    fn next_up_takes_the_first_milestone_with_next_tasks() {
+        let (tmp, _paths, conn, _todo, _id) = project();
+        let content = "\
+# Title
+## One
+- [x] a
+## Two
+- [ ] b
+- [ ] c
+### Later
+- [ ] d
+- [x] e
+## Three
+- [ ] f
+";
+        add_project(&conn, tmp.path(), "Q", "open", content, &["f", "b", "d"]);
+
+        let entries = next_up(&conn).unwrap();
+
+        assert_eq!(
+            entries,
+            [NextUpEntry {
+                project_id: "Q".into(),
+                project_name: "Q".into(),
+                project_type: "project".into(),
+                milestone: Some("Two".into()),
+                task_text: None,
+                task_hash: None,
+                next_count: 2,
+                done: 1,
+                total: 4,
+            }]
+        );
+    }
+
+    #[test]
+    fn next_up_gives_a_task_before_any_milestone() {
+        let (tmp, _paths, conn, _todo, _id) = project();
+        let content = "# T\n- [ ] a\n- [ ] b\n  - [x] b1\n  - [ ] b2\n## M\n- [ ] c\n";
+        add_project(&conn, tmp.path(), "Q", "open", content, &["b", "c"]);
+
+        let entries = next_up(&conn).unwrap();
+
+        assert_eq!(entries.len(), 1);
+        let e = &entries[0];
+        assert_eq!(e.milestone, None);
+        assert_eq!(e.task_text.as_deref(), Some("b"));
+        assert_eq!(e.task_hash, Some(task_hash("- [ ] b", 1)));
+        assert_eq!((e.next_count, e.done, e.total), (1, 1, 2));
+    }
+
+    #[test]
+    fn next_up_skips_done_tasks_and_archived_projects() {
+        let (tmp, paths, conn, _todo, id) = project();
+        select(&conn, &id, &task_hash("- [ ] Task one", 1)).unwrap();
+        toggle(&conn, &paths, &id, &task_hash("- [ ] Task one", 1)).unwrap();
+        // Selected while done: written outside the app.
+        add_project(&conn, tmp.path(), "Done", "open", "## M\n- [x] a\n", &["a"]);
+        add_project(
+            &conn,
+            tmp.path(),
+            "Old",
+            "archived",
+            "## M\n- [ ] a\n",
+            &["a"],
+        );
+
+        assert!(next_up(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn next_up_orders_by_next_count_then_name() {
+        let (tmp, _paths, conn, _todo, _id) = project();
+        let two = "## M\n- [ ] a\n- [ ] b\n";
+        add_project(&conn, tmp.path(), "charlie", "open", two, &["a"]);
+        add_project(&conn, tmp.path(), "Bravo", "open", two, &["a"]);
+        add_project(&conn, tmp.path(), "zulu", "open", two, &["a", "b"]);
+        add_project(&conn, tmp.path(), "alpha", "open", two, &[]);
+
+        let names: Vec<_> = next_up(&conn)
+            .unwrap()
+            .into_iter()
+            .map(|e| e.project_name)
+            .collect();
+        assert_eq!(names, ["zulu", "Bravo", "charlie"]);
     }
 }

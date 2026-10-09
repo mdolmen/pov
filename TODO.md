@@ -364,13 +364,14 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 
 ### Backend
 
-- [ ] `tasks::next_up(conn, paths)`: one entry per open project, its first `##` milestone (file
+- [x] `tasks::next_up(conn)`: one entry per open project, its first `##` milestone (file
   order) holding a selected, not-done task. `###` belongs to the `##` above it; `#` is the file
   title and ignored. Fields: `project_id`, `project_name`, `project_type`, `milestone`
-  (`Option<String>`), `task_text` (the first next task when `milestone` is `None`),
+  (`Option<String>`), `task_text` and `task_hash` (the first next task when `milestone` is
+  `None`),
   `next_count`, `done`, `total` (the task's subtasks when `milestone` is `None`). Ordered by
   `next_count` desc, then project name
-- [ ] Test: first milestone wins; `###` counts in its `##`; next tasks before any `##` give a
+- [x] Test: first milestone wins; `###` counts in its `##`; next tasks before any `##` give a
   task entry with subtask progress; done tasks don't count as next; archived projects
   excluded; ties ordered by name
 - [ ] `next_up` in `api::dispatch`; `listNextUp()` in `backend.ts`, `NextUpEntry` in `types.ts`
