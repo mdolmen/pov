@@ -196,38 +196,45 @@ is unchanged: it only reads next tasks.
 
 ### Backend (`pov-core`)
 
-- [ ] `db::init`: `selected_tasks.stage` column (`TEXT NOT NULL DEFAULT 'next'`, `'next' |
-  'queue'`), added with `has_column` like `paused_until`; existing rows become `next`
-- [ ] `tasks`: `TaskView.is_queued`; `is_selected` now means `stage = 'next'` only, so
-  `selected_hashes` (and through it `next_up`) only reads next rows
-- [ ] `tasks::select` upserts `stage = 'next'` (`ON CONFLICT(project_id, task_hash) DO UPDATE`,
-  moves a queued task up); new `tasks::queue` upserts `stage = 'queue'`, `tasks::unqueue`
-  deletes the row. `toggle` and `cleanup_selected` already delete any stage
-- [ ] `projects::Project.queued_count`; `selected_count` counts `next` only
-- [ ] `queue_task` / `unqueue_task` in `api::dispatch` (`TaskArgs`)
-- [ ] Tests (`#[cfg(test)]` in `db`, `tasks`, `projects`, `api`): old `selected_tasks` without
-  `stage` migrates to `next`, select ↔ queue moves (never two rows), unqueue, counts per stage,
-  done queued task removed by `toggle` and `cleanup_selected`, queued tasks absent from
-  `next_up`
+- [ ] `db::init`: `selected_tasks.stage` column (`TEXT NOT NULL DEFAULT 'next'`), added with `has_column`; existing rows become `next`
+- [ ] `TaskView.is_queued`
+- [ ] `is_selected` means `stage = 'next'` only: `selected_hashes` (so `next_up`) reads next rows only
+- [ ] `tasks::select` upserts `stage = 'next'` (`ON CONFLICT … DO UPDATE`, moves a queued task up)
+- [ ] `tasks::queue` upserts `stage = 'queue'`; `tasks::unqueue` deletes the row
+- [ ] `Project.queued_count`; `selected_count` counts `next` only
+- [ ] `queue_task` / `unqueue_task` in `api::dispatch`
+- [ ] Tests (`db`, `tasks`, `projects`, `api`):
+  - [ ] old `selected_tasks` without `stage` migrates to `next`
+  - [ ] select ↔ queue moves, never two rows
+  - [ ] unqueue removes the row
+  - [ ] counts per stage
+  - [ ] done queued task removed by `toggle` and `cleanup_selected`
+  - [ ] queued tasks absent from `next_up`
 
 ### Frontend
 
-- [ ] `Task.is_queued`, `Project.queued_count` in `types.ts`; `queueTask` / `unqueueTask` in
-  `backend.ts`; `queue` / `unqueue` in `useTasks`, optimistic like `select` (setting one stage
-  clears the other)
-- [ ] `--pov-queue` / `--pov-queue-soft` amber tokens in `index.css` (+ `--color-queue*`), next
-  to `--pov-next`
-- [ ] `TaskRow`: amber inset band for queued tasks. Pills: backlog shows "Queue" and "Mark next"
-  on hover; queued shows "Queued" (click → backlog) and "Mark next" on hover; next keeps "Next"
-  (click → backlog). Double-click stays backlog ↔ next, and moves a queued task to next
-- [ ] `ProjectTile`: "N next · M queued of K open", queued in muted ink, regular weight;
-  `ProjectTiles` ordering unchanged (next count)
+- [ ] `Task.is_queued`, `Project.queued_count` in `types.ts`
+- [ ] `queueTask` / `unqueueTask` in `backend.ts`
+- [ ] `queue` / `unqueue` in `useTasks`, optimistic like `select` (one stage clears the other)
+- [ ] Amber `--pov-queue` / `--pov-queue-soft` tokens (+ `--color-queue*`) in `index.css`
+- [ ] `TaskRow`:
+  - [ ] amber inset band for queued tasks
+  - [ ] backlog: "Queue" and "Mark next" pills on hover
+  - [ ] queued: "Queued" pill (click → backlog), "Mark next" on hover
+  - [ ] next: "Next" pill unchanged (click → backlog)
+  - [ ] double-click: backlog ↔ next, queued → next
+- [ ] `ProjectTile`: "N next · M queued of K open", queued muted, regular weight
+- [ ] `ProjectTiles` ordering unchanged (next count)
 
 ### Tests (`tests/ui`)
 
-- [ ] New `queue-task.test.tsx`: queue from backlog, queued → next, queued → backlog, next
-  task can't be queued and next at once, tile counts, queued task absent from Next up, done
-  queued task loses its mark
+- [ ] New `queue-task.test.tsx`:
+  - [ ] queue from backlog
+  - [ ] queued → next, queued → backlog
+  - [ ] a task is never queued and next at once
+  - [ ] tile counts
+  - [ ] queued task absent from Next up
+  - [ ] done queued task loses its mark
 
 ## Phase 12 — MCP server
 
@@ -239,50 +246,53 @@ Needs Phase 11 for the `queue` stage.
 
 ### Core (`pov-core`, sync, no MCP types)
 
-- [ ] `tasks::append_task(path, text, section) -> Result<String>`: append `- [ ] <text>` at the
-  end of the section under heading `section` (exact text match, any level; a section ends at
-  the next heading of the same or higher level), or at end of file when `None`. Writes in place
-  (never rename-replace, which would break the hardlink), keeps CRLF files CRLF, returns the new
-  task's hash (with its occurrence). `Error::Invalid` on empty / multi-line text or an unknown
-  heading
-- [ ] `tasks::sections(path) -> Vec<HeadingView>`: the file's headings (text, level), for the
-  client to target one
-- [ ] `projects::resolve(conn, query) -> Result<ProjectRow>`: exact id, else case-insensitive
-  name; on miss or ambiguity an error listing the candidates
-- [ ] `tasks::add(conn, paths, project_id, text, section, stage)`: `append_task`, commit
-  `activity: <id>.md` on the hardlink like `toggle`, then `select` / `queue` per `stage`
-  (`backlog | queue | next`)
-- [ ] Tests: append at end of file, inside a section followed by another heading, inside a
-  section with `###` children, missing trailing newline, CRLF kept, hardlink still shares the
-  inode, duplicate text gets a distinct hash, unknown heading and multi-line text rejected;
-  `resolve` by id, by name in any case, ambiguous, unknown; `add` persists the stage and commits
+- [ ] `tasks::append_task(path, text, section) -> Result<String>`, returns the new task's hash:
+  - [ ] appends `- [ ] <text>` at the end of the section under heading `section` (exact text, any level)
+  - [ ] a section ends at the next heading of the same or higher level
+  - [ ] `None` appends at end of file
+  - [ ] writes in place (never rename-replace, which breaks the hardlink)
+  - [ ] keeps CRLF files CRLF
+  - [ ] `Error::Invalid` on empty or multi-line text, or an unknown heading
+- [ ] `tasks::sections(path)`: the file's headings (text, level)
+- [ ] `projects::resolve(conn, query)`: exact id, else case-insensitive name; error listing candidates on miss / ambiguity
+- [ ] `tasks::add(conn, paths, project_id, text, section, stage)`:
+  - [ ] `append_task`
+  - [ ] commit `activity: <id>.md` on the hardlink, like `toggle`
+  - [ ] `select` / `queue` per `stage` (`backlog | queue | next`)
+- [ ] Tests:
+  - [ ] append at end of file
+  - [ ] append inside a section followed by another heading
+  - [ ] append inside a section with `###` children
+  - [ ] missing trailing newline
+  - [ ] CRLF kept
+  - [ ] hardlink still shares the inode
+  - [ ] duplicate text gets a distinct hash
+  - [ ] unknown heading and multi-line text rejected
+  - [ ] `resolve` by id, by name in any case, ambiguous, unknown
+  - [ ] `add` persists the stage and commits
 
 ### Server (`pov-cli mcp`)
 
-- [ ] `rmcp` (`server`, `transport-io`) + `tokio` (`rt`, `macros`, `io-std`) as optional
-  dependencies behind the `cli` feature: the runtime lives in the binary only, the core stays
-  sync. Split `src/bin/pov-cli.rs` into `src/bin/pov-cli/{main,mcp}.rs`
-- [ ] Tool `list_projects()`: id, name, type, status, `task_count` / `selected_count` /
-  `queued_count`, open projects first (reuses `projects::list`)
+- [ ] `rmcp` (`server`, `transport-io`) + `tokio` (`rt`, `macros`, `io-std`), optional, behind the `cli` feature (core stays sync)
+- [ ] Split `src/bin/pov-cli.rs` into `src/bin/pov-cli/{main,mcp}.rs`
+- [ ] Tool `list_projects()`: id, name, type, status, task / next / queued counts, open first (`projects::list`)
 - [ ] Tool `list_sections(project)`
-- [ ] Tool `add_task(project, text, section?, stage = "backlog")`: returns the task hash; core
-  errors become tool errors (`is_error`), not protocol errors
-- [ ] Each tool call opens its own connection and calls the core through `spawn_blocking`;
-  `db::open`'s busy timeout covers the app writing at the same time
-- [ ] `pov mcp` subcommand runs the server over stdio until stdin closes
-- [ ] Test (`tests/cli.rs`): spawn `pov-cli mcp` on a temp `HOME`, `initialize`, `tools/list`,
-  `tools/call add_task`; the task is in the file and the stage in `pov.db`
+- [ ] Tool `add_task(project, text, section?, stage = "backlog")`: returns the task hash
+- [ ] Core errors become tool errors (`is_error`), not protocol errors
+- [ ] Each call opens its own connection and runs the core in `spawn_blocking` (busy timeout covers the app)
+- [ ] `pov mcp` subcommand serves over stdio until stdin closes
+- [ ] Test (`tests/cli.rs`): spawn `pov-cli mcp` on a temp `HOME`:
+  - [ ] `initialize`, `tools/list`
+  - [ ] `tools/call add_task`: task in the file, stage in `pov.db`
 
 ### Integration
 
-- [ ] App refetches projects, Next up and the open task list on window focus, so tasks added
-  while the app is open show up without navigating away (`useTasks` exposes `refresh`); UI test
-  writes the file directly, fires `focus`, sees the task
-- [ ] README + NOTES.md CLI section: register the server with
-  `claude mcp add pov -- ~/.local/bin/pov mcp` (absolute path: GUI clients don't get the shell
-  `PATH`), generic JSON config for other clients; a debug `pov-cli` uses `pov-dev`
-- [ ] Release build via `scripts/build-cli.sh` still bundles; record the `pov-cli` and `.dmg`
-  size change with `rmcp` + `tokio` in NOTES.md
+- [ ] Refetch projects, Next up and the open task list on window focus (`useTasks` exposes `refresh`)
+- [ ] UI test: write the file directly, fire `focus`, the task shows
+- [ ] README + NOTES.md: `claude mcp add pov -- ~/.local/bin/pov mcp` (absolute path: GUI clients lack the shell `PATH`)
+- [ ] README + NOTES.md: generic JSON config for other clients; debug `pov-cli` uses `pov-dev`
+- [ ] `scripts/build-cli.sh` release build still bundles
+- [ ] Record the `pov-cli` and `.dmg` size change from `rmcp` + `tokio` in NOTES.md
 
 ## Phase 13 — Port the backend to Rust
 
