@@ -167,6 +167,24 @@ pub fn insert(conn: &Connection, project_id: &str, rows: &[TimeRow]) -> Result<u
     Ok(rows.len())
 }
 
+/// Number of time entries recorded for a project.
+pub fn count(conn: &Connection, project_id: &str) -> Result<i64> {
+    Ok(conn.query_row(
+        "SELECT COUNT(*) FROM time_entries WHERE project_id = ?",
+        [project_id],
+        |row| row.get(0),
+    )?)
+}
+
+/// Deletes all time entries of a project.
+pub fn clear(conn: &Connection, project_id: &str) -> Result<()> {
+    conn.execute(
+        "DELETE FROM time_entries WHERE project_id = ?",
+        [project_id],
+    )?;
+    Ok(())
+}
+
 /// Per-day minute totals for the last `days` days. Days with no recorded time are omitted.
 pub fn list_days(conn: &Connection, project_id: &str, days: u64) -> Result<Vec<TimeDay>> {
     projects::file_and_type(conn, project_id)?;
@@ -440,6 +458,19 @@ mod tests {
         add_entry(&conn, "a", 60, Some(&days_ago(1)), Some("Proba")).unwrap();
         add_entry(&conn, "a", 60, Some(&days_ago(0)), None).unwrap();
         assert_eq!(topics(&conn, "a").unwrap(), ["Proba", "Stats"]);
+    }
+
+    #[test]
+    fn count_and_clear_are_per_project() {
+        let (_tmp, conn) = conn();
+        let rows = parse_str(TABLE).unwrap();
+        insert(&conn, "a", &rows).unwrap();
+        insert(&conn, "b", &rows[..1]).unwrap();
+        assert_eq!(count(&conn, "a").unwrap(), 3);
+
+        clear(&conn, "a").unwrap();
+        assert_eq!(count(&conn, "a").unwrap(), 0);
+        assert_eq!(count(&conn, "b").unwrap(), 1);
     }
 
     #[test]

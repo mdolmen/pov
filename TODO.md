@@ -324,10 +324,10 @@ See DECISIONS.md (2026-10-08).
 
 ### CLI
 
-- [ ] `pov` as a second binary in the crate (`src/bin/pov.rs`, `clap`):
+- [x] `pov` as a second binary in the crate (`src/bin/pov-cli.rs`, `clap`):
   `add`, `list`, `remove`, `import-time` (+ `mcp` via `rmcp` if Phase 12
   is done), same flags and output as today
-- [ ] Test: CLI cases from `test_cli.py`
+- [x] Test: CLI cases from `test_cli.py`
 - [ ] Bundle it next to the app executable; `install_cli` unchanged
 
 ### Cleanup
