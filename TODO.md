@@ -368,7 +368,7 @@ Phase 13:
   by `[a]` / `[b]` in their text share a hash (told apart by occurrence only)
 - [x] `_set_checked` replaces the first `[ ]` / `[x]` of the line: checking an already checked
   parent ticks a `[ ]` written in its text
-- [ ] Toggling a task rewrites a CRLF file with LF line endings
+- [x] Toggling a task rewrites a CRLF file with LF line endings
 - [ ] `[-]`, `[~]` and other states count as unchecked, and toggling can't clear them
 - [ ] `task_count` counts unchecked subtasks too
 - [ ] Project activity level passes the original path to `git log` in the data repo, which is

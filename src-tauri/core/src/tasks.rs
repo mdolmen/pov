@@ -10,7 +10,9 @@ use rusqlite::Connection;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use crate::pyline::{read_text, rstrip, split_lines, split_lines_keep_ends, strip};
+use crate::pyline::{
+    read_text, rstrip, split_lines, split_lines_keep_ends, strip, universal_newlines,
+};
 use crate::{Error, Paths, Result, git, projects};
 
 // `[\s\x1c-\x1f]` is Python's `\s`: Rust's `\s` lacks the `\x1c`-`\x1f` separators.
@@ -199,11 +201,13 @@ pub fn count_tasks(path: &Path) -> usize {
 /// - Task without subtasks: plain toggle.
 /// - Subtask: toggles it, then sets its parent to whether all subtasks are now checked.
 ///
-/// Returns `false` when no task has that hash.
+/// Keeps the file's CRLF line endings. Returns `false` when no task has that hash.
 pub fn toggle_cascade(path: &Path, target: &str) -> Result<bool> {
-    let Some(text) = read_text(path) else {
+    let Ok(raw) = fs::read_to_string(path) else {
         return Ok(false);
     };
+    let crlf = raw.contains("\r\n");
+    let text = universal_newlines(&raw);
     let tasks = tasks_of(&text);
     let mut lines: Vec<String> = split_lines_keep_ends(&text)
         .into_iter()
@@ -261,7 +265,15 @@ pub fn toggle_cascade(path: &Path, target: &str) -> Result<bool> {
         return Ok(false);
     }
 
-    fs::write(path, lines.concat())?;
+    let text = lines.concat();
+    fs::write(
+        path,
+        if crlf {
+            text.replace('\n', "\r\n")
+        } else {
+            text
+        },
+    )?;
     Ok(true)
 }
 
@@ -537,6 +549,17 @@ Some plain text here.
         assert_eq!(
             fs::read_to_string(&path).unwrap(),
             "- [x] fix [ ] parser\n  - [x] sub\n"
+        );
+    }
+
+    #[test]
+    fn toggle_keeps_crlf_line_endings() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), "# T\r\n- [ ] one\r\n- [ ] two\r\n");
+        assert!(toggle_cascade(&path, &task_hash("- [ ] one", 1)).unwrap());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "# T\r\n- [x] one\r\n- [ ] two\r\n"
         );
     }
 

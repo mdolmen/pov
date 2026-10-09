@@ -14,8 +14,12 @@ pub fn read_text(path: &Path) -> Option<String> {
 
 /// Like [`read_text`], returning why the file couldn't be read.
 pub fn read_text_strict(path: &Path) -> io::Result<String> {
-    let text = fs::read_to_string(path)?;
-    Ok(text.replace("\r\n", "\n").replace('\r', "\n"))
+    Ok(universal_newlines(&fs::read_to_string(path)?))
+}
+
+/// Python's universal newlines: `\r\n` and `\r` turned into `\n`.
+pub fn universal_newlines(text: &str) -> String {
+    text.replace("\r\n", "\n").replace('\r', "\n")
 }
 
 /// Python's `str.isspace()`: Rust's whitespace plus the `\x1c`–`\x1f` separators.
