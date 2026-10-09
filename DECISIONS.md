@@ -86,3 +86,10 @@
     calls.
   - "Hide done" lives in `localStorage`, like the time heatmap toggle: UI state, not data.
 - **Plan:** TODO.md, Phase 14. Mock: `debug/ui/v2.html`.
+
+## 2026-10-09 — No sidebar
+
+- **Decision:** the sidebar and its open / archived filters are gone. The burger button opens
+  Settings directly; the archived projects of a tab always show, under a collapsed "Archived
+  (n)" disclosure, when there are any.
+- **Why:** the filters were rarely changed, and the drawer was one more step to reach Settings.

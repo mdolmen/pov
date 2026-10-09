@@ -408,6 +408,9 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 - [x] Toggling or (un)selecting a task refreshes Next up and the tile counts
 - [x] Settings view and the modals unchanged
 
+- [x] No sidebar: the burger opens Settings; archived projects always show, collapsed (see
+  DECISIONS.md, no sidebar)
+
 ### Tests (`tests/ui`)
 
 - [x] Update: project list (tiles, segmented tabs, archived), task list (captions, done

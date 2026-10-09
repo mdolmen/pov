@@ -48,15 +48,20 @@ test("archived projects are collapsed until the section is opened", async () => 
   await addProject({ name: "Live" });
   await addProject({ name: "Shipped", status: "archived", sub_status: "done" });
   const { user } = renderApp();
-  await user.click(await screen.findByRole("button", { name: "Menu" }));
-  await user.click(screen.getAllByRole("button", { name: "Archived" })[0]);
-  await user.click(screen.getByRole("button", { name: "Menu" }));
 
   const header = await screen.findByRole("button", { name: "Archived (1)" });
   expect(screen.queryByText("Shipped")).not.toBeInTheDocument();
 
   await user.click(header);
   expect(screen.getByRole("button", { name: /^Shipped/ })).toHaveTextContent("· done");
+});
+
+test("no archived project, no archived section", async () => {
+  await addProject({ name: "Live" });
+  renderApp();
+  await projectTiles().findByRole("button", { name: /^Live/ });
+
+  expect(screen.queryByRole("button", { name: /^Archived/ })).not.toBeInTheDocument();
 });
 
 test("an empty list says so", async () => {

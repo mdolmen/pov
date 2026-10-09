@@ -5,16 +5,10 @@ import { SettingsView } from "@/views/SettingsView";
 import { ActivityFooter } from "@/components/ActivityFooter";
 import { AddProjectModal } from "@/components/AddProjectModal";
 import { NextUp, entryKey } from "@/components/NextUp";
-import { Sidebar } from "@/components/Sidebar";
 import { useNextUp } from "@/hooks/useNextUp";
 import { useProjects } from "@/hooks/useProjects";
 import { cleanupSelected } from "@/lib/backend";
-import type { Filters, NextUpEntry, Project, Tab } from "@/types";
-
-const DEFAULT_FILTERS: Filters = {
-  projects: { open: true, archived: false },
-  learning: { open: true, archived: false },
-};
+import type { NextUpEntry, Project, Tab } from "@/types";
 
 export default function App() {
   const { projects, loading, refresh: refreshProjects } = useProjects();
@@ -23,17 +17,8 @@ export default function App() {
   const [focus, setFocus] = useState<Focus | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [activeTab, setActiveTab] = useState<Tab>("projects");
   const [activityRefreshKey, setActivityRefreshKey] = useState(0);
-
-  function toggleFilter(section: "projects" | "learning", key: "open" | "archived") {
-    setFilters((f) => ({
-      ...f,
-      [section]: { ...f[section], [key]: !f[section][key] },
-    }));
-  }
 
   function openProject(project: Project) {
     setSelectedProject(project);
@@ -81,7 +66,7 @@ export default function App() {
     <div className="flex h-screen select-none overflow-hidden text-ink">
       <section
         aria-label="Projects"
-        className="relative w-[400px] shrink-0 flex flex-col bg-ground border-r border-divider"
+        className="w-[400px] shrink-0 flex flex-col bg-ground border-r border-divider"
       >
         <header className="flex items-start gap-0.5 pl-5 pr-3 pt-4 pb-2.5 shrink-0">
           <div className="flex-1">
@@ -112,9 +97,9 @@ export default function App() {
             </svg>
           </button>
           <button
-            onClick={() => setSidebarOpen((v) => !v)}
+            onClick={() => setSettingsOpen(true)}
             className={iconButton}
-            aria-label="Menu"
+            aria-label="Settings"
           >
             <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
               <rect width="13" height="1.5" rx="0.75" fill="currentColor" />
@@ -133,7 +118,6 @@ export default function App() {
           <ProjectTiles
             projects={projects}
             loading={loading}
-            filters={filters}
             activeTab={activeTab}
             onTabChange={setActiveTab}
             selectedId={selectedProject?.id ?? null}
@@ -143,19 +127,6 @@ export default function App() {
         </div>
 
         <ActivityFooter tab={activeTab} refreshKey={activityRefreshKey} />
-
-        {sidebarOpen && (
-          <div className="absolute inset-0 z-10 flex" onClick={() => setSidebarOpen(false)}>
-            <div className="h-full w-48 shrink-0" onClick={(e) => e.stopPropagation()}>
-              <Sidebar
-                filters={filters}
-                onToggle={toggleFilter}
-                onSettings={() => { setSidebarOpen(false); setSettingsOpen(true); }}
-              />
-            </div>
-            <div className="flex-1" style={{ background: "rgba(0,0,0,0.08)" }} />
-          </div>
-        )}
       </section>
 
       <section

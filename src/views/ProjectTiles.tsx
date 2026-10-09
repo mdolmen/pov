@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { ProjectTile } from "@/components/ProjectTile";
-import type { Filters, Project, Tab } from "@/types";
+import type { Project, Tab } from "@/types";
 
 interface Props {
   projects: Project[];
   loading: boolean;
-  filters: Filters;
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   selectedId: string | null;
@@ -31,7 +30,6 @@ function Chevron({ expanded }: { expanded: boolean }) {
 export function ProjectTiles({
   projects,
   loading,
-  filters,
   activeTab,
   onTabChange,
   selectedId,
@@ -41,7 +39,6 @@ export function ProjectTiles({
   const [archivedExpanded, setArchivedExpanded] = useState(false);
 
   const tabType = activeTab === "projects" ? "project" : "learning";
-  const tabFilters = filters[activeTab];
 
   // Sort by number of selected tasks (desc), then name (asc) as tiebreaker.
   const bySelected = (a: Project, b: Project) =>
@@ -88,9 +85,9 @@ export function ProjectTiles({
         </span>
       </div>
 
-      {tabFilters.open && open.length > 0 && tiles(open)}
+      {tiles(open)}
 
-      {tabFilters.archived && (
+      {archived.length > 0 && (
         <section className="mt-4">
           <button
             onClick={() => setArchivedExpanded((v) => !v)}
@@ -98,10 +95,10 @@ export function ProjectTiles({
           >
             <Chevron expanded={archivedExpanded} />
             <span className="text-[12px] font-semibold text-ink-2">
-              Archived{archived.length > 0 ? ` (${archived.length})` : ""}
+              Archived ({archived.length})
             </span>
           </button>
-          {archivedExpanded && archived.length > 0 && tiles(archived)}
+          {archivedExpanded && tiles(archived)}
         </section>
       )}
 

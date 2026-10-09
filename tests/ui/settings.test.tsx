@@ -3,8 +3,7 @@ import { expect, test } from "vitest";
 import { renderApp } from "./helpers";
 
 async function openSettings(user: ReturnType<typeof renderApp>["user"]) {
-  await user.click(await screen.findByRole("button", { name: "Menu" }));
-  await user.click(screen.getByRole("button", { name: "Settings" }));
+  await user.click(await screen.findByRole("button", { name: "Settings" }));
 }
 
 test("install CLI installs and shows the result", async () => {

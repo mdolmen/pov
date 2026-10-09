@@ -2,7 +2,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { choose, dataDir, gitSubjects, renderApp, showArchived, writeTodo } from "./helpers";
+import { choose, dataDir, gitSubjects, renderApp, writeTodo } from "./helpers";
 
 async function openDialog(user: ReturnType<typeof renderApp>["user"]) {
   await user.click(await screen.findByRole("button", { name: "Add project" }));
@@ -47,7 +47,6 @@ test("a project added as done is archived", async () => {
   await user.click(screen.getByRole("button", { name: "Choose a TODO.md file…" }));
   await choose(user, 1, "Done");
   await user.click(screen.getByRole("button", { name: "Add" }));
-  await showArchived(user);
 
   await user.click(await screen.findByRole("button", { name: "Archived (1)" }));
   expect(screen.getByRole("button", { name: /^Finished/ })).toHaveTextContent("· done");

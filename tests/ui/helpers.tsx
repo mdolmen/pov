@@ -184,13 +184,6 @@ export async function choose(
   await user.click(await screen.findByRole("option", { name: option }));
 }
 
-/** Turns on the "Archived" filter of the Projects tab. */
-export async function showArchived(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole("button", { name: "Menu" }));
-  await user.click(screen.getAllByRole("button", { name: "Archived" })[0]);
-  await user.click(screen.getByRole("button", { name: "Menu" }));
-}
-
 export async function toggleTask(projectId: string, hash: string) {
   await bridge("toggle_task", { project_id: projectId, task_hash: hash });
 }

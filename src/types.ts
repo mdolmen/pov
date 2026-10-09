@@ -3,16 +3,6 @@ export type Status = "open" | "archived";
 export type SubStatus = "paused" | "done" | "canceled" | null;
 export type Tab = "projects" | "learning";
 
-export interface SectionFilters {
-  open: boolean;
-  archived: boolean;
-}
-
-export interface Filters {
-  projects: SectionFilters;
-  learning: SectionFilters;
-}
-
 export interface HeadingItem {
   kind: "heading";
   text: string;
