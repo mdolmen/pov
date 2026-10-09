@@ -18,6 +18,8 @@
     --color-check: var(--pov-check);
     --color-next: var(--pov-next);
     --color-next-soft: var(--pov-next-soft);
+    --color-queue: var(--pov-queue);
+    --color-queue-soft: var(--pov-queue-soft);
     --color-live: var(--pov-live);
     --color-track: var(--pov-track);
     --font-heading: var(--font-sans);
@@ -63,7 +65,8 @@
 }
 
 :root {
-    /* pov palette: left pane on the ground, right pane lighter, violet marks next tasks. */
+    /* pov palette: left pane on the ground, right pane lighter, violet marks next tasks, amber
+       queued ones. */
     --pov-ground: #f1f0ec;
     --pov-pane: #fbfbfa;
     --pov-surface: #fff;
@@ -76,6 +79,8 @@
     --pov-check: #cbc9d1;
     --pov-next: #5b34c9;
     --pov-next-soft: #eee9fb;
+    --pov-queue: #d97706;
+    --pov-queue-soft: #fdf3e2;
     --pov-live: #2f8a48;
     --pov-track: #e4e2e8;
     /* Activity ramp: empty, then four steps. */

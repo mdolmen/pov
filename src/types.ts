@@ -25,6 +25,7 @@ export interface Task {
   subtasks: Subtask[];
   is_done: boolean;
   is_selected: boolean;
+  is_queued: boolean;
 }
 
 export type ListItem = HeadingItem | Task;
@@ -56,6 +57,7 @@ export interface Project {
   has_hardlink: boolean;
   task_count: number;
   selected_count: number;
+  queued_count: number;
   activity: ActivityLevel;
   paused_until: string | null;
 }

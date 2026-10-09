@@ -97,10 +97,11 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
         </span>
         <span className="text-[12px] text-ink-muted tabular-nums truncate">
           {project.selected_count > 0 && (
-            <>
-              <b className="font-semibold text-next">{project.selected_count} next</b> of{" "}
-            </>
+            <b className="font-semibold text-next">{project.selected_count} next</b>
           )}
+          {project.selected_count > 0 && project.queued_count > 0 && " · "}
+          {project.queued_count > 0 && <>{project.queued_count} queued</>}
+          {(project.selected_count > 0 || project.queued_count > 0) && " of "}
           {project.task_count} open
           {project.status === "archived" && project.sub_status && (
             <span className="ml-1">· {project.sub_status}</span>

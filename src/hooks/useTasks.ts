@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTasks, selectTask, toggleTask, unselectTask } from "@/lib/backend";
+import { listTasks, queueTask, selectTask, toggleTask, unqueueTask, unselectTask } from "@/lib/backend";
 import type { ListItem, Task } from "@/types";
 
-/** A project's task list; `onChanged` runs once a toggle or (un)selection is saved. */
+/** A project's task list; `onChanged` runs once a toggle, (un)selection or (un)queuing is saved. */
 export function useTasks(projectId: string, onChanged?: () => void) {
   const [items, setItems] = useState<ListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,9 +71,10 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
+  // A task is next, queued or neither: setting one mark clears the other.
   async function select(hash: string) {
     setItems((prev) =>
-      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: true } : i)
+      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: true, is_queued: false } : i)
     );
     await selectTask(projectId, hash);
     onChanged?.();
@@ -87,5 +88,21 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
-  return { items, tasks, loading, toggle, select, unselect };
+  async function queue(hash: string) {
+    setItems((prev) =>
+      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_queued: true, is_selected: false } : i)
+    );
+    await queueTask(projectId, hash);
+    onChanged?.();
+  }
+
+  async function unqueue(hash: string) {
+    setItems((prev) =>
+      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_queued: false } : i)
+    );
+    await unqueueTask(projectId, hash);
+    onChanged?.();
+  }
+
+  return { items, tasks, loading, toggle, select, unselect, queue, unqueue };
 }

@@ -50,7 +50,7 @@ interface Props {
   project: Project;
   onClose: () => void;
   onProjectUpdated: (p: Project) => void;
-  /** A task was toggled or (un)selected. */
+  /** A task was toggled, (un)selected or (un)queued. */
   onChanged?: () => void;
   focus?: Focus | null;
 }
@@ -95,27 +95,37 @@ function SubtaskRow({ subtask, onToggle }: { subtask: Subtask; onToggle: () => v
   );
 }
 
+const pill =
+  "shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap cursor-pointer transition-opacity ";
+const onHover = "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ";
+
 function TaskRow({
   task,
   onToggle,
   onSelect,
   onUnselect,
+  onQueue,
+  onUnqueue,
 }: {
   task: Task;
   onToggle: (hash: string) => void;
   onSelect: (hash: string) => void;
   onUnselect: (hash: string) => void;
+  onQueue: (hash: string) => void;
+  onUnqueue: (hash: string) => void;
 }) {
   const done = task.is_done;
   const next = task.is_selected && !done;
+  const queued = task.is_queued && !done;
   const flip = () => (task.is_selected ? onUnselect(task.hash) : onSelect(task.hash));
+  const band = next ? "var(--pov-next)" : queued ? "var(--pov-queue)" : null;
 
   return (
     <div
       data-task
       data-focus={`t:${task.hash}`}
       className="group px-3 py-2.5 border-t border-line first:border-t-0"
-      style={{ boxShadow: next ? "inset 3px 0 0 var(--pov-next)" : undefined }}
+      style={{ boxShadow: band ? `inset 3px 0 0 ${band}` : undefined }}
       onDoubleClick={(e) => {
         e.stopPropagation();
         if (!done) flip();
@@ -141,13 +151,26 @@ function TaskRow({
           <button
             onClick={(e) => { e.stopPropagation(); flip(); }}
             className={
-              "shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap cursor-pointer transition-opacity " +
-              (next
-                ? "text-next"
-                : "text-ink-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:text-next hover:bg-next-soft")
+              pill +
+              (next ? "text-next" : "text-ink-muted " + onHover + "hover:text-next hover:bg-next-soft")
             }
           >
             {next ? "Next" : "Mark next"}
+          </button>
+        )}
+        {!done && !next && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (queued) onUnqueue(task.hash);
+              else onQueue(task.hash);
+            }}
+            className={
+              pill +
+              (queued ? "text-queue" : "text-ink-muted " + onHover + "hover:text-queue hover:bg-queue-soft")
+            }
+          >
+            {queued ? "Queued" : "Queue"}
           </button>
         )}
       </div>
@@ -220,7 +243,10 @@ function SectionCaption({ section }: { section: Section }) {
 }
 
 export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus }: Props) {
-  const { items, tasks, loading, toggle, select, unselect } = useTasks(project.id, onChanged);
+  const { items, tasks, loading, toggle, select, unselect, queue, unqueue } = useTasks(
+    project.id,
+    onChanged,
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addTimeOpen, setAddTimeOpen] = useState(false);
   const [timeRefreshKey, setTimeRefreshKey] = useState(0);
@@ -354,7 +380,15 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
                 {section.tasks.length > 0 && (
                   <div className="bg-surface rounded-xl ring-1 ring-line overflow-hidden">
                     {section.tasks.map((t) => (
-                      <TaskRow key={t.hash} task={t} onToggle={toggle} onSelect={select} onUnselect={unselect} />
+                      <TaskRow
+                        key={t.hash}
+                        task={t}
+                        onToggle={toggle}
+                        onSelect={select}
+                        onUnselect={unselect}
+                        onQueue={queue}
+                        onUnqueue={unqueue}
+                      />
                     ))}
                   </div>
                 )}

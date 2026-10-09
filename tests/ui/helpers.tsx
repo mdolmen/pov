@@ -57,6 +57,10 @@ export async function selectTask(projectId: string, hash: string) {
   await bridge("select_task", { project_id: projectId, task_hash: hash });
 }
 
+export async function queueTask(projectId: string, hash: string) {
+  await bridge("queue_task", { project_id: projectId, task_hash: hash });
+}
+
 export async function recordTime(projectId: string, minutes: number, date: string, topic?: string) {
   await bridge("add_time", { project_id: projectId, minutes, date, topic });
 }
@@ -137,7 +141,7 @@ export function projectTiles() {
 
 /** Matches the accessible name of a project's tile: its name, then its counts. */
 export function tileName(name: string): RegExp {
-  return new RegExp(`^${name}(\\d+ next of )?\\d+ open`);
+  return new RegExp(`^${name}(\\d+ next of |\\d+ next · \\d+ queued of |\\d+ queued of )?\\d+ open`);
 }
 
 /** Opens a project from the list. */
@@ -157,9 +161,19 @@ export function checkbox(text: string): HTMLElement {
   return taskPane().getByText(text).previousElementSibling as HTMLElement;
 }
 
+/** The row of a task, found by its text. */
+function taskRow(text: string): HTMLElement {
+  return taskPane().getByText(text).closest("[data-task]") as HTMLElement;
+}
+
 /** The "Mark next" / "Next" button of an open task, found by its text. */
 export function nextButton(text: string): HTMLElement {
-  return taskPane().getByText(text).nextElementSibling as HTMLElement;
+  return within(taskRow(text)).getByRole("button", { name: /^(Mark next|Next)$/ });
+}
+
+/** The "Queue" / "Queued" button of an open task that isn't next, found by its text. */
+export function queueButton(text: string): HTMLElement {
+  return within(taskRow(text)).getByRole("button", { name: /^(Queue|Queued)$/ });
 }
 
 /** Text positions in the task pane, to check display order. */
