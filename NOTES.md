@@ -146,3 +146,22 @@ Maths is the only section with time tracking (TIME.md). Deferred to post-MVP.
 - TIME.md / time tracking
 - Analytics on file edits
 - Any sync or cloud features
+
+## Rust port: before / after
+
+Measured 2026-10-09 on an M-series Mac, release `.dmg`, 4 launches each on an empty temp `HOME`
+(first launch, then range). Before: `8cba122`, the last commit with every route served by the
+Python sidecar. After: Rust only.
+
+| | Before (Python sidecar) | After (Rust) |
+|---|---|---|
+| `.dmg` | 36.2 MB | 7.1 MB |
+| `.app` | 44.5 MB | 18.0 MB |
+| Bundled CLI | 9.7 MB | 3.0 MB |
+| Window on screen | 2.18 s (1.22–2.18) | 0.59 s (0.37–0.59) |
+| Backend ready | 2.60 s (1.72–2.60) | at window (in-process) |
+| RSS after 5 s | 85–123 MB | 56–65 MB |
+| Processes | 3 (app + PyInstaller bootloader + server) | 1 |
+
+RSS sums the app's own process tree; WebKit's XPC helpers (not children of the app) are left out
+on both sides. "Backend ready" is when the sidecar starts listening on its port.
