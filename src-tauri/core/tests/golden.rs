@@ -1,4 +1,4 @@
-//! Compares pov-core with outputs recorded from the Python backend (`backend/dev/golden.py`).
+//! Compares pov-core with outputs recorded from the Python backend (since removed); the goldens are frozen.
 
 use std::fs;
 use std::path::{Path, PathBuf};

@@ -40,8 +40,8 @@ ON time_entries(project_id, date);
 DROP TABLE IF EXISTS activity;
 ";
 
-// The Python backend shares the file until the port is done; wait for its locks instead of
-// failing with SQLITE_BUSY.
+// The app and the CLI share the file; wait for the other's locks instead of failing with
+// SQLITE_BUSY.
 const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Opens the pov database with foreign keys enforced.
