@@ -18,7 +18,10 @@ function weekLevel(count: number): number {
   return 4;
 }
 
-/** Activity of the last 8 weeks, oldest first, one cell per week ending today. */
+/**
+ * Activity of the last 8 weeks, one cell per week ending today: two columns of four, oldest
+ * first, top to bottom.
+ */
 function WeekRow({ project, refreshKey }: { project: Project; refreshKey: number }) {
   const [weeks, setWeeks] = useState<number[]>(() => Array(WEEKS).fill(0));
 
@@ -49,7 +52,11 @@ function WeekRow({ project, refreshKey }: { project: Project; refreshKey: number
   }, [project.id, project.type, refreshKey]);
 
   return (
-    <span className="flex gap-0.5 shrink-0" title="Last 8 weeks" data-weeks={weeks.join(",")}>
+    <span
+      className="grid grid-rows-4 grid-flow-col gap-0.5 shrink-0"
+      title="Last 8 weeks"
+      data-weeks={weeks.join(",")}
+    >
       {weeks.map((count, i) => (
         <i
           key={i}
@@ -75,12 +82,12 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
     <button
       onClick={onClick}
       className={
-        "min-w-0 flex flex-col gap-1 rounded-[10px] px-3 py-2.5 text-left cursor-pointer transition-shadow " +
+        "min-w-0 flex items-center gap-2 rounded-[10px] px-3 py-2.5 text-left cursor-pointer transition-shadow " +
         (selected ? "ring-2 ring-next bg-surface " : "ring-1 ring-line hover:ring-check ") +
         (quiet && !selected ? "bg-transparent" : "bg-surface")
       }
     >
-      <span className="flex items-center justify-between gap-2">
+      <span className="flex-1 min-w-0 flex flex-col gap-1">
         <span
           className={
             "text-[13.5px] truncate " + (quiet ? "font-medium text-ink-2" : "font-semibold text-ink")
@@ -88,19 +95,19 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
         >
           {project.name}
         </span>
-        <WeekRow project={project} refreshKey={activityRefreshKey} />
+        <span className="text-[12px] text-ink-muted tabular-nums truncate">
+          {project.selected_count > 0 && (
+            <>
+              <b className="font-semibold text-next">{project.selected_count} next</b> of{" "}
+            </>
+          )}
+          {project.task_count} open
+          {project.status === "archived" && project.sub_status && (
+            <span className="ml-1">· {project.sub_status}</span>
+          )}
+        </span>
       </span>
-      <span className="text-[12px] text-ink-muted tabular-nums">
-        {project.selected_count > 0 && (
-          <>
-            <b className="font-semibold text-next">{project.selected_count} next</b> of{" "}
-          </>
-        )}
-        {project.task_count} open
-        {project.status === "archived" && project.sub_status && (
-          <span className="ml-1">· {project.sub_status}</span>
-        )}
-      </span>
+      <WeekRow project={project} refreshKey={activityRefreshKey} />
     </button>
   );
 }
