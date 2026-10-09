@@ -76,6 +76,8 @@ struct ActivityArgs {
     project_type: String,
     #[serde(default = "default_days")]
     days: u64,
+    #[serde(default)]
+    project_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -117,6 +119,7 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
             json(tasks::unselect(&conn, &a.project_id, &a.task_hash)?)
         }
         "cleanup_selected" => json(tasks::cleanup_selected(&conn)?),
+        "next_up" => json(tasks::next_up(&conn)?),
         "list_projects" => json(projects::list(&conn, paths)?),
         "add_project" => {
             let a: AddProjectArgs = parse(args)?;
@@ -161,7 +164,10 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
         }
         "activity" => {
             let a: ActivityArgs = parse(args)?;
-            json(activity::heatmap(&conn, paths, &a.project_type, a.days)?)
+            match a.project_id {
+                Some(id) => json(activity::project_days(&conn, paths, &id, a.days)?),
+                None => json(activity::heatmap(&conn, paths, &a.project_type, a.days)?),
+            }
         }
         "remove_project" => {
             let a: ProjectArgs = parse(args)?;
@@ -267,5 +273,58 @@ mod tests {
         assert_eq!(items[1]["hash"], hash);
         assert_eq!(items[1]["is_selected"], true);
         assert_eq!(items[1]["subtasks"], json!([]));
+    }
+
+    #[test]
+    fn next_up_lists_the_milestone_of_a_next_task() {
+        let (tmp, paths) = paths();
+        let todo = tmp.path().join("TODO.md");
+        fs::write(&todo, "## M\n- [ ] one\n- [x] two\n").unwrap();
+        db::open(&paths)
+            .unwrap()
+            .execute(
+                "INSERT INTO projects (id, name, file_path) VALUES ('p', 'P', ?)",
+                [todo.to_str().unwrap()],
+            )
+            .unwrap();
+        let hash = tasks::task_hash("- [ ] one", 1);
+        dispatch(
+            &paths,
+            "select_task",
+            json!({"project_id": "p", "task_hash": hash}),
+        )
+        .unwrap();
+
+        let entries = dispatch(&paths, "next_up", json!({})).unwrap();
+
+        assert_eq!(
+            entries,
+            json!([{
+                "project_id": "p", "project_name": "P", "project_type": "project",
+                "milestone": "M", "task_text": null, "task_hash": null,
+                "next_count": 1, "done": 1, "total": 2,
+            }])
+        );
+    }
+
+    #[test]
+    fn activity_of_one_project() {
+        let (tmp, paths) = paths();
+        let todo = tmp.path().join("TODO.md");
+        fs::write(&todo, "- [ ] one\n").unwrap();
+        db::open(&paths)
+            .unwrap()
+            .execute(
+                "INSERT INTO projects (id, name, file_path) VALUES ('p', 'P', ?)",
+                [todo.to_str().unwrap()],
+            )
+            .unwrap();
+
+        let days = dispatch(
+            &paths,
+            "activity",
+            json!({"type": "project", "days": 56, "project_id": "p"}),
+        );
+        assert_eq!(days.unwrap(), json!([]));
     }
 }

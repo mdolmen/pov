@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type {
   ActivityDay,
   ListItem,
+  NextUpEntry,
   Project,
   Status,
   SubStatus,
@@ -28,6 +29,8 @@ export const unselectTask = (projectId: string, taskHash: string) =>
   call<null>("unselect_task", { project_id: projectId, task_hash: taskHash });
 
 export const cleanupSelected = () => call<null>("cleanup_selected");
+
+export const listNextUp = () => call<NextUpEntry[]>("next_up");
 
 export interface NewProject {
   name: string;
@@ -68,3 +71,6 @@ export const listTopics = (projectId: string) =>
 
 export const listActivity = (type: "project" | "learning", days: number) =>
   call<ActivityDay[]>("activity", { type, days });
+
+export const listProjectActivity = (projectId: string, type: string, days: number) =>
+  call<ActivityDay[]>("activity", { type, days, project_id: projectId });

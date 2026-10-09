@@ -69,3 +69,18 @@ export interface Project {
   activity: ActivityLevel;
   paused_until: string | null;
 }
+
+export interface NextUpEntry {
+  project_id: string;
+  project_name: string;
+  project_type: "project" | "learning";
+  /** The `##` milestone; `null` for next tasks before any milestone. */
+  milestone: string | null;
+  /** The first next task, when `milestone` is `null`. */
+  task_text: string | null;
+  task_hash: string | null;
+  next_count: number;
+  /** Over the milestone's tasks, or the task's subtasks. */
+  done: number;
+  total: number;
+}

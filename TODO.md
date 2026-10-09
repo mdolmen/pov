@@ -374,8 +374,8 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 - [x] Test: first milestone wins; `###` counts in its `##`; next tasks before any `##` give a
   task entry with subtask progress; done tasks don't count as next; archived projects
   excluded; ties ordered by name
-- [ ] `next_up` in `api::dispatch`; `listNextUp()` in `backend.ts`, `NextUpEntry` in `types.ts`
-- [ ] `activity` command: optional `project_id` limits the git log to that project's hardlink
+- [x] `next_up` in `api::dispatch`; `listNextUp()` in `backend.ts`, `NextUpEntry` in `types.ts`
+- [x] `activity` command: optional `project_id` limits the git log to that project's hardlink
   (8-week row on each tile); test
 
 ### Frontend
