@@ -120,19 +120,24 @@ export function renderApp(native: Native = {}) {
   return { user, calls };
 }
 
-/** The left pane: Next up, projects and activity. */
-export function projectsPane() {
-  return within(screen.getByRole("region", { name: "Projects" }));
-}
-
 /** The right pane: the open project's tasks. */
 export function taskPane() {
   return within(screen.getByRole("region", { name: /^Tasks/ }));
 }
 
+/** The Next up entries. */
+export function nextUp() {
+  return within(screen.getByRole("group", { name: "Next up" }));
+}
+
+/** The projects of the current tab. */
+export function projectTiles() {
+  return within(screen.getByRole("group", { name: "Project list" }));
+}
+
 /** Opens a project from the list. */
 export async function openProject(user: ReturnType<typeof userEvent.setup>, name: string) {
-  await user.click(await projectsPane().findByRole("button", { name: new RegExp(`^${name}`) }));
+  await user.click(await projectTiles().findByRole("button", { name: new RegExp(`^${name}`) }));
   await screen.findByRole("button", { name: "Close project" });
   await waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
 }

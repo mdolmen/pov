@@ -386,12 +386,12 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 - [x] `App`: split layout, left pane 400px on the darker ground, right pane lighter, hairline
   between; `selectedProject` stays in `App`; Esc closes the right pane
 - [x] Right pane, nothing selected: "Choose a project to show its tasks"
-- [ ] Left header: date, "Next up" + entry count, refresh / add / menu (the existing `Sidebar`
+- [x] Left header: date, "Next up" + entry count, refresh / add / menu (the existing `Sidebar`
   drawer opens over the left pane)
-- [ ] `NextUp`: one row per entry: progress ring (done / total), project name (bold), milestone
+- [x] `NextUp`: one row per entry: progress ring (done / total), project name (bold), milestone
   or task text below, "N next" pill (milestones only), "x of y done"; click selects the
   project and scrolls the right pane to that milestone or task; selected row highlighted
-- [ ] Empty Next up: "Nothing marked next" + how to mark tasks
+- [x] Empty Next up: "Nothing marked next" + how to mark tasks
 - [ ] `ProjectTiles` replaces the `ProjectCard` list: two columns, Projects / Learning segmented
   control on the caption, tile = name, 8-week activity row, "N next of M open"; quiet style
   for older / no activity; selected tile ringed in violet; Archived disclosure under the
@@ -405,7 +405,7 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
   per project in `localStorage` (`pov.done.<id>.hidden`, like `pov.time.<id>.visible`);
   "All tasks are done" + "Show done" when nothing is left
 - [x] Learning projects keep the time heatmap at the bottom of the right pane
-- [ ] Toggling or (un)selecting a task refreshes Next up and the tile counts
+- [x] Toggling or (un)selecting a task refreshes Next up and the tile counts
 - [x] Settings view and the modals unchanged
 
 ### Tests (`tests/ui`)
@@ -414,7 +414,7 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
   inline), select task ("Mark next", band in place), toggle task (done stays in place),
   activity heatmap (strip, expand), sidebar (drawer over the left pane)
 - [x] Replace "back returns to the tab": closing the pane keeps the tab
-- [ ] New `next-up.test.tsx`: one entry per project, ordering, milestone / task fallback,
+- [x] New `next-up.test.tsx`: one entry per project, ordering, milestone / task fallback,
   click opens and scrolls, updates after select and toggle, empty state
 - [ ] New `hide-done.test.tsx`: hides per project, survives a remount, all-done state
 

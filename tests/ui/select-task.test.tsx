@@ -7,7 +7,7 @@ import {
   inOrder,
   nextButton,
   openProject,
-  projectsPane,
+  projectTiles,
   renderApp,
   selectTask,
   struck,
@@ -55,7 +55,7 @@ test("next tasks are saved and counted on the project card", async () => {
   await user.click(nextButton("beta"));
   await user.click(nextButton("gamma"));
 
-  expect(await projectsPane().findByRole("button", { name: /^P2/ })).toBeInTheDocument();
+  expect(await projectTiles().findByRole("button", { name: /^P2/ })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Close project" }));
   await openProject(user, "P");
@@ -73,7 +73,7 @@ test("checking a next task strikes it and unselects it", async () => {
   await waitFor(() => expect(struck("beta")).toBe(true));
   expect(banded("beta")).toBe(false);
   await waitFor(() =>
-    expect(projectsPane().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
+    expect(projectTiles().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
   );
 });
 
@@ -82,12 +82,12 @@ test("refresh clears next tasks checked outside the app", async () => {
   await selectTask(project.id, await taskHash(project.id, "alpha"));
   writeFileSync(project.file_path, "- [x] alpha\n- [ ] beta\n- [ ] gamma\n");
   const { user } = renderApp();
-  expect(await projectsPane().findByRole("button", { name: /^P1/ })).toBeInTheDocument();
+  expect(await projectTiles().findByRole("button", { name: /^P1/ })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Refresh activity" }));
 
   await waitFor(
-    () => expect(projectsPane().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
+    () => expect(projectTiles().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
     { timeout: 5000 },
   );
 });

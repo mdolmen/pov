@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { addProject, inOrder, openProject, projectsPane, renderApp, taskPane, writeTodo } from "./helpers";
+import { addProject, inOrder, openProject, projectTiles, renderApp, taskPane, writeTodo } from "./helpers";
 
 test("a project shows its headings and tasks in file order, done ones in place", async () => {
   await addProject({
@@ -44,8 +44,8 @@ test("closing the pane keeps the tab", async () => {
   await user.click(screen.getByRole("button", { name: "Close project" }));
 
   expect(screen.getByText("Choose a project to show its tasks")).toBeInTheDocument();
-  expect(projectsPane().getByRole("button", { name: /^Maths/ })).toBeInTheDocument();
-  expect(projectsPane().queryByRole("button", { name: /^Work/ })).not.toBeInTheDocument();
+  expect(projectTiles().getByRole("button", { name: /^Maths/ })).toBeInTheDocument();
+  expect(projectTiles().queryByRole("button", { name: /^Work/ })).not.toBeInTheDocument();
 });
 
 test("Esc closes the pane", async () => {

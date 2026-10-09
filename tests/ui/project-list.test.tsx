@@ -1,6 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { addProject, renderApp, selectTask, taskHash } from "./helpers";
+import { addProject, projectTiles, renderApp, selectTask, taskHash } from "./helpers";
 
 test("open projects show with their task count", async () => {
   await addProject({ name: "Alpha", content: "- [ ] one\n- [ ] two\n- [x] done\n" });
@@ -32,7 +32,7 @@ test("projects are ordered by next task count, then by name", async () => {
   await selectTask(busy.id, await taskHash(busy.id, "b"));
   renderApp();
 
-  await screen.findByRole("button", { name: /^Zulu/ });
+  await projectTiles().findByRole("button", { name: /^Zulu/ });
   const open = screen.getByText("Open").parentElement as HTMLElement;
   const names = within(open).getAllByRole("button").map((b) => b.textContent);
   expect(names).toEqual([

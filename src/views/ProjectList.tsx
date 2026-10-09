@@ -125,7 +125,11 @@ export function ProjectList({
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-5">
+        <div
+          className="flex-1 overflow-y-auto px-3 py-3 space-y-5"
+          role="group"
+          aria-label="Project list"
+        >
           {loading && <Spinner label="updating activity" />}
 
           {tabFilters.open && open.length > 0 && (
