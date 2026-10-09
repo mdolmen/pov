@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-use chrono::{DateTime, TimeDelta, Utc};
+use chrono::{DateTime, Local, TimeDelta, Utc};
 use regex::Regex;
 use rusqlite::Connection;
 use serde::Serialize;
@@ -99,10 +99,10 @@ fn git_root(file_path: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-/// The day of an ISO timestamp, in the timestamp's own offset.
+/// The local day of an ISO timestamp.
 fn day_of(timestamp: &str) -> Option<String> {
     let when = DateTime::parse_from_rfc3339(timestamp).ok()?;
-    Some(when.date_naive().format("%Y-%m-%d").to_string())
+    Some(when.with_timezone(&Local).format("%Y-%m-%d").to_string())
 }
 
 fn git_log(repo: &Path, days: u64, format: &str) -> Vec<String> {
@@ -175,6 +175,8 @@ pub fn heatmap(
 mod tests {
     use std::process::Command;
 
+    use chrono::{FixedOffset, TimeZone};
+
     use super::*;
     use crate::{db, storage};
 
@@ -182,7 +184,10 @@ mod tests {
         Utc::now() - TimeDelta::days(n)
     }
 
-    fn commit_at(repo: &Path, when: DateTime<Utc>, message: &str) {
+    fn commit_at<Tz: TimeZone>(repo: &Path, when: DateTime<Tz>, message: &str)
+    where
+        Tz::Offset: std::fmt::Display,
+    {
         let iso = when.to_rfc3339();
         let status = Command::new("git")
             .args(["-C".as_ref(), repo.as_os_str()])
@@ -311,16 +316,17 @@ mod tests {
         let env = Env::new();
         let repo = env.dir("proj", true);
         env.add("p", &repo, "project");
-        let base = Utc::now()
+        let base = Local::now()
             .date_naive()
             .and_hms_opt(10, 0, 0)
             .unwrap()
-            .and_utc();
+            .and_local_timezone(Local)
+            .unwrap();
         commit_at(&repo, base, "work");
         commit_at(&repo, base + TimeDelta::hours(2), "work");
         commit_at(&repo, base - TimeDelta::days(1), "work");
 
-        let day = |d: DateTime<Utc>| d.format("%Y-%m-%d").to_string();
+        let day = |d: DateTime<Local>| d.format("%Y-%m-%d").to_string();
         assert_eq!(
             heatmap(&env.conn, &env.paths, "project", 120).unwrap(),
             [
@@ -333,6 +339,32 @@ mod tests {
                     count: 2
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn heatmap_buckets_by_local_day() {
+        let env = Env::new();
+        let repo = env.dir("proj", true);
+        env.add("p", &repo, "project");
+        let noon = (Local::now() - TimeDelta::days(1))
+            .date_naive()
+            .and_hms_opt(12, 0, 0)
+            .unwrap()
+            .and_local_timezone(Local)
+            .unwrap();
+        // 13 hours away from local time, the commit's own day is another day.
+        let local = noon.offset().local_minus_utc();
+        let shift = if local <= 3600 { 13 * 3600 } else { -13 * 3600 };
+        let far = FixedOffset::east_opt(local + shift).unwrap();
+        commit_at(&repo, noon.with_timezone(&far), "work");
+
+        assert_eq!(
+            heatmap(&env.conn, &env.paths, "project", 120).unwrap(),
+            [ActivityDay {
+                date: noon.format("%Y-%m-%d").to_string(),
+                count: 1
+            }]
         );
     }
 

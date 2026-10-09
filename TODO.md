@@ -373,7 +373,7 @@ Phase 13:
 - [x] `task_count` counts unchecked subtasks too
 - [x] Project activity level passes the original path to `git log` in the data repo, which is
   outside it: the level always comes from the file's mtime
-- [ ] Heatmap buckets commits by the commit's own timezone, not local time
+- [x] Heatmap buckets commits by the commit's own timezone, not local time
 - [x] NaN / infinite hours in TIME.md crash `import-time` (Rust: "bad duration" error)
 - [x] Adding an already tracked file links and commits, then crashes on the DB constraint
   (Rust: refused before any side effect)
