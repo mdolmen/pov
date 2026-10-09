@@ -2,9 +2,9 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { screen } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { addProject, openProject, renderApp, writeTodo } from "./helpers";
+import { addProject, inOrder, openProject, projectsPane, renderApp, taskPane, writeTodo } from "./helpers";
 
-test("a project shows its pending headings and tasks in file order", async () => {
+test("a project shows its headings and tasks in file order, done ones in place", async () => {
   await addProject({
     name: "Book",
     content: [
@@ -23,28 +23,39 @@ test("a project shows its pending headings and tasks in file order", async () =>
   const { user } = renderApp();
   await openProject(user, "Book");
 
-  expect(await screen.findByText("outline")).toBeInTheDocument();
-  const text = document.body.textContent ?? "";
-  const order = ["Draft", "outline", "chapter one", "Review", "Deep", "proofread", "cover"];
-  expect(order.map((t) => text.indexOf(t))).toEqual(
-    [...order.map((t) => text.indexOf(t))].sort((a, b) => a - b),
-  );
-  // Level-1 headings and headings with no pending task are not shown.
-  expect(screen.queryByText("Published")).not.toBeInTheDocument();
-  expect(screen.getAllByText("Book")).toHaveLength(1);
+  expect(await taskPane().findByText("outline")).toBeInTheDocument();
+  expect(
+    inOrder("Draft", "outline", "chapter one", "Published", "cover", "Review", "Deep", "proofread"),
+  ).toBe(true);
+  // Milestones show their progress; the level-1 heading is not shown, only the pane title.
+  expect(taskPane().getByText("0 of 2 done")).toBeInTheDocument();
+  expect(taskPane().getByText("1 of 1 done")).toBeInTheDocument();
+  expect(taskPane().getByText("0 of 1 done")).toBeInTheDocument();
+  expect(taskPane().getAllByText("Book")).toHaveLength(1);
 });
 
-test("back returns to the tab the project was opened from", async () => {
+test("closing the pane keeps the tab", async () => {
   await addProject({ name: "Work" });
   await addProject({ name: "Maths", type: "learning" });
   const { user } = renderApp();
   await user.click(await screen.findByRole("button", { name: "learning" }));
   await openProject(user, "Maths");
 
-  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: "Close project" }));
 
-  expect(await screen.findByRole("button", { name: /^Maths/ })).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /^Work/ })).not.toBeInTheDocument();
+  expect(screen.getByText("Choose a project to show its tasks")).toBeInTheDocument();
+  expect(projectsPane().getByRole("button", { name: /^Maths/ })).toBeInTheDocument();
+  expect(projectsPane().queryByRole("button", { name: /^Work/ })).not.toBeInTheDocument();
+});
+
+test("Esc closes the pane", async () => {
+  await addProject({ name: "Work" });
+  const { user } = renderApp();
+  await openProject(user, "Work");
+
+  await user.keyboard("{Escape}");
+
+  expect(screen.getByText("Choose a project to show its tasks")).toBeInTheDocument();
 });
 
 test("task text renders inline markdown, and links open in the browser", async () => {

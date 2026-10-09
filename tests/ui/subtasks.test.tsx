@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { waitFor } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { addProject, checkbox, doneSection, openProject, renderApp } from "./helpers";
+import { addProject, checkbox, openProject, renderApp, struck } from "./helpers";
 
 const TODO = "- [ ] parent\n  - [ ] one\n  - [ ] two\n- [ ] other\n";
 
@@ -17,7 +17,7 @@ test("checking a subtask writes only that subtask", async () => {
       "- [ ] parent\n  - [x] one\n  - [ ] two\n- [ ] other\n",
     ),
   );
-  expect(doneSection()).toBeNull();
+  expect(struck("parent")).toBe(false);
 });
 
 test("checking the last open subtask completes the parent", async () => {
@@ -29,7 +29,7 @@ test("checking the last open subtask completes the parent", async () => {
   await waitFor(() => expect(readFileSync(project.file_path, "utf8")).toContain("[x] one"));
   await user.click(checkbox("two"));
 
-  await waitFor(() => expect(doneSection()?.getByText("parent")).toBeInTheDocument());
+  await waitFor(() => expect(struck("parent")).toBe(true));
   await waitFor(() =>
     expect(readFileSync(project.file_path, "utf8")).toBe(
       "- [x] parent\n  - [x] one\n  - [x] two\n- [ ] other\n",
@@ -48,9 +48,10 @@ test("checking or unchecking a parent does the same to all its subtasks", async 
       "- [x] parent\n  - [x] one\n  - [x] two\n- [ ] other\n",
     ),
   );
-  await waitFor(() => expect(doneSection()?.getByText("two")).toBeInTheDocument());
+  await waitFor(() => expect(struck("parent")).toBe(true));
+  expect(struck("two")).toBe(true);
 
   await user.click(checkbox("parent"));
   await waitFor(() => expect(readFileSync(project.file_path, "utf8")).toBe(TODO));
-  await waitFor(() => expect(doneSection()).toBeNull());
+  await waitFor(() => expect(struck("parent")).toBe(false));
 });

@@ -27,7 +27,7 @@ test("renaming updates the header and the list; save needs a change", async () =
   await closed();
 
   expect(screen.getByText("New name")).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: "Close project" }));
   expect(await screen.findByRole("button", { name: /^New name/ })).toBeInTheDocument();
 });
 
@@ -58,7 +58,7 @@ test("done and canceled archive the project", async () => {
   await choose(user, 0, "Done");
   await user.click(screen.getByRole("button", { name: "Save" }));
   await closed();
-  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: "Close project" }));
 
   await openSettings(user, "Dropped");
   await choose(user, 0, "Canceled");

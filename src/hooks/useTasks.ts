@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { listTasks, selectTask, toggleTask, unselectTask } from "@/lib/backend";
 import type { ListItem, Task } from "@/types";
 
-export function useTasks(projectId: string) {
+/** A project's task list; `onChanged` runs once a toggle or (un)selection is saved. */
+export function useTasks(projectId: string, onChanged?: () => void) {
   const [items, setItems] = useState<ListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -53,7 +54,8 @@ export function useTasks(projectId: string) {
     });
 
     try {
-      const updated = await toggleTask(projectId, hash);
+      // The command returns a bare task, without the list's `kind` tag.
+      const updated: Task = { ...(await toggleTask(projectId, hash)), kind: "task" };
       setItems((prev) =>
         prev.map((i) => {
           if (i.kind !== "task") return i;
@@ -66,6 +68,7 @@ export function useTasks(projectId: string) {
     } catch {
       fetchTasks();
     }
+    onChanged?.();
   }
 
   async function select(hash: string) {
@@ -73,6 +76,7 @@ export function useTasks(projectId: string) {
       prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: true } : i)
     );
     await selectTask(projectId, hash);
+    onChanged?.();
   }
 
   async function unselect(hash: string) {
@@ -80,6 +84,7 @@ export function useTasks(projectId: string) {
       prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: false } : i)
     );
     await unselectTask(projectId, hash);
+    onChanged?.();
   }
 
   return { items, tasks, loading, toggle, select, unselect };

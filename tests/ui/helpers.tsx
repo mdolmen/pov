@@ -120,32 +120,41 @@ export function renderApp(native: Native = {}) {
   return { user, calls };
 }
 
+/** The left pane: Next up, projects and activity. */
+export function projectsPane() {
+  return within(screen.getByRole("region", { name: "Projects" }));
+}
+
+/** The right pane: the open project's tasks. */
+export function taskPane() {
+  return within(screen.getByRole("region", { name: /^Tasks/ }));
+}
+
 /** Opens a project from the list. */
 export async function openProject(user: ReturnType<typeof userEvent.setup>, name: string) {
-  await user.click(await screen.findByRole("button", { name: new RegExp(`^${name}`) }));
-  await screen.findByRole("button", { name: "Back" });
+  await user.click(await projectsPane().findByRole("button", { name: new RegExp(`^${name}`) }));
+  await screen.findByRole("button", { name: "Close project" });
   await waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
 }
 
-/** The section of the task list under a "Done" label, if any. */
-export function doneSection() {
-  const label = screen.queryByText("Done", { selector: "p" });
-  return label ? within(label.nextElementSibling as HTMLElement) : null;
+/** Whether a task or subtask is struck through as done. */
+export function struck(text: string): boolean {
+  return taskPane().getByText(text).style.textDecoration === "line-through";
 }
 
 /** The checkbox of a task or subtask, found by its text. */
 export function checkbox(text: string): HTMLElement {
-  return screen.getByText(text).previousElementSibling as HTMLElement;
+  return taskPane().getByText(text).previousElementSibling as HTMLElement;
 }
 
-/** The hover "+" / "×" button of a pending task, found by its text. */
+/** The "Mark next" / "Next" button of an open task, found by its text. */
 export function nextButton(text: string): HTMLElement {
-  return screen.getByText(text).nextElementSibling as HTMLElement;
+  return taskPane().getByText(text).nextElementSibling as HTMLElement;
 }
 
-/** Text positions in the page, to check display order. */
+/** Text positions in the task pane, to check display order. */
 export function inOrder(...texts: string[]): boolean {
-  const body = document.body.textContent ?? "";
+  const body = screen.getByRole("region", { name: /^Tasks/ }).textContent ?? "";
   const positions = texts.map((t) => body.indexOf(t));
   return positions.every((p, i) => p >= 0 && (i === 0 || p > positions[i - 1]));
 }

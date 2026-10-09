@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
-import { AddProjectModal } from "@/components/AddProjectModal";
 import { ActivityHeatmap } from "@/components/ActivityHeatmap";
-import { useProjects } from "@/hooks/useProjects";
 import type { Filters, Project, Tab } from "@/types";
 
 function readHeatmapVisible(tab: Tab): boolean {
@@ -23,9 +21,9 @@ function writeHeatmapVisible(tab: Tab, visible: boolean) {
 }
 
 interface Props {
+  projects: Project[];
+  loading: boolean;
   onSelectProject: (project: Project) => void;
-  addOpen: boolean;
-  onAddClose: () => void;
   filters: Filters;
   activityRefreshKey?: number;
   activeTab: Tab;
@@ -66,15 +64,14 @@ function Chevron({ expanded }: { expanded: boolean }) {
 }
 
 export function ProjectList({
+  projects,
+  loading,
   onSelectProject,
-  addOpen,
-  onAddClose,
   filters,
   activityRefreshKey = 0,
   activeTab,
   onTabChange,
 }: Props) {
-  const { projects, loading, refresh } = useProjects();
   const [archivedExpanded, setArchivedExpanded] = useState(false);
   const [heatmapVisible, setHeatmapVisible] = useState<boolean>(() =>
     readHeatmapVisible(activeTab),
@@ -106,8 +103,7 @@ export function ProjectList({
     .sort(bySelected);
 
   return (
-    <>
-      <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full">
         {/* Tabs */}
         <div
           className="flex justify-center gap-6 pt-3 shrink-0"
@@ -198,9 +194,6 @@ export function ProjectList({
             </div>
           )}
         </div>
-      </div>
-
-      <AddProjectModal open={addOpen} onClose={onAddClose} onCreated={refresh} />
-    </>
+    </div>
   );
 }

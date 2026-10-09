@@ -4,27 +4,36 @@ import { expect, test } from "vitest";
 import {
   addProject,
   checkbox,
-  doneSection,
   inOrder,
   nextButton,
   openProject,
+  projectsPane,
   renderApp,
   selectTask,
+  struck,
   taskHash,
+  taskPane,
 } from "./helpers";
+
+/** Whether a task carries the violet "next" band. */
+const banded = (text: string) =>
+  (taskPane().getByText(text).closest("[data-task]") as HTMLElement).style.boxShadow !== "";
 
 const TODO = "- [ ] alpha\n- [ ] beta\n- [ ] gamma\n";
 
-test("+ moves a task to the top, × moves it back", async () => {
+test("Mark next bands a task in place, Next unmarks it", async () => {
   await addProject({ name: "P", content: TODO });
   const { user } = renderApp();
   await openProject(user, "P");
+  expect(nextButton("gamma")).toHaveTextContent("Mark next");
 
   await user.click(nextButton("gamma"));
-  expect(inOrder("gamma", "alpha", "beta")).toBe(true);
-
-  await user.click(nextButton("gamma"));
+  expect(banded("gamma")).toBe(true);
+  expect(nextButton("gamma")).toHaveTextContent("Next");
   expect(inOrder("alpha", "beta", "gamma")).toBe(true);
+
+  await user.click(nextButton("gamma"));
+  expect(banded("gamma")).toBe(false);
 });
 
 test("double-clicking a task selects it, double-clicking again unselects it", async () => {
@@ -32,11 +41,11 @@ test("double-clicking a task selects it, double-clicking again unselects it", as
   const { user } = renderApp();
   await openProject(user, "P");
 
-  await user.dblClick(screen.getByText("beta"));
-  expect(inOrder("beta", "alpha", "gamma")).toBe(true);
+  await user.dblClick(taskPane().getByText("beta"));
+  expect(banded("beta")).toBe(true);
 
-  await user.dblClick(screen.getByText("beta"));
-  expect(inOrder("alpha", "beta", "gamma")).toBe(true);
+  await user.dblClick(taskPane().getByText("beta"));
+  expect(banded("beta")).toBe(false);
 });
 
 test("next tasks are saved and counted on the project card", async () => {
@@ -46,15 +55,14 @@ test("next tasks are saved and counted on the project card", async () => {
   await user.click(nextButton("beta"));
   await user.click(nextButton("gamma"));
 
-  await user.click(screen.getByRole("button", { name: "Back" }));
-  expect(await screen.findByRole("button", { name: /^P2/ })).toBeInTheDocument();
+  expect(await projectsPane().findByRole("button", { name: /^P2/ })).toBeInTheDocument();
 
+  await user.click(screen.getByRole("button", { name: "Close project" }));
   await openProject(user, "P");
-  await screen.findByText("alpha");
-  expect(inOrder("beta", "gamma", "alpha")).toBe(true);
+  expect(banded("beta") && banded("gamma") && !banded("alpha")).toBe(true);
 });
 
-test("checking a next task sends it to Done and unselects it", async () => {
+test("checking a next task strikes it and unselects it", async () => {
   await addProject({ name: "P", content: TODO });
   const { user } = renderApp();
   await openProject(user, "P");
@@ -62,12 +70,10 @@ test("checking a next task sends it to Done and unselects it", async () => {
 
   await user.click(checkbox("beta"));
 
-  await waitFor(() => expect(doneSection()?.getByText("beta")).toBeInTheDocument());
-  await user.click(screen.getByRole("button", { name: "Back" }));
-  // The checkbox updates the UI before the toggle is saved; the list catches up on its next poll.
-  await waitFor(
-    () => expect(screen.getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
-    { timeout: 5000 },
+  await waitFor(() => expect(struck("beta")).toBe(true));
+  expect(banded("beta")).toBe(false);
+  await waitFor(() =>
+    expect(projectsPane().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
   );
 });
 
@@ -76,12 +82,12 @@ test("refresh clears next tasks checked outside the app", async () => {
   await selectTask(project.id, await taskHash(project.id, "alpha"));
   writeFileSync(project.file_path, "- [x] alpha\n- [ ] beta\n- [ ] gamma\n");
   const { user } = renderApp();
-  expect(await screen.findByRole("button", { name: /^P1/ })).toBeInTheDocument();
+  expect(await projectsPane().findByRole("button", { name: /^P1/ })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Refresh activity" }));
 
   await waitFor(
-    () => expect(screen.getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
+    () => expect(projectsPane().getByRole("button", { name: /^P/ })).toHaveTextContent(/^P2 tasks/),
     { timeout: 5000 },
   );
 });

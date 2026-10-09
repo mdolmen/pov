@@ -383,9 +383,9 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
 - [x] Window 1040×760 in `tauri.conf.json` (min width so both panes fit)
 - [x] Color tokens in `index.css` (ground, pane, surface, ink, muted, line, next violet,
   activity ramp) in place of the inline hex values in the components this phase touches
-- [ ] `App`: split layout, left pane 400px on the darker ground, right pane lighter, hairline
+- [x] `App`: split layout, left pane 400px on the darker ground, right pane lighter, hairline
   between; `selectedProject` stays in `App`; Esc closes the right pane
-- [ ] Right pane, nothing selected: "Choose a project to show its tasks"
+- [x] Right pane, nothing selected: "Choose a project to show its tasks"
 - [ ] Left header: date, "Next up" + entry count, refresh / add / menu (the existing `Sidebar`
   drawer opens over the left pane)
 - [ ] `NextUp`: one row per entry: progress ring (done / total), project name (bold), milestone
@@ -398,22 +398,22 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
   tiles, per the sidebar filters
 - [ ] Footer: 30-day activity strip for the current tab; click shows the full
   `ActivityHeatmap` (6 months, fits 400px); shown / hidden remembered per tab as today
-- [ ] `TaskList` → right pane: no back button, × closes; tasks in file order under milestone
+- [x] `TaskList` → right pane: no back button, × closes; tasks in file order under milestone
   captions with "x of y done"; next tasks keep their place, marked by the violet band, with a
   "Mark next" / "Next" button (double-click kept); no separate Next or Done sections
 - [ ] Done tasks shown by default, struck through in place; "Hide done" in the header, saved
   per project in `localStorage` (`pov.done.<id>.hidden`, like `pov.time.<id>.visible`);
   "All tasks are done" + "Show done" when nothing is left
-- [ ] Learning projects keep the time heatmap at the bottom of the right pane
+- [x] Learning projects keep the time heatmap at the bottom of the right pane
 - [ ] Toggling or (un)selecting a task refreshes Next up and the tile counts
-- [ ] Settings view and the modals unchanged
+- [x] Settings view and the modals unchanged
 
 ### Tests (`tests/ui`)
 
 - [ ] Update: project list (tiles, segmented tabs, archived), task list (captions, done
   inline), select task ("Mark next", band in place), toggle task (done stays in place),
   activity heatmap (strip, expand), sidebar (drawer over the left pane)
-- [ ] Replace "back returns to the tab": closing the pane keeps the tab
+- [x] Replace "back returns to the tab": closing the pane keeps the tab
 - [ ] New `next-up.test.tsx`: one entry per project, ordering, milestone / task fallback,
   click opens and scrolls, updates after select and toggle, empty state
 - [ ] New `hide-done.test.tsx`: hides per project, survives a remount, all-done state

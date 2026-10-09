@@ -1,34 +1,33 @@
 import { readFileSync } from "node:fs";
-import { screen, waitFor } from "@testing-library/react";
+import { waitFor } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { addProject, checkbox, doneSection, gitSubjects, openProject, renderApp } from "./helpers";
+import { addProject, checkbox, gitSubjects, inOrder, openProject, renderApp, struck, taskPane } from "./helpers";
 
-test("checking a task moves it to Done, writes the file and commits", async () => {
+test("checking a task strikes it through in place, writes the file and commits", async () => {
   const project = await addProject({ name: "P", content: "- [ ] alpha\n- [ ] beta\n" });
   const { user } = renderApp();
   await openProject(user, "P");
 
   await user.click(checkbox("alpha"));
 
-  await waitFor(() => expect(doneSection()?.getByText("alpha")).toBeInTheDocument());
-  expect(screen.getByText("alpha")).toHaveStyle({ textDecoration: "line-through" });
-  expect(doneSection()?.queryByText("beta")).toBeNull();
+  await waitFor(() => expect(struck("alpha")).toBe(true));
+  expect(struck("beta")).toBe(false);
+  expect(inOrder("alpha", "beta")).toBe(true);
   await waitFor(() =>
     expect(readFileSync(project.file_path, "utf8")).toBe("- [x] alpha\n- [ ] beta\n"),
   );
   await waitFor(() => expect(gitSubjects()[0]).toBe(`activity: ${project.id}.md`));
 });
 
-test("unchecking a done task moves it back", async () => {
+test("unchecking a done task clears its strike", async () => {
   const project = await addProject({ name: "P", content: "- [x] alpha\n- [ ] beta\n" });
   const { user } = renderApp();
   await openProject(user, "P");
-  expect(doneSection()?.getByText("alpha")).toBeInTheDocument();
+  expect(struck("alpha")).toBe(true);
 
   await user.click(checkbox("alpha"));
 
-  await waitFor(() => expect(doneSection()).toBeNull());
-  expect(screen.getByText("alpha")).toHaveStyle({ textDecoration: "none" });
+  await waitFor(() => expect(struck("alpha")).toBe(false));
   await waitFor(() =>
     expect(readFileSync(project.file_path, "utf8")).toBe("- [ ] alpha\n- [ ] beta\n"),
   );
@@ -39,10 +38,11 @@ test("tasks with the same text toggle independently", async () => {
   const { user } = renderApp();
   await openProject(user, "P");
 
-  await user.click(screen.getAllByText("same")[1].previousElementSibling as HTMLElement);
+  await user.click(taskPane().getAllByText("same")[1].previousElementSibling as HTMLElement);
 
   await waitFor(() =>
     expect(readFileSync(project.file_path, "utf8")).toBe("- [ ] same\n- [x] same\n"),
   );
-  await waitFor(() => expect(doneSection()?.getAllByText("same")).toHaveLength(1));
+  const same = () => taskPane().getAllByText("same").map((e) => e.style.textDecoration);
+  await waitFor(() => expect(same()).toEqual(["none", "line-through"]));
 });

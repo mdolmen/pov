@@ -6,6 +6,7 @@ import {
   daysAgo,
   getProject,
   openProject,
+  taskPane,
   recordTime,
   renderApp,
   today,
@@ -39,7 +40,7 @@ test("only learning projects track time", async () => {
 
   await openProject(user, "Work");
   expect(screen.queryByRole("button", { name: "Record time" })).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: "Close project" }));
 
   await openLearning(user, "Maths");
   expect(screen.getByRole("button", { name: "Record time" })).toBeInTheDocument();
@@ -121,14 +122,14 @@ test("hide and show are remembered per project", async () => {
   const { user } = renderApp();
   await openLearning(user, "Maths");
 
-  await user.click(screen.getByRole("button", { name: "Hide" }));
+  await user.click(taskPane().getByRole("button", { name: "Hide" }));
   expect(screen.getByRole("button", { name: "Show time" })).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: "Close project" }));
   await openProject(user, "Physics");
   expect(screen.getByRole("button", { name: "Record time" })).toBeInTheDocument();
 
-  await user.click(screen.getByRole("button", { name: "Back" }));
+  await user.click(screen.getByRole("button", { name: "Close project" }));
   await openProject(user, "Maths");
   await user.click(screen.getByRole("button", { name: "Show time" }));
   expect(screen.getByRole("button", { name: "Record time" })).toBeInTheDocument();
