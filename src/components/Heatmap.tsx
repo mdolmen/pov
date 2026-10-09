@@ -10,8 +10,8 @@ interface Props {
   /** Tooltip text for a day; receives the raw value and the YYYY-MM-DD key. */
   tooltip: (value: number, date: string) => string;
   loading?: boolean;
-  /** Cell size in px. */
-  cell?: number;
+  /** Scale to the container's width instead of a fixed cell size. */
+  fit?: boolean;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -40,7 +40,7 @@ export function shadeFor(value: number, thresholds: number[], shades: readonly s
   return shades[4];
 }
 
-export function Heatmap({ data, months, shades, tooltip, loading = false, cell = 11 }: Props) {
+export function Heatmap({ data, months, shades, tooltip, loading = false, fit = false }: Props) {
   // Calendar-aligned window: first day of (current month - (months - 1)) → today.
   const { windowStart, windowEnd } = useMemo(() => {
     const today = new Date();
@@ -99,10 +99,12 @@ export function Heatmap({ data, months, shades, tooltip, loading = false, cell =
     return { weeks, monthLabels, thresholds };
   }, [data, windowStart, windowEnd]);
 
+  const cell = 11; // px
   const gap = 3; // px
   // Right padding so the last month label (anchored at the start of its
-  // column) isn't clipped by the SVG edge.
-  const rightPad = 8;
+  // column) isn't clipped by the SVG edge. Fitted, the grid ends flush and the
+  // label overflows instead.
+  const rightPad = fit ? -gap : 8;
   const totalWidth = weeks.length * (cell + gap) + rightPad;
   const totalHeight = 7 * (cell + gap) + 14; // 14px reserved for month labels
 
@@ -120,7 +122,14 @@ export function Heatmap({ data, months, shades, tooltip, loading = false, cell =
         )}
       </div>
       <div className="overflow-x-auto">
-        <svg width={totalWidth} height={totalHeight} role="img" aria-label="Heatmap">
+        <svg
+          width={fit ? "100%" : totalWidth}
+          height={fit ? undefined : totalHeight}
+          viewBox={`0 0 ${totalWidth} ${totalHeight}`}
+          overflow={fit ? "visible" : undefined}
+          role="img"
+          aria-label="Heatmap"
+        >
           {monthLabels.map((m) => (
             <text
               key={`${m.col}-${m.text}`}

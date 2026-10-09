@@ -95,7 +95,7 @@ export function ActivityFooter({ tab, refreshKey }: Props) {
               Hide
             </button>
           </div>
-          <ActivityHeatmap key={tab} type={type} months={6} cell={10} refreshKey={refreshKey} />
+          <ActivityHeatmap key={tab} type={type} months={6} fit refreshKey={refreshKey} />
         </>
       ) : (
         <button

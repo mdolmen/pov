@@ -8,14 +8,14 @@ interface Props {
   months?: number;
   /** Increment to trigger a re-fetch. */
   refreshKey?: number;
-  /** Cell size in px. */
-  cell?: number;
+  /** Scale to the container's width. */
+  fit?: boolean;
 }
 
 // The activity ramp in index.css: empty, then four greens.
 export const SHADES = [0, 1, 2, 3, 4].map((i) => `var(--pov-heat-${i})`);
 
-export function ActivityHeatmap({ type, months = 4, refreshKey = 0, cell }: Props) {
+export function ActivityHeatmap({ type, months = 4, refreshKey = 0, fit }: Props) {
   const [data, setData] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +49,7 @@ export function ActivityHeatmap({ type, months = 4, refreshKey = 0, cell }: Prop
       months={months}
       shades={SHADES}
       loading={loading}
-      cell={cell}
+      fit={fit}
       tooltip={(count, date) =>
         `${count} ${count === 1 ? "activity" : "activities"} on ${date}`
       }
