@@ -224,7 +224,7 @@ Tasks get a second mark next to "next": "queue" = committed to, but not yet next
 - [x] Remove number of queued tasks from the subtitle of the project card
 - [x] Add a notification tip on project card to show number of queued tasks
 - [x] Add a "Queued" button beside "Hide done" to show only queued tasks
-- [ ] Choose a way to add action to queued tasks (delete, move to backlog, move to next)
+- [x] Choose a way to add action to queued tasks (delete, move to backlog, move to next): see Inbox below
 
 ### Tests (`tests/ui`)
 
@@ -236,13 +236,49 @@ Tasks get a second mark next to "next": "queue" = committed to, but not yet next
   - [x] queued task absent from Next up
   - [x] done queued task loses its mark
 
+### Inbox (DECISIONS.md, 2026-10-12)
+
+Rename "queued" to "inbox": tasks added by external tools, waiting for triage. Triage actions: "Mark next", "Keep" (to backlog), red × (delete, with undo).
+
+Rename:
+
+- [ ] `db::init`: `UPDATE selected_tasks SET stage = 'inbox' WHERE stage = 'queue'` (idempotent)
+- [ ] Core: `tasks::queue` / `unqueue` → `tasks::inbox` / `keep`; `TaskView.is_queued` → `in_inbox`; `Project.queued_count` → `inbox_count`
+- [ ] API: `queue_task` / `unqueue_task` → `inbox_task` / `keep_task`
+- [ ] Frontend: `types.ts`, `backend.ts`, `useTasks` (`inbox` / `keep`), `--pov-inbox*` tokens (amber kept)
+- [ ] Backlog tasks lose the "Queue" pill: only external tools put tasks in the inbox
+- [ ] Tile badge: inbox count, `aria-label` "N in inbox"
+- [ ] Filter pill "Queued" → "Inbox"
+- [ ] Rename `queue-task.test.tsx` → `inbox.test.tsx`; tests seed the inbox through the bridge (`inbox_task`)
+- [ ] Test: migration turns `queue` rows into `inbox`
+
+Triage actions on an inbox task:
+
+- [ ] "Mark next" pill on hover (unchanged)
+- [ ] "Keep" pill on hover → backlog (replaces the "Queued" pill)
+- [ ] Red × on hover, far right, apart from the pills → delete
+- [ ] Double-click → next (unchanged)
+
+Delete:
+
+- [ ] `tasks::delete(conn, paths, project_id, hash) -> Result<Deleted>`: removes the task line and its indented block (subtasks, notes)
+- [ ] `Deleted { line_number, text }`: the removed lines, for undo
+- [ ] Writes in place (hardlink), keeps CRLF, commits `activity: <id>.md` like `toggle`, deletes the `selected_tasks` row
+- [ ] `tasks::restore(conn, paths, project_id, line_number, text)`: inserts the lines back at `line_number` (clamped to the end of file), commits
+- [ ] `delete_task` / `restore_task` in `api::dispatch`
+- [ ] Tests: task alone, task with subtasks, last line without newline, CRLF, duplicate text deletes the right occurrence, hardlink still shares the inode, unknown hash `NotFound`, restore puts the file back byte for byte
+- [ ] `deleteTask` / `restoreTask` in `backend.ts`; `remove` in `useTasks` (optimistic, refetch on error)
+- [ ] Undo toast at the bottom of the task pane: "Task deleted · Undo", 5 s, one at a time (a new delete replaces it)
+- [ ] Undo → `restore_task`, then `inbox_task` on the restored hash, refetch
+- [ ] UI tests: × removes the task and the file line, Undo restores both and the inbox mark, toast disappears, tile badge count follows
+
 ## Phase 12 — MCP server
 
 Let external tools (Claude Code, other MCP clients) add tasks to a tracked project. A stdio MCP
 server spawned by the client as `pov mcp` (the `pov-cli` binary), independent of the app being
 open. Like the CLI it works on the data dir directly: it writes the project's file in place and
 commits it to the data repo itself, as `toggle` does, since the watcher only runs with the app.
-Needs Phase 11 for the `queue` stage.
+Needs Phase 11 for the `inbox` stage.
 
 ### Core (`pov-core`, sync, no MCP types)
 
@@ -258,7 +294,7 @@ Needs Phase 11 for the `queue` stage.
 - [ ] `tasks::add(conn, paths, project_id, text, section, stage)`:
   - [ ] `append_task`
   - [ ] commit `activity: <id>.md` on the hardlink, like `toggle`
-  - [ ] `select` / `queue` per `stage` (`backlog | queue | next`)
+  - [ ] `select` / `inbox` per `stage` (`inbox | backlog | next`)
 - [ ] Tests:
   - [ ] append at end of file
   - [ ] append inside a section followed by another heading
@@ -275,9 +311,9 @@ Needs Phase 11 for the `queue` stage.
 
 - [ ] `rmcp` (`server`, `transport-io`) + `tokio` (`rt`, `macros`, `io-std`), optional, behind the `cli` feature (core stays sync)
 - [ ] Split `src/bin/pov-cli.rs` into `src/bin/pov-cli/{main,mcp}.rs`
-- [ ] Tool `list_projects()`: id, name, type, status, task / next / queued counts, open first (`projects::list`)
+- [ ] Tool `list_projects()`: id, name, type, status, task / next / inbox counts, open first (`projects::list`)
 - [ ] Tool `list_sections(project)`
-- [ ] Tool `add_task(project, text, section?, stage = "backlog")`: returns the task hash
+- [ ] Tool `add_task(project, text, section?, stage = "inbox")`: returns the task hash
 - [ ] Core errors become tool errors (`is_error`), not protocol errors
 - [ ] Each call opens its own connection and runs the core in `spawn_blocking` (busy timeout covers the app)
 - [ ] `pov mcp` subcommand serves over stdio until stdin closes

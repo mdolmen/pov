@@ -105,3 +105,17 @@
 - **Constraints:** Next up reads next tasks only; a project with only queued tasks isn't in it.
   Tile ordering stays by next count.
 - **Plan:** TODO.md, Phase 11.
+
+## 2026-10-12 — Queue becomes Inbox
+
+- **Decision:** the "queued" stage is renamed "inbox" (`selected_tasks.stage = 'inbox'`): tasks
+  added by external tools (Phase 12), waiting for triage. An inbox task offers "Mark next",
+  "Keep" (to backlog) and a red × that deletes it from the file, with an undo toast. The tile
+  badge and the filter count the inbox. The UI no longer puts tasks in the inbox by hand.
+- **Why:** the queue was meant for tool-added tasks; triage needs a reject action, and one
+  click per task with undo beats a confirmation dialog.
+- **Constraints:**
+  - Deleting edits the user's file: in place (hardlink), CRLF kept, committed to the data repo
+    like a toggle, so git history keeps every deleted task.
+  - Phase 12 `add_task` defaults to `stage = "inbox"`.
+- **Plan:** TODO.md, Phase 11 › Inbox.
