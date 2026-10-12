@@ -242,35 +242,35 @@ Rename "queued" to "inbox": tasks added by external tools, waiting for triage. T
 
 Rename:
 
-- [ ] `db::init`: `UPDATE selected_tasks SET stage = 'inbox' WHERE stage = 'queue'` (idempotent)
-- [ ] Core: `tasks::queue` / `unqueue` → `tasks::inbox` / `keep`; `TaskView.is_queued` → `in_inbox`; `Project.queued_count` → `inbox_count`
-- [ ] API: `queue_task` / `unqueue_task` → `inbox_task` / `keep_task`
-- [ ] Frontend: `types.ts`, `backend.ts`, `useTasks` (`inbox` / `keep`), `--pov-inbox*` tokens (amber kept)
-- [ ] Backlog tasks lose the "Queue" pill: only external tools put tasks in the inbox
-- [ ] Tile badge: inbox count, `aria-label` "N in inbox"
-- [ ] Filter pill "Queued" → "Inbox"
-- [ ] Rename `queue-task.test.tsx` → `inbox.test.tsx`; tests seed the inbox through the bridge (`inbox_task`)
-- [ ] Test: migration turns `queue` rows into `inbox`
+- [x] `db::init`: `UPDATE selected_tasks SET stage = 'inbox' WHERE stage = 'queue'` (idempotent)
+- [x] Core: `tasks::queue` / `unqueue` → `tasks::inbox` / `keep`; `TaskView.is_queued` → `in_inbox`; `Project.queued_count` → `inbox_count`
+- [x] API: `queue_task` / `unqueue_task` → `inbox_task` / `keep_task`
+- [x] Frontend: `types.ts`, `backend.ts`, `useTasks` (`inbox` / `keep`), `--pov-inbox*` tokens (amber kept)
+- [x] Backlog tasks lose the "Queue" pill: only external tools put tasks in the inbox
+- [x] Tile badge: inbox count, `aria-label` "N in inbox"
+- [x] Filter pill "Queued" → "Inbox"
+- [x] Rename `queue-task.test.tsx` → `inbox.test.tsx`; tests seed the inbox through the bridge (`inbox_task`)
+- [x] Test: migration turns `queue` rows into `inbox`
 
 Triage actions on an inbox task:
 
-- [ ] "Mark next" pill on hover (unchanged)
-- [ ] "Keep" pill on hover → backlog (replaces the "Queued" pill)
-- [ ] Red × on hover, far right, apart from the pills → delete
-- [ ] Double-click → next (unchanged)
+- [x] "Mark next" pill on hover (unchanged)
+- [x] "Keep" pill on hover → backlog (replaces the "Queued" pill)
+- [x] Red × on hover, far right, apart from the pills → delete
+- [x] Double-click → next (unchanged)
 
 Delete:
 
-- [ ] `tasks::delete(conn, paths, project_id, hash) -> Result<Deleted>`: removes the task line and its indented block (subtasks, notes)
-- [ ] `Deleted { line_number, text }`: the removed lines, for undo
-- [ ] Writes in place (hardlink), keeps CRLF, commits `activity: <id>.md` like `toggle`, deletes the `selected_tasks` row
-- [ ] `tasks::restore(conn, paths, project_id, line_number, text)`: inserts the lines back at `line_number` (clamped to the end of file), commits
-- [ ] `delete_task` / `restore_task` in `api::dispatch`
-- [ ] Tests: task alone, task with subtasks, last line without newline, CRLF, duplicate text deletes the right occurrence, hardlink still shares the inode, unknown hash `NotFound`, restore puts the file back byte for byte
-- [ ] `deleteTask` / `restoreTask` in `backend.ts`; `remove` in `useTasks` (optimistic, refetch on error)
-- [ ] Undo toast at the bottom of the task pane: "Task deleted · Undo", 5 s, one at a time (a new delete replaces it)
-- [ ] Undo → `restore_task`, then `inbox_task` on the restored hash, refetch
-- [ ] UI tests: × removes the task and the file line, Undo restores both and the inbox mark, toast disappears, tile badge count follows
+- [x] `tasks::delete(conn, paths, project_id, hash) -> Result<Deleted>`: removes the task line and its indented block (subtasks, notes)
+- [x] `Deleted { line_number, text }`: the removed lines, for undo
+- [x] Writes in place (hardlink), keeps CRLF, commits `activity: <id>.md` like `toggle`, deletes the `selected_tasks` row
+- [x] `tasks::restore(conn, paths, project_id, line_number, text)`: inserts the lines back at `line_number` (clamped to the end of file), commits
+- [x] `delete_task` / `restore_task` in `api::dispatch`
+- [x] Tests: task alone, task with subtasks, last line without newline, CRLF, duplicate text deletes the right occurrence, hardlink still shares the inode, unknown hash `NotFound`, restore puts the file back byte for byte
+- [x] `deleteTask` / `restoreTask` in `backend.ts`; `remove` in `useTasks` (optimistic, refetch on error)
+- [x] Undo toast at the bottom of the task pane: "Deleted “<task>” · Undo", 5 s, one at a time (a new delete replaces it)
+- [x] Undo → `restore_task`, then `inbox_task` on the restored hash, refetch
+- [x] UI tests: × removes the task and the file line, Undo restores both and the inbox mark, toast disappears, tile badge count follows
 
 ## Phase 12 — MCP server
 

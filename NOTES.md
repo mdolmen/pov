@@ -144,9 +144,10 @@ Border color (Archived):
 - "Selected" = flagged as "handle next"
 - State persisted in SQLite, keyed by the task's content hash (survives line shifts)
 - Count of selected tasks shown on the project card; projects are ordered by it
-- "Queued" = committed to, but not next yet: amber band and "Queue" / "Queued" pill; a task is
-  next, queued or neither (`selected_tasks.stage`). Next up ignores queued tasks; the tile shows
-  "N next · M queued"
+- "Inbox" = added by an external tool, waiting for triage: amber band; a task is next, in the
+  inbox or neither (`selected_tasks.stage`). Triage: "Mark next", "Keep" (to backlog), red ×
+  (deletes the task and its indented block from the file, Undo for 5 s). Next up ignores inbox
+  tasks; the tile shows the inbox count as a badge; "Inbox" filters the task pane
 
 ## Continuous Learning
 
