@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   ActivityDay,
+  DeletedTask,
   ListItem,
   NextUpEntry,
   Project,
@@ -30,6 +31,15 @@ export const unselectTask = (projectId: string, taskHash: string) =>
 
 export const keepTask = (projectId: string, taskHash: string) =>
   call<null>("keep_task", { project_id: projectId, task_hash: taskHash });
+
+export const inboxTask = (projectId: string, taskHash: string) =>
+  call<null>("inbox_task", { project_id: projectId, task_hash: taskHash });
+
+export const deleteTask = (projectId: string, taskHash: string) =>
+  call<DeletedTask>("delete_task", { project_id: projectId, task_hash: taskHash });
+
+export const restoreTask = (projectId: string, deleted: DeletedTask) =>
+  call<null>("restore_task", { project_id: projectId, ...deleted });
 
 export const cleanupSelected = () => call<null>("cleanup_selected");
 

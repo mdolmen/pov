@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vitest";
 import {
@@ -28,7 +29,7 @@ async function setup(content: string, ...inbox: string[]) {
   await inboxTasks(p.id, ...inbox);
   const { user } = renderApp();
   await openProject(user, "P");
-  return user;
+  return Object.assign(user, { file: p.file_path });
 }
 
 test("inbox tasks carry the amber band; backlog tasks can't be put in the inbox", async () => {
@@ -137,4 +138,49 @@ test("triaging the last inbox task turns the filter off", async () => {
 
   expect(screen.queryByRole("button", { name: "Inbox" })).not.toBeInTheDocument();
   expect(taskPane().getByText("alpha")).toBeInTheDocument();
+});
+
+test("× deletes an inbox task from the list and the file", async () => {
+  const user = await setup("- [ ] alpha\n- [ ] beta\n  - [ ] beta one\n- [ ] gamma\n", "beta");
+  expect(within(taskPane().getByText("alpha").closest("[data-task]") as HTMLElement)
+    .queryByRole("button", { name: "Delete task" })).not.toBeInTheDocument();
+
+  await user.click(triageButton("beta", "Delete task"));
+
+  expect(taskPane().queryByText("beta")).not.toBeInTheDocument();
+  expect(taskPane().queryByText("beta one")).not.toBeInTheDocument();
+  expect(await screen.findByRole("status")).toHaveTextContent("Deleted “beta”");
+  await waitFor(() => expect(readFileSync(user.file, "utf8")).toBe("- [ ] alpha\n- [ ] gamma\n"));
+  await waitFor(() =>
+    expect(within(projectTiles().getByRole("button", { name: tileName("P") }))
+      .queryByLabelText(/in inbox$/)).not.toBeInTheDocument(),
+  );
+});
+
+test("Undo puts the task back in the file, in place, and in the inbox", async () => {
+  const content = "- [ ] alpha\n- [ ] beta\n  - [ ] beta one\n- [ ] gamma\n";
+  const user = await setup(content, "beta");
+  await user.click(triageButton("beta", "Delete task"));
+  await user.click(await screen.findByRole("button", { name: "Undo" }));
+
+  expect(await taskPane().findByText("beta")).toBeInTheDocument();
+  expect(readFileSync(user.file, "utf8")).toBe(content);
+  expect(band("beta")).toBe("inbox");
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  expect(await within(projectTiles().getByRole("button", { name: tileName("P") }))
+    .findByLabelText("1 in inbox")).toBeInTheDocument();
+});
+
+test("a new delete replaces the undo offer", async () => {
+  const user = await setup(TODO, "alpha", "beta");
+
+  await user.click(triageButton("alpha", "Delete task"));
+  await screen.findByRole("status");
+  await user.click(triageButton("beta", "Delete task"));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Deleted “beta”"));
+  await user.click(screen.getByRole("button", { name: "Undo" }));
+
+  expect(await taskPane().findByText("beta")).toBeInTheDocument();
+  expect(taskPane().queryByText("alpha")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
 });

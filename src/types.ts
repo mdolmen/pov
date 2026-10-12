@@ -30,6 +30,12 @@ export interface Task {
 
 export type ListItem = HeadingItem | Task;
 
+/** Lines removed by `delete_task`, to put back with `restore_task`. */
+export interface DeletedTask {
+  line_number: number;
+  text: string;
+}
+
 export interface TimeDay {
   date: string; // YYYY-MM-DD
   minutes: number;

@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { keepTask, listTasks, selectTask, toggleTask, unselectTask } from "@/lib/backend";
-import type { ListItem, Task } from "@/types";
+import {
+  deleteTask,
+  inboxTask,
+  keepTask,
+  listTasks,
+  restoreTask,
+  selectTask,
+  toggleTask,
+  unselectTask,
+} from "@/lib/backend";
+import type { DeletedTask, ListItem, Task } from "@/types";
 
 /** A project's task list; `onChanged` runs once a toggle, (un)selection or triage is saved. */
 export function useTasks(projectId: string, onChanged?: () => void) {
@@ -97,5 +106,26 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
-  return { items, tasks, loading, toggle, select, unselect, keep };
+  /** Deletes an inbox task from the file; returns what to pass to `undoRemove`. */
+  async function remove(hash: string): Promise<DeletedTask | null> {
+    setItems((prev) => prev.filter((i) => !(i.kind === "task" && (i as Task).hash === hash)));
+    try {
+      return await deleteTask(projectId, hash);
+    } catch {
+      fetchTasks();
+      return null;
+    } finally {
+      onChanged?.();
+    }
+  }
+
+  /** Puts a deleted task back in the file and in the inbox. */
+  async function undoRemove(hash: string, deleted: DeletedTask) {
+    await restoreTask(projectId, deleted);
+    await inboxTask(projectId, hash);
+    await fetchTasks();
+    onChanged?.();
+  }
+
+  return { items, tasks, loading, toggle, select, unselect, keep, remove, undoRemove };
 }

@@ -5,7 +5,10 @@ import { InlineMarkdown } from "@/components/InlineMarkdown";
 import { ProjectSettingsModal } from "@/components/ProjectSettingsModal";
 import { TimeHeatmap } from "@/components/TimeHeatmap";
 import { useTasks } from "@/hooks/useTasks";
-import type { HeadingItem, ListItem, Project, Subtask, Task } from "@/types";
+import type { DeletedTask, HeadingItem, ListItem, Project, Subtask, Task } from "@/types";
+
+/** How long a deleted task can be brought back. */
+const UNDO_MS = 5000;
 
 function readTimeVisible(projectId: string): boolean {
   try {
@@ -105,12 +108,14 @@ function TaskRow({
   onSelect,
   onUnselect,
   onKeep,
+  onDelete,
 }: {
   task: Task;
   onToggle: (hash: string) => void;
   onSelect: (hash: string) => void;
   onUnselect: (hash: string) => void;
   onKeep: (hash: string) => void;
+  onDelete: (hash: string) => void;
 }) {
   const done = task.is_done;
   const next = task.is_selected && !done;
@@ -163,6 +168,21 @@ function TaskRow({
             className={pill + "text-ink-muted " + onHover + "hover:text-ink hover:bg-hover"}
           >
             Keep
+          </button>
+        )}
+        {inbox && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(task.hash); }}
+            aria-label="Delete task"
+            title="Delete task"
+            className={
+              "ml-1 w-5 h-5 flex items-center justify-center rounded-full shrink-0 cursor-pointer text-destructive hover:bg-hover transition-opacity " +
+              onHover
+            }
+          >
+            <svg width="9" height="9" viewBox="0 0 11 11" fill="none">
+              <path d="M2 2l7 7M9 2L2 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
           </button>
         )}
       </div>
@@ -235,7 +255,7 @@ function SectionCaption({ section }: { section: Section }) {
 }
 
 export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus }: Props) {
-  const { items, tasks, loading, toggle, select, unselect, keep } = useTasks(
+  const { items, tasks, loading, toggle, select, unselect, keep, remove, undoRemove } = useTasks(
     project.id,
     onChanged,
   );
@@ -246,9 +266,31 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const [doneHidden, setDoneHidden] = useState<boolean>(() => readDoneHidden(project.id));
   // Not saved: a quick look at what's left to triage.
   const [inboxOnly, setInboxOnly] = useState(false);
+  // The last deleted task, offered for undo for a few seconds.
+  const [undo, setUndo] = useState<{ hash: string; text: string; deleted: DeletedTask } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const tracksTime = project.type === "learning";
+
+  async function deleteTask(hash: string) {
+    const text = tasks.find((t) => t.hash === hash)?.text ?? "";
+    const deleted = await remove(hash);
+    if (deleted) setUndo({ hash, text, deleted });
+  }
+
+  async function undoDelete() {
+    if (!undo) return;
+    setUndo(null);
+    await undoRemove(undo.hash, undo.deleted);
+  }
+
+  // A new delete restarts the timer; another project drops the offer.
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [undo]);
+  useEffect(() => setUndo(null), [project.id]);
 
   function toggleTime() {
     const next = !timeVisible;
@@ -383,48 +425,66 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
         onDeleted={() => { setSettingsOpen(false); onClose(); }}
       />
 
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-6 pt-2 pb-6">
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <span className="text-xs text-ink-muted">Loading…</span>
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-6 pt-2 pb-6">
+          {loading ? (
+            <div className="flex items-center justify-center h-32">
+              <span className="text-xs text-ink-muted">Loading…</span>
+            </div>
+          ) : (
+            <>
+              {sections.map((section, i) => (
+                <div key={i} className={section.heading ? "" : "mt-2.5"}>
+                  <SectionCaption section={section} />
+                  {section.tasks.length > 0 && (
+                    <div className="bg-surface rounded-xl ring-1 ring-line overflow-hidden">
+                      {section.tasks.map((t) => (
+                        <TaskRow
+                          key={t.hash}
+                          task={t}
+                          onToggle={toggle}
+                          onSelect={select}
+                          onUnselect={unselect}
+                          onKeep={keep}
+                          onDelete={deleteTask}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {tasks.length > 0 && sections.length === 0 && (
+                <p className="my-[18px] mx-1 text-[13px] text-ink-muted">
+                  All tasks are done.{" "}
+                  <button onClick={toggleDoneHidden} className="text-next cursor-pointer">
+                    Show done
+                  </button>
+                </p>
+              )}
+
+              {tasks.length === 0 && (
+                <div className="flex items-center justify-center h-32">
+                  <span className="text-xs text-ink-muted">No tasks.</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {undo && (
+          <div
+            role="status"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[80%] flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-full bg-ink text-pane text-[12.5px] shadow-lg whitespace-nowrap"
+          >
+            <span className="truncate">Deleted “{undo.text}”</span>
+            <button
+              onClick={undoDelete}
+              className="font-semibold text-inbox-soft px-2 py-0.5 rounded-full hover:bg-white/10 cursor-pointer"
+            >
+              Undo
+            </button>
           </div>
-        ) : (
-          <>
-            {sections.map((section, i) => (
-              <div key={i} className={section.heading ? "" : "mt-2.5"}>
-                <SectionCaption section={section} />
-                {section.tasks.length > 0 && (
-                  <div className="bg-surface rounded-xl ring-1 ring-line overflow-hidden">
-                    {section.tasks.map((t) => (
-                      <TaskRow
-                        key={t.hash}
-                        task={t}
-                        onToggle={toggle}
-                        onSelect={select}
-                        onUnselect={unselect}
-                        onKeep={keep}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {tasks.length > 0 && sections.length === 0 && (
-              <p className="my-[18px] mx-1 text-[13px] text-ink-muted">
-                All tasks are done.{" "}
-                <button onClick={toggleDoneHidden} className="text-next cursor-pointer">
-                  Show done
-                </button>
-              </p>
-            )}
-
-            {tasks.length === 0 && (
-              <div className="flex items-center justify-center h-32">
-                <span className="text-xs text-ink-muted">No tasks.</span>
-              </div>
-            )}
-          </>
         )}
       </div>
 
