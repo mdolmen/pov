@@ -221,6 +221,10 @@ Tasks get a second mark next to "next": "queue" = committed to, but not yet next
   - [x] double-click: backlog ↔ next, queued → next
 - [x] `ProjectTile`: "N next · M queued of K open", queued muted, regular weight
 - [x] `ProjectTiles` ordering unchanged (next count)
+- [x] Remove number of queued tasks from the subtitle of the project card
+- [x] Add a notification tip on project card to show number of queued tasks
+- [x] Add a "Queued" button beside "Hide done" to show only queued tasks
+- [ ] Choose a way to add action to queued tasks (delete, move to backlog, move to next)
 
 ### Tests (`tests/ui`)
 
