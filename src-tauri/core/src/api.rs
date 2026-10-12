@@ -22,6 +22,13 @@ struct TaskArgs {
 }
 
 #[derive(Deserialize)]
+struct RestoreTaskArgs {
+    project_id: String,
+    line_number: usize,
+    text: String,
+}
+
+#[derive(Deserialize)]
 struct AddProjectArgs {
     name: String,
     file_path: PathBuf,
@@ -125,6 +132,20 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
         "keep_task" => {
             let a: TaskArgs = parse(args)?;
             json(tasks::keep(&conn, &a.project_id, &a.task_hash)?)
+        }
+        "delete_task" => {
+            let a: TaskArgs = parse(args)?;
+            json(tasks::delete(&conn, paths, &a.project_id, &a.task_hash)?)
+        }
+        "restore_task" => {
+            let a: RestoreTaskArgs = parse(args)?;
+            json(tasks::restore(
+                &conn,
+                paths,
+                &a.project_id,
+                a.line_number,
+                &a.text,
+            )?)
         }
         "cleanup_selected" => json(tasks::cleanup_selected(&conn)?),
         "next_up" => json(tasks::next_up(&conn)?),
@@ -305,6 +326,38 @@ mod tests {
         dispatch(&paths, "keep_task", args).unwrap();
         let items = dispatch(&paths, "list_tasks", json!({"project_id": "p"})).unwrap();
         assert_eq!(items[0]["in_inbox"], false);
+    }
+
+    #[test]
+    fn delete_then_restore_a_task() {
+        let (tmp, paths) = paths();
+        let todo = tmp.path().join("TODO.md");
+        fs::write(&todo, "- [ ] one\n- [ ] two\n").unwrap();
+        db::open(&paths)
+            .unwrap()
+            .execute(
+                "INSERT INTO projects (id, name, file_path) VALUES ('p', 'P', ?)",
+                [todo.to_str().unwrap()],
+            )
+            .unwrap();
+        let hash = tasks::task_hash("- [ ] one", 1);
+
+        let deleted = dispatch(
+            &paths,
+            "delete_task",
+            json!({"project_id": "p", "task_hash": hash}),
+        )
+        .unwrap();
+        assert_eq!(deleted, json!({"line_number": 0, "text": "- [ ] one\n"}));
+        assert_eq!(fs::read_to_string(&todo).unwrap(), "- [ ] two\n");
+
+        let restored = dispatch(
+            &paths,
+            "restore_task",
+            json!({"project_id": "p", "line_number": 0, "text": "- [ ] one\n"}),
+        );
+        assert_eq!(restored.unwrap(), Value::Null);
+        assert_eq!(fs::read_to_string(&todo).unwrap(), "- [ ] one\n- [ ] two\n");
     }
 
     #[test]

@@ -324,11 +324,7 @@ pub fn toggle(
         return Err(Error::NotFound("task"));
     }
 
-    let hardlink = paths.hardlink(project_id, &project_type);
-    if hardlink.exists() {
-        let name = hardlink.file_name().unwrap_or_default().to_string_lossy();
-        git::add_commit_quiet(&paths.root, &hardlink, &format!("activity: {name}"));
-    }
+    commit_activity(paths, project_id, &project_type);
 
     let tasks = parse_tasks(&file_path);
     let task = tasks
@@ -351,6 +347,117 @@ pub fn toggle(
     let next = hashes(conn, project_id, "next")?;
     let inbox = hashes(conn, project_id, "inbox")?;
     Ok(view(task, &next, &inbox))
+}
+
+/// Commits an edit of the project's file to the data repo, through its hardlink.
+fn commit_activity(paths: &Paths, project_id: &str, project_type: &str) {
+    let hardlink = paths.hardlink(project_id, project_type);
+    if hardlink.exists() {
+        let name = hardlink.file_name().unwrap_or_default().to_string_lossy();
+        git::add_commit_quiet(&paths.root, &hardlink, &format!("activity: {name}"));
+    }
+}
+
+/// The lines a [`delete`] removed, to put them back with [`restore`].
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Deleted {
+    /// Index of the task's line in the file, as in [`Task::line_number`].
+    pub line_number: usize,
+    /// The removed lines, with their `\n` endings (the file's last line may have none).
+    pub text: String,
+}
+
+/// Whether a line belongs to the block of the task above it: indented and not blank.
+fn continues_block(line: &str) -> bool {
+    line.starts_with([' ', '\t']) && !strip(line).is_empty()
+}
+
+/// Removes the top-level task `target` and its indented block (subtasks, notes) from `text`.
+fn remove_task(text: &str, target: &str) -> Option<(String, Deleted)> {
+    let task = tasks_of(text).into_iter().find(|t| t.hash == target)?;
+    let lines = split_lines_keep_ends(text);
+    let start = task.line_number;
+    let end = start
+        + 1
+        + lines[start + 1..]
+            .iter()
+            .take_while(|l| continues_block(l))
+            .count();
+    let deleted = Deleted {
+        line_number: start,
+        text: lines[start..end].concat(),
+    };
+    let kept = [&lines[..start], &lines[end..]].concat().concat();
+    Some((kept, deleted))
+}
+
+/// Inserts `block` before line `line_number` of `text`, or at the end when the file is shorter.
+fn insert_lines(text: &str, line_number: usize, block: &str) -> String {
+    let lines = split_lines_keep_ends(text);
+    let at = line_number.min(lines.len());
+    let mut before = lines[..at].concat();
+    if !before.is_empty() && !before.ends_with('\n') {
+        before.push('\n');
+    }
+    let mut block = block.to_string();
+    if at < lines.len() && !block.ends_with('\n') {
+        block.push('\n');
+    }
+    before + &block + &lines[at..].concat()
+}
+
+/// Reads a file as text with `\n` line endings; `true` when it used CRLF.
+fn read_lf(path: &Path) -> Result<(String, bool)> {
+    let raw = fs::read_to_string(path)?;
+    Ok((universal_newlines(&raw), raw.contains("\r\n")))
+}
+
+/// Writes `text` over the file in place, so a hardlink to it keeps the change.
+fn write_lf(path: &Path, text: &str, crlf: bool) -> Result<()> {
+    fs::write(
+        path,
+        if crlf {
+            text.replace('\n', "\r\n")
+        } else {
+            text.to_string()
+        },
+    )?;
+    Ok(())
+}
+
+/// Deletes a top-level task and its indented block from the project's file, commits the change
+/// to the data repo and clears the task's mark. Returns what was removed, for [`restore`].
+pub fn delete(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    task_hash: &str,
+) -> Result<Deleted> {
+    let (file_path, project_type) = projects::file_and_type(conn, project_id)?;
+    let (text, crlf) = read_lf(&file_path).map_err(|_| Error::NotFound("task"))?;
+    let (kept, deleted) = remove_task(&text, task_hash).ok_or(Error::NotFound("task"))?;
+    write_lf(&file_path, &kept, crlf)?;
+    commit_activity(paths, project_id, &project_type);
+    conn.execute(
+        "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
+        [project_id, task_hash],
+    )?;
+    Ok(deleted)
+}
+
+/// Puts deleted lines back at `line_number` (at the end, if the file got shorter) and commits.
+pub fn restore(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    line_number: usize,
+    text: &str,
+) -> Result<()> {
+    let (file_path, project_type) = projects::file_and_type(conn, project_id)?;
+    let (current, crlf) = read_lf(&file_path)?;
+    write_lf(&file_path, &insert_lines(&current, line_number, text), crlf)?;
+    commit_activity(paths, project_id, &project_type);
+    Ok(())
 }
 
 /// Marks a task `stage` (`next` or `inbox`), replacing its other mark.
@@ -912,6 +1019,125 @@ Some plain text here.
         inbox(&conn, "Q", &task_hash("- [ ] a", 1)).unwrap();
 
         assert!(next_up(&conn).unwrap().is_empty());
+    }
+
+    /// Deletes task `line` (its first occurrence) from `text`, checks the result, then checks
+    /// that restoring gives `text` back.
+    fn delete_and_restore(text: &str, line: &str, expected: &str) -> Deleted {
+        let (kept, deleted) = remove_task(text, &task_hash(line, 1)).unwrap();
+        assert_eq!(kept, expected);
+        assert_eq!(
+            insert_lines(&kept, deleted.line_number, &deleted.text),
+            text
+        );
+        deleted
+    }
+
+    #[test]
+    fn remove_task_alone() {
+        let deleted = delete_and_restore("# T\n- [ ] a\n- [ ] b\n", "- [ ] a", "# T\n- [ ] b\n");
+        assert_eq!(
+            deleted,
+            Deleted {
+                line_number: 1,
+                text: "- [ ] a\n".into()
+            }
+        );
+    }
+
+    #[test]
+    fn remove_task_takes_its_indented_block() {
+        let text = "- [ ] a\n  - [ ] a1\n    note\n\n  - [x] later\n- [ ] b\n";
+        let deleted = delete_and_restore(text, "- [ ] a", "\n  - [x] later\n- [ ] b\n");
+        assert_eq!(deleted.text, "- [ ] a\n  - [ ] a1\n    note\n");
+    }
+
+    #[test]
+    fn remove_task_on_the_last_line_without_newline() {
+        delete_and_restore("- [ ] a\n- [ ] b", "- [ ] b", "- [ ] a\n");
+        delete_and_restore("- [ ] a", "- [ ] a", "");
+    }
+
+    #[test]
+    fn remove_task_picks_the_right_duplicate() {
+        let text = "- [ ] a\n- [ ] b\n- [ ] a\n";
+        let (kept, deleted) = remove_task(text, &task_hash("- [ ] a", 2)).unwrap();
+        assert_eq!(kept, "- [ ] a\n- [ ] b\n");
+        assert_eq!(deleted.line_number, 2);
+    }
+
+    #[test]
+    fn remove_task_ignores_subtasks_and_unknown_hashes() {
+        let text = "- [ ] a\n  - [ ] a1\n";
+        assert!(remove_task(text, &task_hash("  - [ ] a1", 1)).is_none());
+        assert!(remove_task(text, "nope").is_none());
+    }
+
+    #[test]
+    fn insert_lines_past_the_end_appends() {
+        assert_eq!(
+            insert_lines("- [ ] a", 5, "- [ ] b\n"),
+            "- [ ] a\n- [ ] b\n"
+        );
+        assert_eq!(
+            insert_lines("- [ ] a\n", 0, "- [ ] b"),
+            "- [ ] b\n- [ ] a\n"
+        );
+    }
+
+    #[test]
+    fn delete_edits_the_file_in_place_commits_and_clears_the_mark() {
+        let (_tmp, paths, conn, todo, id) = project();
+        let hash = task_hash("- [ ] Task one", 1);
+        inbox(&conn, &id, &hash).unwrap();
+
+        let deleted = delete(&conn, &paths, &id, &hash).unwrap();
+
+        assert_eq!(deleted.text, "- [ ] Task one\n");
+        let hardlink = paths.hardlink(&id, "project");
+        assert_eq!(
+            fs::read_to_string(&hardlink).unwrap(),
+            "# My Project\n\n- [x] Task two (done)\n- [ ] Task three\n"
+        );
+        assert_eq!(
+            fs::read_to_string(&todo).unwrap(),
+            fs::read_to_string(&hardlink).unwrap()
+        );
+        assert_eq!(mark_rows(&conn), 0);
+        let log = git::run(&paths.root, &["log", "-1", "--format=%s"]).unwrap();
+        assert_eq!(log, "activity: p1.md\n");
+
+        restore(&conn, &paths, &id, deleted.line_number, &deleted.text).unwrap();
+        assert_eq!(fs::read_to_string(&hardlink).unwrap(), TODO);
+    }
+
+    #[test]
+    fn delete_keeps_crlf_line_endings() {
+        let (_tmp, paths, conn, todo, id) = project();
+        fs::write(&todo, "- [ ] a\r\n  - [ ] a1\r\n- [ ] b\r\n").unwrap();
+
+        let deleted = delete(&conn, &paths, &id, &task_hash("- [ ] a", 1)).unwrap();
+        assert_eq!(fs::read_to_string(&todo).unwrap(), "- [ ] b\r\n");
+
+        restore(&conn, &paths, &id, deleted.line_number, &deleted.text).unwrap();
+        assert_eq!(
+            fs::read_to_string(&todo).unwrap(),
+            "- [ ] a\r\n  - [ ] a1\r\n- [ ] b\r\n"
+        );
+    }
+
+    #[test]
+    fn delete_unknown_task_is_not_found() {
+        let (_tmp, paths, conn, todo, id) = project();
+        assert!(matches!(
+            delete(&conn, &paths, &id, "nope"),
+            Err(Error::NotFound("task"))
+        ));
+        assert!(matches!(
+            delete(&conn, &paths, "nope", "h"),
+            Err(Error::NotFound("project"))
+        ));
+        assert_eq!(fs::read_to_string(&todo).unwrap(), TODO);
     }
 
     /// Adds a project tracking `content`, with the tasks named in `next` selected.
