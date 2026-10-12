@@ -141,7 +141,7 @@ export function projectTiles() {
 
 /** Matches the accessible name of a project's tile: its name, then its counts. */
 export function tileName(name: string): RegExp {
-  return new RegExp(`^${name}(\\d+ next of |\\d+ next · \\d+ queued of |\\d+ queued of )?\\d+ open`);
+  return new RegExp(`^${name}(\\d+ next of )?\\d+ open`);
 }
 
 /** Opens a project from the list. */

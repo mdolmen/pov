@@ -82,7 +82,7 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
     <button
       onClick={onClick}
       className={
-        "min-w-0 flex items-center gap-2 rounded-[10px] px-3 py-2.5 text-left cursor-pointer transition-shadow " +
+        "relative min-w-0 flex items-center gap-2 rounded-[10px] px-3 py-2.5 text-left cursor-pointer transition-shadow " +
         (selected ? "ring-2 ring-next bg-surface " : "ring-1 ring-line hover:ring-check ") +
         (quiet && !selected ? "bg-transparent" : "bg-surface")
       }
@@ -97,11 +97,10 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
         </span>
         <span className="text-[12px] text-ink-muted tabular-nums truncate">
           {project.selected_count > 0 && (
-            <b className="font-semibold text-next">{project.selected_count} next</b>
+            <>
+              <b className="font-semibold text-next">{project.selected_count} next</b> of{" "}
+            </>
           )}
-          {project.selected_count > 0 && project.queued_count > 0 && " · "}
-          {project.queued_count > 0 && <>{project.queued_count} queued</>}
-          {(project.selected_count > 0 || project.queued_count > 0) && " of "}
           {project.task_count} open
           {project.status === "archived" && project.sub_status && (
             <span className="ml-1">· {project.sub_status}</span>
@@ -109,6 +108,15 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
         </span>
       </span>
       <WeekRow project={project} refreshKey={activityRefreshKey} />
+      {project.queued_count > 0 && (
+        <span
+          aria-label={`${project.queued_count} queued`}
+          title={`${project.queued_count} queued`}
+          className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-queue text-white text-[10px] font-semibold leading-4 text-center tabular-nums ring-2 ring-ground"
+        >
+          {project.queued_count}
+        </span>
+      )}
     </button>
   );
 }

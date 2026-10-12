@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { expect, test } from "vitest";
 import {
   addProject,
@@ -12,6 +12,7 @@ import {
   struck,
   taskHash,
   taskPane,
+  tileName,
 } from "./helpers";
 
 /** The band on a task's row: "next", "queue" or null. */
@@ -62,20 +63,21 @@ test("double-clicking a queued task marks it next", async () => {
   expect(band("gamma")).toBe("next");
 });
 
-test("the tile counts next and queued tasks apart", async () => {
+test("the tile shows a badge with the queued count", async () => {
   await addProject({ name: "P", content: TODO });
   const { user } = renderApp();
   await openProject(user, "P");
+  const tile = () => projectTiles().getByRole("button", { name: tileName("P") });
+  expect(within(tile()).queryByLabelText(/queued$/)).not.toBeInTheDocument();
 
   await user.click(queueButton("alpha"));
-  expect(
-    await projectTiles().findByRole("button", { name: /^P1 queued of 3 open/ }),
-  ).toBeInTheDocument();
+  await user.click(queueButton("beta"));
+  await user.click(nextButton("gamma"));
+  expect(await projectTiles().findByRole("button", { name: /^P1 next of 3 open/ })).toBeInTheDocument();
+  expect(await within(tile()).findByLabelText("2 queued")).toHaveTextContent("2");
 
-  await user.click(nextButton("beta"));
-  expect(
-    await projectTiles().findByRole("button", { name: /^P1 next · 1 queued of 3 open/ }),
-  ).toBeInTheDocument();
+  await user.click(queueButton("alpha"));
+  expect(await within(tile()).findByLabelText("1 queued")).toBeInTheDocument();
 });
 
 test("queued tasks stay out of Next up", async () => {
