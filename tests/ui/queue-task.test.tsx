@@ -102,3 +102,43 @@ test("checking a queued task strikes it and drops its mark", async () => {
     expect(projectTiles().getByRole("button", { name: /^P2 open/ })).toBeInTheDocument(),
   );
 });
+
+test("Queued shows only the queued tasks, under their milestones", async () => {
+  await addProject({
+    name: "P",
+    content: "## One\n- [ ] alpha\n- [x] beta\n## Two\n- [ ] gamma\n- [ ] delta\n",
+  });
+  const { user } = renderApp();
+  await openProject(user, "P");
+  expect(taskPane().queryByRole("button", { name: "Queued" })).not.toBeInTheDocument();
+  await user.click(queueButton("delta"));
+  await user.click(nextButton("alpha"));
+
+  const filter = screen.getByRole("button", { name: "Queued", pressed: false });
+  await user.click(filter);
+
+  expect(filter).toHaveAttribute("aria-pressed", "true");
+  expect(taskPane().getByText("delta")).toBeInTheDocument();
+  for (const text of ["alpha", "beta", "gamma"]) {
+    expect(taskPane().queryByText(text)).not.toBeInTheDocument();
+  }
+  expect(taskPane().getByText("Two")).toBeInTheDocument();
+  expect(taskPane().queryByText("One")).not.toBeInTheDocument();
+
+  await user.click(filter);
+  expect(taskPane().getByText("alpha")).toBeInTheDocument();
+  expect(taskPane().getByText("beta")).toBeInTheDocument();
+});
+
+test("unqueuing the last queued task turns the filter off", async () => {
+  await addProject({ name: "P", content: TODO });
+  const { user } = renderApp();
+  await openProject(user, "P");
+  await user.click(queueButton("beta"));
+  await user.click(screen.getByRole("button", { name: "Queued", pressed: false }));
+
+  await user.click(queueButton("beta"));
+
+  expect(screen.queryByRole("button", { name: "Queued", pressed: true })).not.toBeInTheDocument();
+  expect(taskPane().getByText("alpha")).toBeInTheDocument();
+});

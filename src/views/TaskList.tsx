@@ -194,9 +194,9 @@ interface Section {
 
 /**
  * Splits items into sections at each heading (level 1 is the file title and starts none),
- * leaving out done tasks when `hideDone` is set.
+ * keeping the tasks `isShown` accepts.
  */
-function sectionsOf(items: ListItem[], hideDone: boolean): Section[] {
+function sectionsOf(items: ListItem[], isShown: (t: Task) => boolean): Section[] {
   const sections: Section[] = [{ heading: null, progress: null, tasks: [] }];
   let milestone: Section["progress"] = null;
   for (const item of items) {
@@ -206,7 +206,7 @@ function sectionsOf(items: ListItem[], hideDone: boolean): Section[] {
       sections.push({ heading: item.level === 1 ? null : item, progress: milestone, tasks: [] });
       continue;
     }
-    const shown = !(hideDone && item.is_done);
+    const shown = isShown(item);
     if (shown) sections[sections.length - 1].tasks.push(item);
     if (milestone) {
       milestone.total++;
@@ -252,6 +252,8 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const [timeRefreshKey, setTimeRefreshKey] = useState(0);
   const [timeVisible, setTimeVisible] = useState<boolean>(() => readTimeVisible(project.id));
   const [doneHidden, setDoneHidden] = useState<boolean>(() => readDoneHidden(project.id));
+  // Not saved: a quick look at what's queued.
+  const [queuedOnly, setQueuedOnly] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const tracksTime = project.type === "learning";
@@ -275,7 +277,15 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   }, [focus?.key, focus?.nonce, loading]);
 
   // A milestone caption shows when its milestone shows tasks, even if they're all under `###`.
-  const sections = sectionsOf(items, doneHidden).filter(
+  const queuedCount = tasks.filter((t) => t.is_queued && !t.is_done).length;
+  // Unqueuing the last queued task leaves the filter on with nothing to show: turn it off.
+  useEffect(() => {
+    if (queuedOnly && queuedCount === 0) setQueuedOnly(false);
+  }, [queuedOnly, queuedCount]);
+
+  const sections = sectionsOf(items, (t) =>
+    queuedOnly ? t.is_queued && !t.is_done : !(doneHidden && t.is_done),
+  ).filter(
     (s) => s.tasks.length > 0 || (s.heading?.level === 2 && s.progress!.shown > 0),
   );
   const doneCount = tasks.filter((t) => t.is_done).length;
@@ -297,6 +307,20 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
         <span className="flex-1 text-[19px] font-bold tracking-tight text-ink truncate">
           {project.name}
         </span>
+
+        {queuedCount > 0 && (
+          <button
+            onClick={() => setQueuedOnly(!queuedOnly)}
+            aria-pressed={queuedOnly}
+            title={queuedOnly ? "Show all tasks" : `Show only the ${queuedCount} queued tasks`}
+            className={
+              "mr-1.5 text-[12px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap cursor-pointer " +
+              (queuedOnly ? "text-queue bg-queue-soft" : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
+            }
+          >
+            Queued
+          </button>
+        )}
 
         {doneCount > 0 && (
           <button
