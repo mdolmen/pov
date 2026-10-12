@@ -68,7 +68,7 @@ pub struct TaskView {
     pub subtasks: Vec<Subtask>,
     pub is_done: bool,
     pub is_selected: bool,
-    pub is_queued: bool,
+    pub in_inbox: bool,
 }
 
 /// A task list entry as the frontend sees it (`ListItem` in `src/types.ts`).
@@ -276,7 +276,7 @@ pub fn toggle_cascade(path: &Path, target: &str) -> Result<bool> {
     Ok(true)
 }
 
-/// The hashes of a project's tasks marked `stage` (`next` or `queue`).
+/// The hashes of a project's tasks marked `stage` (`next` or `inbox`).
 fn hashes(conn: &Connection, project_id: &str, stage: &str) -> Result<HashSet<String>> {
     let mut stmt =
         conn.prepare("SELECT task_hash FROM selected_tasks WHERE project_id = ? AND stage = ?")?;
@@ -284,11 +284,11 @@ fn hashes(conn: &Connection, project_id: &str, stage: &str) -> Result<HashSet<St
     Ok(hashes.collect::<rusqlite::Result<_>>()?)
 }
 
-fn view(task: Task, next: &HashSet<String>, queued: &HashSet<String>) -> TaskView {
+fn view(task: Task, next: &HashSet<String>, inbox: &HashSet<String>) -> TaskView {
     TaskView {
         is_done: task.is_done(),
         is_selected: next.contains(&task.hash),
-        is_queued: queued.contains(&task.hash),
+        in_inbox: inbox.contains(&task.hash),
         hash: task.hash,
         text: task.text,
         checked: task.checked,
@@ -297,22 +297,22 @@ fn view(task: Task, next: &HashSet<String>, queued: &HashSet<String>) -> TaskVie
     }
 }
 
-/// Lists a project's headings and tasks, with their next / queue marks.
+/// Lists a project's headings and tasks, with their next / inbox marks.
 pub fn list(conn: &Connection, project_id: &str) -> Result<Vec<ListItem>> {
     let (file_path, _) = projects::file_and_type(conn, project_id)?;
     let next = hashes(conn, project_id, "next")?;
-    let queued = hashes(conn, project_id, "queue")?;
+    let inbox = hashes(conn, project_id, "inbox")?;
     Ok(parse_items(&file_path)
         .into_iter()
         .map(|item| match item {
             Item::Heading { text, level } => ListItem::Heading { text, level },
-            Item::Task(task) => ListItem::Task(view(task, &next, &queued)),
+            Item::Task(task) => ListItem::Task(view(task, &next, &inbox)),
         })
         .collect())
 }
 
 /// Toggles a task or subtask in the project's file, commits the change to the data repo, and
-/// clears its next / queue mark if it is now done. Returns the task (the parent, for a subtask).
+/// clears its next / inbox mark if it is now done. Returns the task (the parent, for a subtask).
 pub fn toggle(
     conn: &Connection,
     paths: &Paths,
@@ -349,11 +349,11 @@ pub fn toggle(
         )?;
     }
     let next = hashes(conn, project_id, "next")?;
-    let queued = hashes(conn, project_id, "queue")?;
-    Ok(view(task, &next, &queued))
+    let inbox = hashes(conn, project_id, "inbox")?;
+    Ok(view(task, &next, &inbox))
 }
 
-/// Marks a task `stage` (`next` or `queue`), replacing its other mark.
+/// Marks a task `stage` (`next` or `inbox`), replacing its other mark.
 fn set_stage(conn: &Connection, project_id: &str, task_hash: &str, stage: &str) -> Result<()> {
     projects::file_and_type(conn, project_id)?;
     conn.execute(
@@ -364,22 +364,23 @@ fn set_stage(conn: &Connection, project_id: &str, task_hash: &str, stage: &str) 
     Ok(())
 }
 
-/// Marks a task as selected ("next"), moving it up if it was queued. Selecting twice is a
+/// Marks a task as selected ("next"), moving it out of the inbox. Selecting twice is a
 /// no-op.
 pub fn select(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
     set_stage(conn, project_id, task_hash, "next")
 }
 
-/// Queues a task: committed to, but not next yet. Queuing a next task moves it down.
-pub fn queue(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
-    set_stage(conn, project_id, task_hash, "queue")
+/// Puts a task in the inbox: added by an external tool, waiting for triage. A next task moves
+/// back to the inbox.
+pub fn inbox(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
+    set_stage(conn, project_id, task_hash, "inbox")
 }
 
-/// Removes a task from the queue; a next task keeps its mark.
-pub fn unqueue(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
+/// Keeps an inbox task: it leaves the inbox for the backlog. A next task keeps its mark.
+pub fn keep(conn: &Connection, project_id: &str, task_hash: &str) -> Result<()> {
     projects::file_and_type(conn, project_id)?;
     conn.execute(
-        "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ? AND stage = 'queue'",
+        "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ? AND stage = 'inbox'",
         [project_id, task_hash],
     )?;
     Ok(())
@@ -481,7 +482,7 @@ pub fn next_up(conn: &Connection) -> Result<Vec<NextUpEntry>> {
     Ok(entries)
 }
 
-/// Removes the next / queue marks of tasks that are done in the source file.
+/// Removes the next / inbox marks of tasks that are done in the source file.
 pub fn cleanup_selected(conn: &Connection) -> Result<()> {
     let projects: Vec<(String, PathBuf)> = conn
         .prepare("SELECT id, file_path FROM projects")?
@@ -829,14 +830,14 @@ Some plain text here.
         assert_eq!(left, task_hash("- [ ] Task one", 1));
     }
 
-    /// The (next, queued) marks of a task in the project's list.
+    /// The (next, inbox) marks of a task in the project's list.
     fn marks(conn: &Connection, id: &str, hash: &str) -> (bool, bool) {
         let items = list(conn, id).unwrap();
         let task = tasks_of_list(&items)
             .into_iter()
             .find(|t| t.hash == hash)
             .unwrap();
-        (task.is_selected, task.is_queued)
+        (task.is_selected, task.in_inbox)
     }
 
     fn mark_rows(conn: &Connection) -> i64 {
@@ -845,70 +846,70 @@ Some plain text here.
     }
 
     #[test]
-    fn queue_and_select_move_a_task_between_stages() {
+    fn inbox_and_select_move_a_task_between_stages() {
         let (_tmp, _paths, conn, _todo, id) = project();
         let hash = task_hash("- [ ] Task one", 1);
 
-        queue(&conn, &id, &hash).unwrap();
-        queue(&conn, &id, &hash).unwrap();
+        inbox(&conn, &id, &hash).unwrap();
+        inbox(&conn, &id, &hash).unwrap();
         assert_eq!(marks(&conn, &id, &hash), (false, true));
 
         select(&conn, &id, &hash).unwrap();
         assert_eq!(marks(&conn, &id, &hash), (true, false));
 
-        queue(&conn, &id, &hash).unwrap();
+        inbox(&conn, &id, &hash).unwrap();
         assert_eq!(marks(&conn, &id, &hash), (false, true));
         assert_eq!(mark_rows(&conn), 1);
 
-        unqueue(&conn, &id, &hash).unwrap();
+        keep(&conn, &id, &hash).unwrap();
         assert_eq!(marks(&conn, &id, &hash), (false, false));
         assert_eq!(mark_rows(&conn), 0);
     }
 
     #[test]
-    fn unqueue_leaves_a_next_task_alone() {
+    fn keep_leaves_a_next_task_alone() {
         let (_tmp, _paths, conn, _todo, id) = project();
         let hash = task_hash("- [ ] Task one", 1);
         select(&conn, &id, &hash).unwrap();
 
-        unqueue(&conn, &id, &hash).unwrap();
+        keep(&conn, &id, &hash).unwrap();
 
         assert_eq!(marks(&conn, &id, &hash), (true, false));
     }
 
     #[test]
-    fn queue_unknown_project_is_not_found() {
+    fn inbox_unknown_project_is_not_found() {
         let (_tmp, _paths, conn, _todo, _id) = project();
         assert!(matches!(
-            queue(&conn, "nope", "h"),
+            inbox(&conn, "nope", "h"),
             Err(Error::NotFound("project"))
         ));
         assert!(matches!(
-            unqueue(&conn, "nope", "h"),
+            keep(&conn, "nope", "h"),
             Err(Error::NotFound("project"))
         ));
     }
 
     #[test]
-    fn done_queued_tasks_lose_their_mark() {
+    fn done_inbox_tasks_lose_their_mark() {
         let (_tmp, paths, conn, _todo, id) = project();
         let one = task_hash("- [ ] Task one", 1);
-        queue(&conn, &id, &one).unwrap();
-        queue(&conn, &id, &task_hash("- [x] Task two (done)", 1)).unwrap();
+        inbox(&conn, &id, &one).unwrap();
+        inbox(&conn, &id, &task_hash("- [x] Task two (done)", 1)).unwrap();
 
         cleanup_selected(&conn).unwrap();
         assert_eq!(mark_rows(&conn), 1);
 
         let task = toggle(&conn, &paths, &id, &one).unwrap();
-        assert!(task.is_done && !task.is_queued);
+        assert!(task.is_done && !task.in_inbox);
         assert_eq!(mark_rows(&conn), 0);
     }
 
     #[test]
-    fn next_up_ignores_queued_tasks() {
+    fn next_up_ignores_inbox_tasks() {
         let (tmp, _paths, conn, _todo, _id) = project();
         add_project(&conn, tmp.path(), "Q", "open", "## M\n- [ ] a\n", &[]);
-        queue(&conn, "Q", &task_hash("- [ ] a", 1)).unwrap();
+        inbox(&conn, "Q", &task_hash("- [ ] a", 1)).unwrap();
 
         assert!(next_up(&conn).unwrap().is_empty());
     }

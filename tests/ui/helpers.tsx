@@ -57,8 +57,11 @@ export async function selectTask(projectId: string, hash: string) {
   await bridge("select_task", { project_id: projectId, task_hash: hash });
 }
 
-export async function queueTask(projectId: string, hash: string) {
-  await bridge("queue_task", { project_id: projectId, task_hash: hash });
+/** Puts tasks in the inbox, as an external tool would. */
+export async function inboxTasks(projectId: string, ...texts: string[]) {
+  for (const text of texts) {
+    await bridge("inbox_task", { project_id: projectId, task_hash: await taskHash(projectId, text) });
+  }
 }
 
 export async function recordTime(projectId: string, minutes: number, date: string, topic?: string) {
@@ -171,9 +174,9 @@ export function nextButton(text: string): HTMLElement {
   return within(taskRow(text)).getByRole("button", { name: /^(Mark next|Next)$/ });
 }
 
-/** The "Queue" / "Queued" button of an open task that isn't next, found by its text. */
-export function queueButton(text: string): HTMLElement {
-  return within(taskRow(text)).getByRole("button", { name: /^(Queue|Queued)$/ });
+/** A triage button ("Keep", "Delete task") of an inbox task, found by its text. */
+export function triageButton(text: string, name: string): HTMLElement {
+  return within(taskRow(text)).getByRole("button", { name });
 }
 
 /** Text positions in the task pane, to check display order. */

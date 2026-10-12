@@ -108,13 +108,13 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
         </span>
       </span>
       <WeekRow project={project} refreshKey={activityRefreshKey} />
-      {project.queued_count > 0 && (
+      {project.inbox_count > 0 && (
         <span
-          aria-label={`${project.queued_count} queued`}
-          title={`${project.queued_count} queued`}
-          className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-queue text-white text-[10px] font-semibold leading-4 text-center tabular-nums ring-2 ring-ground"
+          aria-label={`${project.inbox_count} in inbox`}
+          title={`${project.inbox_count} in inbox`}
+          className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-inbox text-white text-[10px] font-semibold leading-4 text-center tabular-nums ring-2 ring-ground"
         >
-          {project.queued_count}
+          {project.inbox_count}
         </span>
       )}
     </button>

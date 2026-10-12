@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTasks, queueTask, selectTask, toggleTask, unqueueTask, unselectTask } from "@/lib/backend";
+import { keepTask, listTasks, selectTask, toggleTask, unselectTask } from "@/lib/backend";
 import type { ListItem, Task } from "@/types";
 
-/** A project's task list; `onChanged` runs once a toggle, (un)selection or (un)queuing is saved. */
+/** A project's task list; `onChanged` runs once a toggle, (un)selection or triage is saved. */
 export function useTasks(projectId: string, onChanged?: () => void) {
   const [items, setItems] = useState<ListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,10 +71,10 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
-  // A task is next, queued or neither: setting one mark clears the other.
+  // A task is next, in the inbox or neither: marking it next takes it out of the inbox.
   async function select(hash: string) {
     setItems((prev) =>
-      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: true, is_queued: false } : i)
+      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_selected: true, in_inbox: false } : i)
     );
     await selectTask(projectId, hash);
     onChanged?.();
@@ -88,21 +88,14 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
-  async function queue(hash: string) {
+  /** Keeps an inbox task: it moves to the backlog. */
+  async function keep(hash: string) {
     setItems((prev) =>
-      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_queued: true, is_selected: false } : i)
+      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, in_inbox: false } : i)
     );
-    await queueTask(projectId, hash);
+    await keepTask(projectId, hash);
     onChanged?.();
   }
 
-  async function unqueue(hash: string) {
-    setItems((prev) =>
-      prev.map((i) => i.kind === "task" && (i as Task).hash === hash ? { ...i, is_queued: false } : i)
-    );
-    await unqueueTask(projectId, hash);
-    onChanged?.();
-  }
-
-  return { items, tasks, loading, toggle, select, unselect, queue, unqueue };
+  return { items, tasks, loading, toggle, select, unselect, keep };
 }

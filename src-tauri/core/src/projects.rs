@@ -39,7 +39,7 @@ pub struct Project {
     pub has_hardlink: bool,
     pub task_count: usize,
     pub selected_count: i64,
-    pub queued_count: i64,
+    pub inbox_count: i64,
     pub activity: Level,
     pub paused_until: Option<String>,
 }
@@ -111,9 +111,9 @@ fn find_row(conn: &Connection, project_id: &str) -> Result<ProjectRow> {
 }
 
 fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project> {
-    let (selected_count, queued_count) = conn.query_row(
+    let (selected_count, inbox_count) = conn.query_row(
         "SELECT COUNT(CASE WHEN stage = 'next' THEN 1 END),
-                COUNT(CASE WHEN stage = 'queue' THEN 1 END)
+                COUNT(CASE WHEN stage = 'inbox' THEN 1 END)
          FROM selected_tasks WHERE project_id = ?",
         [&row.id],
         |r| Ok((r.get(0)?, r.get(1)?)),
@@ -143,7 +143,7 @@ fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project>
         project_type: row.project_type,
         has_hardlink: row.has_hardlink,
         selected_count,
-        queued_count,
+        inbox_count,
         activity: level,
         paused_until: row.paused_until,
     })
@@ -418,12 +418,12 @@ mod tests {
     }
 
     #[test]
-    fn counts_next_and_queued_tasks_apart() {
+    fn counts_next_and_inbox_tasks_apart() {
         let env = Env::new();
         let id = env.add("P", &env.todo, "project").unwrap();
         tasks::select(&env.conn, &id, &tasks::task_hash("- [ ] Task one", 1)).unwrap();
-        tasks::queue(&env.conn, &id, &tasks::task_hash("- [ ] Task three", 1)).unwrap();
-        tasks::queue(
+        tasks::inbox(&env.conn, &id, &tasks::task_hash("- [ ] Task three", 1)).unwrap();
+        tasks::inbox(
             &env.conn,
             &id,
             &tasks::task_hash("- [x] Task two (done)", 1),
@@ -432,7 +432,7 @@ mod tests {
 
         let project = get(&env.conn, &env.paths, &id).unwrap();
 
-        assert_eq!((project.selected_count, project.queued_count), (1, 2));
+        assert_eq!((project.selected_count, project.inbox_count), (1, 2));
     }
 
     #[test]

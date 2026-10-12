@@ -62,12 +62,17 @@ pub fn init(paths: &Paths) -> Result<()> {
         conn.execute("ALTER TABLE projects ADD COLUMN paused_until TEXT", ())?;
     }
     if !has_column(&conn, "selected_tasks", "stage")? {
-        // 'next' or 'queue'; rows from before the queue stage are next tasks.
+        // 'next' or 'inbox'; rows from before the stages are next tasks.
         conn.execute(
             "ALTER TABLE selected_tasks ADD COLUMN stage TEXT NOT NULL DEFAULT 'next'",
             (),
         )?;
     }
+    // The inbox was first called the queue.
+    conn.execute(
+        "UPDATE selected_tasks SET stage = 'inbox' WHERE stage = 'queue'",
+        (),
+    )?;
     Ok(())
 }
 
@@ -143,6 +148,31 @@ mod tests {
             )
             .unwrap();
         assert_eq!(activity, 0);
+    }
+
+    #[test]
+    fn init_renames_the_queue_stage_to_inbox() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path());
+        init(&paths).unwrap();
+        let conn = open(&paths).unwrap();
+        conn.execute_batch(
+            "INSERT INTO projects (id, name, file_path) VALUES ('p1', 'P', '/tmp/TODO.md');
+             INSERT INTO selected_tasks (project_id, task_hash, stage)
+                 VALUES ('p1', 'a', 'queue'), ('p1', 'b', 'next');",
+        )
+        .unwrap();
+
+        init(&paths).unwrap();
+
+        let stages: Vec<String> = conn
+            .prepare("SELECT stage FROM selected_tasks ORDER BY task_hash")
+            .unwrap()
+            .query_map((), |r| r.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap();
+        assert_eq!(stages, ["inbox", "next"]);
     }
 
     #[test]

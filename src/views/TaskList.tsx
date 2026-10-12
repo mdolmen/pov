@@ -50,7 +50,7 @@ interface Props {
   project: Project;
   onClose: () => void;
   onProjectUpdated: (p: Project) => void;
-  /** A task was toggled, (un)selected or (un)queued. */
+  /** A task was toggled, (un)selected or triaged. */
   onChanged?: () => void;
   focus?: Focus | null;
 }
@@ -104,21 +104,19 @@ function TaskRow({
   onToggle,
   onSelect,
   onUnselect,
-  onQueue,
-  onUnqueue,
+  onKeep,
 }: {
   task: Task;
   onToggle: (hash: string) => void;
   onSelect: (hash: string) => void;
   onUnselect: (hash: string) => void;
-  onQueue: (hash: string) => void;
-  onUnqueue: (hash: string) => void;
+  onKeep: (hash: string) => void;
 }) {
   const done = task.is_done;
   const next = task.is_selected && !done;
-  const queued = task.is_queued && !done;
+  const inbox = task.in_inbox && !done;
   const flip = () => (task.is_selected ? onUnselect(task.hash) : onSelect(task.hash));
-  const band = next ? "var(--pov-next)" : queued ? "var(--pov-queue)" : null;
+  const band = next ? "var(--pov-next)" : inbox ? "var(--pov-inbox)" : null;
 
   return (
     <div
@@ -158,19 +156,13 @@ function TaskRow({
             {next ? "Next" : "Mark next"}
           </button>
         )}
-        {!done && !next && (
+        {inbox && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (queued) onUnqueue(task.hash);
-              else onQueue(task.hash);
-            }}
-            className={
-              pill +
-              (queued ? "text-queue" : "text-ink-muted " + onHover + "hover:text-queue hover:bg-queue-soft")
-            }
+            onClick={(e) => { e.stopPropagation(); onKeep(task.hash); }}
+            title="Keep in the backlog"
+            className={pill + "text-ink-muted " + onHover + "hover:text-ink hover:bg-hover"}
           >
-            {queued ? "Queued" : "Queue"}
+            Keep
           </button>
         )}
       </div>
@@ -243,7 +235,7 @@ function SectionCaption({ section }: { section: Section }) {
 }
 
 export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus }: Props) {
-  const { items, tasks, loading, toggle, select, unselect, queue, unqueue } = useTasks(
+  const { items, tasks, loading, toggle, select, unselect, keep } = useTasks(
     project.id,
     onChanged,
   );
@@ -252,8 +244,8 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const [timeRefreshKey, setTimeRefreshKey] = useState(0);
   const [timeVisible, setTimeVisible] = useState<boolean>(() => readTimeVisible(project.id));
   const [doneHidden, setDoneHidden] = useState<boolean>(() => readDoneHidden(project.id));
-  // Not saved: a quick look at what's queued.
-  const [queuedOnly, setQueuedOnly] = useState(false);
+  // Not saved: a quick look at what's left to triage.
+  const [inboxOnly, setInboxOnly] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const tracksTime = project.type === "learning";
@@ -277,14 +269,14 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   }, [focus?.key, focus?.nonce, loading]);
 
   // A milestone caption shows when its milestone shows tasks, even if they're all under `###`.
-  const queuedCount = tasks.filter((t) => t.is_queued && !t.is_done).length;
-  // Unqueuing the last queued task leaves the filter on with nothing to show: turn it off.
+  const inboxCount = tasks.filter((t) => t.in_inbox && !t.is_done).length;
+  // Triaging the last inbox task leaves the filter on with nothing to show: turn it off.
   useEffect(() => {
-    if (queuedOnly && queuedCount === 0) setQueuedOnly(false);
-  }, [queuedOnly, queuedCount]);
+    if (inboxOnly && inboxCount === 0) setInboxOnly(false);
+  }, [inboxOnly, inboxCount]);
 
   const sections = sectionsOf(items, (t) =>
-    queuedOnly ? t.is_queued && !t.is_done : !(doneHidden && t.is_done),
+    inboxOnly ? t.in_inbox && !t.is_done : !(doneHidden && t.is_done),
   ).filter(
     (s) => s.tasks.length > 0 || (s.heading?.level === 2 && s.progress!.shown > 0),
   );
@@ -308,17 +300,17 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
           {project.name}
         </span>
 
-        {queuedCount > 0 && (
+        {inboxCount > 0 && (
           <button
-            onClick={() => setQueuedOnly(!queuedOnly)}
-            aria-pressed={queuedOnly}
-            title={queuedOnly ? "Show all tasks" : `Show only the ${queuedCount} queued tasks`}
+            onClick={() => setInboxOnly(!inboxOnly)}
+            aria-pressed={inboxOnly}
+            title={inboxOnly ? "Show all tasks" : `Show only the ${inboxCount} inbox tasks`}
             className={
               "mr-1.5 text-[12px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap cursor-pointer " +
-              (queuedOnly ? "text-queue bg-queue-soft" : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
+              (inboxOnly ? "text-inbox bg-inbox-soft" : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
             }
           >
-            Queued
+            Inbox
           </button>
         )}
 
@@ -410,8 +402,7 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
                         onToggle={toggle}
                         onSelect={select}
                         onUnselect={unselect}
-                        onQueue={queue}
-                        onUnqueue={unqueue}
+                        onKeep={keep}
                       />
                     ))}
                   </div>

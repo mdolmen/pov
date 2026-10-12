@@ -28,11 +28,8 @@ export const selectTask = (projectId: string, taskHash: string) =>
 export const unselectTask = (projectId: string, taskHash: string) =>
   call<null>("unselect_task", { project_id: projectId, task_hash: taskHash });
 
-export const queueTask = (projectId: string, taskHash: string) =>
-  call<null>("queue_task", { project_id: projectId, task_hash: taskHash });
-
-export const unqueueTask = (projectId: string, taskHash: string) =>
-  call<null>("unqueue_task", { project_id: projectId, task_hash: taskHash });
+export const keepTask = (projectId: string, taskHash: string) =>
+  call<null>("keep_task", { project_id: projectId, task_hash: taskHash });
 
 export const cleanupSelected = () => call<null>("cleanup_selected");
 
