@@ -274,11 +274,7 @@ Delete:
 
 ## Phase 12 — MCP server
 
-Let external tools (Claude Code, other MCP clients) add tasks to a tracked project. A stdio MCP
-server spawned by the client as `pov mcp` (the `pov-cli` binary), independent of the app being
-open. Like the CLI it works on the data dir directly: it writes the project's file in place and
-commits it to the data repo itself, as `toggle` does, since the watcher only runs with the app.
-Needs Phase 11 for the `inbox` stage.
+See DECISIONS.md (2026-10-13).
 
 ### Core (`pov-core`, sync, no MCP types)
 

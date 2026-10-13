@@ -119,3 +119,15 @@
     like a toggle, so git history keeps every deleted task.
   - Phase 12 `add_task` defaults to `stage = "inbox"`.
 - **Plan:** TODO.md, Phase 11 › Inbox.
+
+## 2026-10-13 — MCP server
+
+- **Decision:** external tools (Claude Code, other MCP clients) add tasks to a tracked project
+  through a stdio MCP server, spawned by the client as `pov mcp` (the `pov-cli` binary).
+- **Why:** works whether the app is open or not.
+- **Constraints:**
+  - Like the CLI, it works on the data dir directly: writes the project's file in place and
+    commits it to the data repo itself, as `toggle` does, since the watcher only runs with the
+    app.
+  - Needs Phase 11 for the `inbox` stage.
+- **Plan:** TODO.md, Phase 12.
