@@ -86,12 +86,40 @@ pov add path/to/TODO.md --type learning
 pov list                          # list tracked projects
 pov remove "project name"         # stop tracking
 pov import-time "Maths" TIME.md   # import a time log into a project
+pov mcp                           # MCP server for Claude Code (see below)
 ```
 
 `import-time` reads a markdown table of `| DATE | TIME | TOPIC |` rows, where
 TIME is a number of hours (comma or dot separator), and records the entries
 against the project's time heatmap. If the project already has time entries it
 refuses to run, unless given `--append` (keep them) or `--replace` (drop them).
+
+### Claude Code and other MCP clients
+
+`pov mcp` is an MCP server on stdio: it lets Claude Code add tasks to your projects. Added tasks
+land in the project's inbox, for you to keep, mark next or delete in the app. The app doesn't
+need to be running.
+
+```sh
+claude mcp add --scope user pov -- ~/.local/bin/pov mcp
+```
+
+The shell expands `~` to an absolute path, which the client needs: GUI clients don't get your
+shell's `PATH`. `--scope user` makes it available in every project.
+
+Other clients take a JSON config; use the absolute path:
+
+```json
+{
+  "mcpServers": {
+    "pov": { "command": "/Users/<you>/.local/bin/pov", "args": ["mcp"] }
+  }
+}
+```
+
+Tools: `list_projects`, `list_sections` (a project's headings), `add_task` (project, text,
+optional section and stage). For development, register `src-tauri/target/debug/pov-cli mcp`
+instead: a debug build uses the dev data dir.
 
 ## Data locations
 

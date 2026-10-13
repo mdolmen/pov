@@ -68,11 +68,44 @@ pov add <path/to/TODO.md> [--name N] [--type project|learning] [--status open|ar
 pov list                          # list tracked projects
 pov remove <name>                 # remove a project (keeps original file)
 pov import-time <name> <TIME.md>  # import a time log [--append | --replace]
+pov mcp                           # MCP server on stdio, spawned by an MCP client
 ```
 
 The CLI is `pov-cli`, a binary of `pov-core` bundled in the `.app` and copied to
 `~/.local/bin/pov` by Settings → Install CLI. It shares the core with the app, so it writes the
 same `pov.db`, config.json and hardlinks; the app doesn't need to be running.
+
+### MCP server (`pov mcp`)
+
+Lets external tools add tasks to a tracked project (DECISIONS.md, 2026-10-13). Tools:
+`list_projects`, `list_sections`, `add_task` (stage `inbox` by default, or `backlog` / `next`).
+Built with `rmcp` + `tokio`, behind the `cli` feature: the app and `pov-core` stay sync. Each
+call opens its own connection and runs the core on a blocking thread.
+
+Register it with an absolute path: GUI clients don't get the shell's `PATH`.
+
+```sh
+claude mcp add --scope user pov -- ~/.local/bin/pov mcp   # the shell expands ~
+```
+
+Other clients:
+
+```json
+{ "mcpServers": { "pov": { "command": "/Users/<you>/.local/bin/pov", "args": ["mcp"] } } }
+```
+
+A debug `pov-cli` uses `pov-dev`, like the app: register `src-tauri/target/debug/pov-cli mcp`
+as a separate server (e.g. `pov-dev`) to try changes on dev data. The app shows added tasks when
+its window gains focus (projects and Next up also poll every 3 s).
+
+Size cost of `rmcp` + `tokio`, measured 2026-10-13 (release, MiB like the table below; before:
+`8283825`):
+
+| | Before | After |
+|---|---|---|
+| Bundled CLI | 3.0 MB | 7.7 MB |
+| `.app` | 18.1 MB | 22.9 MB |
+| `.dmg` | 6.9 MB | 8.4 MB |
 
 ## UI
 
