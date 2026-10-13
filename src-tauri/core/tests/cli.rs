@@ -2,10 +2,12 @@
 //! `import-time` cases of `test_timelog.py`.
 
 use std::fs;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Child, ChildStdout, Command, Output, Stdio};
 
 use rusqlite::Connection;
+use serde_json::{Value, json};
 use tempfile::TempDir;
 
 const TABLE: &str = "\
@@ -30,15 +32,43 @@ impl Env {
         }
     }
 
-    fn run(&self, args: &[&str]) -> Output {
-        Command::new(env!("CARGO_BIN_EXE_pov-cli"))
+    fn command(&self, args: &[&str]) -> Command {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_pov-cli"));
+        command
             .args(args)
             .env("HOME", self.home.path())
             .env_remove("POV_ENV")
             .envs([("GIT_AUTHOR_NAME", "t"), ("GIT_AUTHOR_EMAIL", "t@t")])
-            .envs([("GIT_COMMITTER_NAME", "t"), ("GIT_COMMITTER_EMAIL", "t@t")])
-            .output()
-            .unwrap()
+            .envs([("GIT_COMMITTER_NAME", "t"), ("GIT_COMMITTER_EMAIL", "t@t")]);
+        command
+    }
+
+    fn run(&self, args: &[&str]) -> Output {
+        self.command(args).output().unwrap()
+    }
+
+    /// Starts `pov-cli mcp` and completes the MCP handshake.
+    fn mcp(&self) -> Mcp {
+        let mut child = self
+            .command(&["mcp"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let stdout = BufReader::new(child.stdout.take().unwrap());
+        let mut mcp = Mcp { child, stdout };
+        let init = mcp.request(
+            1,
+            "initialize",
+            json!({
+                "protocolVersion": "2025-11-25",
+                "capabilities": {},
+                "clientInfo": {"name": "test", "version": "0"},
+            }),
+        );
+        assert_eq!(init["serverInfo"]["name"], "pov");
+        mcp.send(&json!({"jsonrpc": "2.0", "method": "notifications/initialized"}));
+        mcp
     }
 
     /// Writes a file in the user's folder and returns its path as a string.
@@ -81,6 +111,56 @@ impl Env {
             0
         );
     }
+}
+
+/// A running `pov-cli mcp`, talking JSON-RPC one line per message.
+struct Mcp {
+    child: Child,
+    stdout: BufReader<ChildStdout>,
+}
+
+impl Mcp {
+    fn send(&mut self, message: &Value) {
+        let stdin = self.child.stdin.as_mut().unwrap();
+        writeln!(stdin, "{message}").unwrap();
+        stdin.flush().unwrap();
+    }
+
+    /// Sends a request and returns the `result` of the response with the same id.
+    fn request(&mut self, id: u64, method: &str, params: Value) -> Value {
+        self.send(&json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params}));
+        loop {
+            let mut line = String::new();
+            assert_ne!(
+                self.stdout.read_line(&mut line).unwrap(),
+                0,
+                "server closed stdout"
+            );
+            let message: Value = serde_json::from_str(&line).unwrap();
+            if message["id"] == id {
+                return message["result"].clone();
+            }
+        }
+    }
+
+    fn call(&mut self, id: u64, tool: &str, arguments: Value) -> Value {
+        self.request(
+            id,
+            "tools/call",
+            json!({"name": tool, "arguments": arguments}),
+        )
+    }
+
+    /// Closes stdin and returns the exit code.
+    fn close(mut self) -> i32 {
+        drop(self.child.stdin.take());
+        self.child.wait().unwrap().code().unwrap()
+    }
+}
+
+/// The text of a tool result.
+fn text(result: &Value) -> &str {
+    result["content"][0]["text"].as_str().unwrap()
 }
 
 fn code(out: &Output) -> i32 {
@@ -310,4 +390,52 @@ fn import_time_parse_error_returns_2() {
     let out = env.run(&["import-time", "Maths", &time]);
     assert_eq!(code(&out), 2);
     assert!(stderr(&out).contains("bad duration"));
+}
+
+#[test]
+fn mcp_lists_tools_and_adds_a_task_to_the_inbox() {
+    let env = Env::new();
+    let src = env.file("TODO.md", "## A\n- [ ] a\n## B\n");
+    assert_eq!(code(&env.run(&["add", &src, "--name", "Demo"])), 0);
+    let mut mcp = env.mcp();
+
+    let tools = mcp.request(2, "tools/list", json!({}));
+    let mut names: Vec<_> = tools["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap())
+        .collect();
+    names.sort_unstable();
+    assert_eq!(names, ["add_task", "list_projects", "list_sections"]);
+    assert!(tools.to_string().contains(r#""enum":["inbox","backlog","next"]"#));
+
+    let projects = mcp.call(3, "list_projects", json!({}));
+    let projects: Value = serde_json::from_str(text(&projects)).unwrap();
+    assert_eq!(projects[0]["name"], "Demo");
+
+    let sections = mcp.call(4, "list_sections", json!({"project": "demo"}));
+    assert!(text(&sections).contains("\"A\""));
+
+    let added = mcp.call(
+        5,
+        "add_task",
+        json!({"project": "DEMO", "text": "x", "section": "A"}),
+    );
+    assert_ne!(added["isError"], true, "{added}");
+    assert_eq!(
+        fs::read_to_string(&src).unwrap(),
+        "## A\n- [ ] a\n- [ ] x\n## B\n"
+    );
+    let stage: String = env
+        .db()
+        .query_row("SELECT stage FROM selected_tasks", (), |r| r.get(0))
+        .unwrap();
+    assert_eq!(stage, "inbox");
+
+    let missing = mcp.call(6, "add_task", json!({"project": "nope", "text": "x"}));
+    assert_eq!(missing["isError"], true);
+    assert_eq!(text(&missing), "no project 'nope'; projects: Demo");
+
+    assert_eq!(mcp.close(), 0);
 }

@@ -311,17 +311,17 @@ See DECISIONS.md (2026-10-13).
 
 ### Server (`pov-cli mcp`)
 
-- [ ] `rmcp` (`server`, `transport-io`) + `tokio` (`rt`, `macros`, `io-std`), optional, behind the `cli` feature (core stays sync)
-- [ ] Split `src/bin/pov-cli.rs` into `src/bin/pov-cli/{main,mcp}.rs`
-- [ ] Tool `list_projects()`: id, name, type, status, task / next / inbox counts, open first (`projects::list`)
-- [ ] Tool `list_sections(project)`
-- [ ] Tool `add_task(project, text, section?, stage = "inbox")`: returns the task hash
-- [ ] Core errors become tool errors (`is_error`), not protocol errors
-- [ ] Each call opens its own connection and runs the core in `spawn_blocking` (busy timeout covers the app)
-- [ ] `pov mcp` subcommand serves over stdio until stdin closes
-- [ ] Test (`tests/cli.rs`): spawn `pov-cli mcp` on a temp `HOME`:
-  - [ ] `initialize`, `tools/list`
-  - [ ] `tools/call add_task`: task in the file, stage in `pov.db`
+- [x] `rmcp` (`server`, `transport-io`) + `tokio` (`rt`, `macros`, `io-std`), optional, behind the `cli` feature (core stays sync)
+- [x] Split `src/bin/pov-cli.rs` into `src/bin/pov-cli/{main,mcp}.rs`
+- [x] Tool `list_projects()`: id, name, type, status, task / next / inbox counts, open first (`projects::list`)
+- [x] Tool `list_sections(project)`
+- [x] Tool `add_task(project, text, section?, stage = "inbox")`: returns the task hash
+- [x] Core errors become tool errors (`is_error`), not protocol errors
+- [x] Each call opens its own connection and runs the core in `spawn_blocking` (busy timeout covers the app)
+- [x] `pov mcp` subcommand serves over stdio until stdin closes
+- [x] Test (`tests/cli.rs`): spawn `pov-cli mcp` on a temp `HOME`:
+  - [x] `initialize`, `tools/list`
+  - [x] `tools/call add_task`: task in the file, stage in `pov.db`
 
 ### Integration
 

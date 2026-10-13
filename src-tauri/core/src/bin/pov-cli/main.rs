@@ -3,6 +3,8 @@
 //! Works on the data dir directly; the app doesn't need to be running. Named `pov-cli` because
 //! the app binary is already `pov`.
 
+mod mcp;
+
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -54,6 +56,8 @@ enum Command {
         #[arg(long)]
         append: bool,
     },
+    /// Serve the MCP server over stdio, for Claude Code and other MCP clients
+    Mcp,
 }
 
 /// A message for stderr and the exit code that goes with it.
@@ -84,6 +88,7 @@ fn main() -> ExitCode {
             replace,
             append,
         } => import_time(&name, &path, replace, append),
+        Command::Mcp => serve_mcp(),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -102,6 +107,11 @@ fn open() -> Result<(Paths, Connection), Error> {
     db::init(&paths)?;
     let conn = db::open(&paths)?;
     Ok((paths, conn))
+}
+
+fn serve_mcp() -> CmdResult {
+    let (paths, _) = open()?;
+    mcp::serve(paths).map_err(|e| Failure(e.to_string(), 1))
 }
 
 fn add(path: PathBuf, name: Option<String>, project_type: String, status: String) -> CmdResult {
