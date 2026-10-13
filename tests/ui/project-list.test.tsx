@@ -69,15 +69,15 @@ test("an empty list says so", async () => {
   expect(await screen.findByText("No projects yet.")).toBeInTheDocument();
 });
 
-test("a tile shows its last 8 weeks of activity", async () => {
+test("a tile shows its last 8 days of activity, today last", async () => {
   const project = await addProject({ name: "Busy", content: "- [ ] a\n- [ ] b\n" });
   await toggleTask(project.id, await taskHash(project.id, "a"));
   await toggleTask(project.id, await taskHash(project.id, "b"));
   renderApp();
 
   const tile = await projectTiles().findByRole("button", { name: /^Busy/ });
-  const row = tile.querySelector("[data-weeks]") as HTMLElement;
-  await waitFor(() => expect(row.dataset.weeks).toBe("0,0,0,0,0,0,0,2"));
+  const bars = tile.querySelector("[data-days]") as HTMLElement;
+  await waitFor(() => expect(bars.dataset.days).toBe("0,0,0,0,0,0,0,2"));
 });
 
 test("the open project's tile is ringed", async () => {

@@ -147,11 +147,13 @@
   - Not covered: projects without a hardlink (no history), reworded lines, and moved lines
     that have duplicates.
 
-## 2026-10-13 — Tile week bands count repo commits
+## 2026-10-13 — Tile bars: last 8 days, counting repo commits
 
-- **Decision:** a tile's week bands count activity like the bottom heatmap: the commits of the
-  git repo holding the project's file, else its `activity:` commits in the data repo.
+- **Decision:** a tile's two bars of four show the last 8 days, one cell per day: oldest at the
+  top of the left bar, today at the bottom of the right one (they were 8 weeks, one cell per
+  week). They count activity like the bottom heatmap: the commits of the git repo holding the
+  project's file, else its `activity:` commits in the data repo.
 - **Why:** the bands only counted TODO.md edits through the hardlink, so code work didn't show,
   and an editor saving by rename (Claude Code's Edit tool does) broke the hardlink and froze them.
-- **Constraints:** projects sharing a repo show the same bands. The tile's activity level (dimmed
+- **Constraints:** projects sharing a repo show the same bars. The tile's activity level (dimmed
   tile) still reads the hardlink's last `activity:` commit.

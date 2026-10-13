@@ -2,49 +2,45 @@ import { useEffect, useState } from "react";
 import { listProjectActivity } from "@/lib/backend";
 import type { Project } from "@/types";
 
-const WEEKS = 8;
+const DAYS = 8;
 
 function dateKey(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** Ramp step of a week's activity count. */
-function weekLevel(count: number): number {
+/** Ramp step of a day's activity count. */
+function dayLevel(count: number): number {
   if (count <= 0) return 0;
-  if (count <= 4) return 1;
-  if (count <= 9) return 2;
-  if (count <= 15) return 3;
+  if (count <= 2) return 1;
+  if (count <= 5) return 2;
+  if (count <= 9) return 3;
   return 4;
 }
 
 /**
- * Activity of the last 8 weeks, one cell per week ending today: two columns of four, oldest
- * first, top to bottom.
+ * Activity of the last 8 days, one cell per day: two bars of four, oldest at the top of the
+ * left bar, today at the bottom of the right one.
  */
-function WeekRow({ project, refreshKey }: { project: Project; refreshKey: number }) {
-  const [weeks, setWeeks] = useState<number[]>(() => Array(WEEKS).fill(0));
+function DayBars({ project, refreshKey }: { project: Project; refreshKey: number }) {
+  const [days, setDays] = useState<number[]>(() => Array(DAYS).fill(0));
 
   useEffect(() => {
     let cancelled = false;
-    listProjectActivity(project.id, project.type, WEEKS * 7)
-      .then((days) => {
+    listProjectActivity(project.id, project.type, DAYS)
+      .then((activity) => {
         if (cancelled) return;
-        const counts = new Map(days.map((d) => [d.date, d.count]));
-        const sums: number[] = [];
-        for (let w = WEEKS - 1; w >= 0; w--) {
-          let sum = 0;
-          for (let i = 0; i < 7; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - w * 7 - i);
-            sum += counts.get(dateKey(d)) ?? 0;
-          }
-          sums.push(sum);
+        const counts = new Map(activity.map((d) => [d.date, d.count]));
+        const cells: number[] = [];
+        for (let ago = DAYS - 1; ago >= 0; ago--) {
+          const d = new Date();
+          d.setDate(d.getDate() - ago);
+          cells.push(counts.get(dateKey(d)) ?? 0);
         }
-        setWeeks(sums);
+        setDays(cells);
       })
       .catch(() => {
-        // Keep the current row; the next refresh will retry.
+        // Keep the current bars; the next refresh will retry.
       });
     return () => {
       cancelled = true;
@@ -54,14 +50,14 @@ function WeekRow({ project, refreshKey }: { project: Project; refreshKey: number
   return (
     <span
       className="grid grid-rows-4 grid-flow-col gap-0.5 shrink-0"
-      title="Last 8 weeks"
-      data-weeks={weeks.join(",")}
+      title="Last 8 days"
+      data-days={days.join(",")}
     >
-      {weeks.map((count, i) => (
+      {days.map((count, i) => (
         <i
           key={i}
           className="w-1.5 h-1.5 rounded-[1.5px]"
-          style={{ background: `var(--pov-heat-${weekLevel(count)})` }}
+          style={{ background: `var(--pov-heat-${dayLevel(count)})` }}
         />
       ))}
     </span>
@@ -107,7 +103,7 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
           )}
         </span>
       </span>
-      <WeekRow project={project} refreshKey={activityRefreshKey} />
+      <DayBars project={project} refreshKey={activityRefreshKey} />
       {project.inbox_count > 0 && (
         <span
           aria-label={`${project.inbox_count} in inbox`}
