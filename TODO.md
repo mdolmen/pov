@@ -325,8 +325,8 @@ See DECISIONS.md (2026-10-13).
 
 ### Integration
 
-- [ ] Refetch projects, Next up and the open task list on window focus (`useTasks` exposes `refresh`)
-- [ ] UI test: write the file directly, fire `focus`, the task shows
+- [x] Refetch projects, Next up and the open task list on window focus (`useTasks` exposes `refresh`)
+- [x] UI test: write the file directly, fire `focus`, the task shows
 - [ ] README + NOTES.md: `claude mcp add pov -- ~/.local/bin/pov mcp` (absolute path: GUI clients lack the shell `PATH`)
 - [ ] README + NOTES.md: generic JSON config for other clients; debug `pov-cli` uses `pov-dev`
 - [ ] `scripts/build-cli.sh` release build still bundles

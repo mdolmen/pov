@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listNextUp } from "@/lib/backend";
 import type { NextUpEntry } from "@/types";
+import { useOnFocus } from "./useOnFocus";
 
 export function useNextUp() {
   const [entries, setEntries] = useState<NextUpEntry[]>([]);
@@ -18,6 +19,8 @@ export function useNextUp() {
     const id = setInterval(refresh, 3000);
     return () => clearInterval(id);
   }, [refresh]);
+
+  useOnFocus(refresh);
 
   return { entries, refresh };
 }

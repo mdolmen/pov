@@ -10,6 +10,7 @@ import {
   unselectTask,
 } from "@/lib/backend";
 import type { DeletedTask, ListItem, Task } from "@/types";
+import { useOnFocus } from "./useOnFocus";
 
 /** A project's task list; `onChanged` runs once a toggle, (un)selection or triage is saved. */
 export function useTasks(projectId: string, onChanged?: () => void) {
@@ -26,6 +27,8 @@ export function useTasks(projectId: string, onChanged?: () => void) {
   }, [projectId]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+  // Tasks added by other tools (`pov mcp`, an editor) show when the user comes back.
+  useOnFocus(fetchTasks);
 
   const tasks = items.filter((i): i is Task => i.kind === "task");
 
@@ -127,5 +130,5 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
-  return { items, tasks, loading, toggle, select, unselect, keep, remove, undoRemove };
+  return { items, tasks, loading, refresh: fetchTasks, toggle, select, unselect, keep, remove, undoRemove };
 }

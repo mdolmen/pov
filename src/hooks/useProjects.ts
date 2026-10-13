@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { listProjects } from "@/lib/backend";
 import type { Project } from "@/types";
+import { useOnFocus } from "./useOnFocus";
 
 export function useProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -24,6 +25,9 @@ export function useProjects() {
     const id = setInterval(() => refresh(false), 3000);
     return () => clearInterval(id);
   }, [refresh]);
+
+  const refreshQuietly = useCallback(() => refresh(false), [refresh]);
+  useOnFocus(refreshQuietly);
 
   return { projects, loading, error, refresh };
 }
