@@ -5,7 +5,7 @@ use std::path::Path;
 use notify::event::ModifyKind;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::{Paths, Result, git};
+use crate::{Paths, Result, db, git, tasks};
 
 /// Watches `projects/` and `learning/`; each modified `.md` file is committed as
 /// `activity: <file>`. Watching stops when the returned watcher is dropped.
@@ -32,9 +32,17 @@ fn handle(paths: &Paths, event: &Event) {
     }
 }
 
+/// Commits the file, moving the marks of a tracked project's shifted tasks first (the file is
+/// named after the project's id).
 fn commit(paths: &Paths, path: &Path) {
-    let name = path.file_name().unwrap_or_default().to_string_lossy();
-    git::add_commit_quiet(&paths.root, path, &format!("activity: {name}"));
+    let synced = paths.db.exists()
+        && path.file_stem().and_then(|s| s.to_str()).is_some_and(|id| {
+            db::open(paths).is_ok_and(|conn| tasks::sync_marks(&conn, paths, id).is_ok())
+        });
+    if !synced {
+        let name = path.file_name().unwrap_or_default().to_string_lossy();
+        git::add_commit_quiet(&paths.root, path, &format!("activity: {name}"));
+    }
 }
 
 #[cfg(test)]
@@ -126,5 +134,34 @@ mod tests {
         fs::write(&original, "- [x] task\n").unwrap();
 
         assert!(wait_for_subject(&paths, "activity: p.md"));
+    }
+
+    #[test]
+    fn a_tracked_file_s_shifted_marks_follow_their_tasks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("pov"));
+        storage::init(&paths).unwrap();
+        db::init(&paths).unwrap();
+        let conn = db::open(&paths).unwrap();
+        let original = tmp.path().join("TODO.md");
+        fs::write(&original, "## A\n## B\n- [ ] x\n").unwrap();
+        let md = paths.hardlink("p1", "project");
+        fs::hard_link(&original, &md).unwrap();
+        conn.execute(
+            "INSERT INTO projects (id, name, file_path) VALUES ('p1', 'P', ?)",
+            [original.to_str().unwrap()],
+        )
+        .unwrap();
+        handle(&paths, &modified(&md));
+        tasks::select(&conn, "p1", &tasks::task_hash("- [ ] x", 1)).unwrap();
+
+        fs::write(&original, "## A\n- [ ] x\n## B\n- [ ] x\n").unwrap();
+        handle(&paths, &modified(&md));
+
+        let hash: String = conn
+            .query_row("SELECT task_hash FROM selected_tasks", (), |r| r.get(0))
+            .unwrap();
+        assert_eq!(hash, tasks::task_hash("- [ ] x", 2));
+        assert_eq!(last_subject(&paths), "activity: p1.md");
     }
 }

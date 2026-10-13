@@ -278,6 +278,12 @@ See DECISIONS.md (2026-10-13).
 
 ### Core (`pov-core`, sync, no MCP types)
 
+- [x] Marks follow shifted lines (DECISIONS.md, 2026-10-13):
+  - [x] `remap`: diff of the data repo's `HEAD` version against the file, for outside edits
+  - [x] `remap_splice`: exact pairing around the lines `add` / `delete` / `restore` changed
+  - [x] `edit`: DB write lock, sync pending edits, edit, move marks, commit; used by `toggle` / `delete` / `restore`
+  - [x] Watcher calls `sync_marks`; app startup calls `sync_all`
+  - [x] Tests: shifted duplicate, chain of 3, no history, no hardlink, delete / undo, watcher
 - [ ] `tasks::append_task(path, text, section) -> Result<String>`, returns the new task's hash:
   - [ ] appends `- [ ] <text>` at the end of the section under heading `section` (exact text, any level)
   - [ ] a section ends at the next heading of the same or higher level

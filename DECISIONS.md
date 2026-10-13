@@ -131,3 +131,18 @@
     app.
   - Needs Phase 11 for the `inbox` stage.
 - **Plan:** TODO.md, Phase 12.
+
+## 2026-10-13 — Marks follow shifted lines
+
+- **Decision:** when a file's lines shift, next / inbox marks move to their tasks' new hashes.
+  Edits from outside pov (editor, another process) are diffed against the data repo's last
+  commit of the file. pov's own edits (add, delete, restore) use the exact lines they changed.
+- **Why:** a hash counts identical lines, so inserting `x` above a marked `x`, or deleting the
+  first of two, moved the mark to the wrong task. A diff can't tell neighbouring identical lines
+  apart, so pov's own edits don't rely on it.
+- **Constraints:**
+  - The DB write lock (`BEGIN IMMEDIATE`) is held from the diff to the git commit, so the app's
+    watcher and `pov mcp` never move the same edit's marks twice.
+  - The app syncs every project at startup, for edits made while it was closed.
+  - Not covered: projects without a hardlink (no history), reworded lines, and moved lines
+    that have duplicates.

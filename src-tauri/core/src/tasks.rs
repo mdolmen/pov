@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use regex::Regex;
-use rusqlite::Connection;
+use rusqlite::{Connection, Transaction, TransactionBehavior};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -319,12 +319,13 @@ pub fn toggle(
     project_id: &str,
     task_hash: &str,
 ) -> Result<TaskView> {
-    let (file_path, project_type) = projects::file_and_type(conn, project_id)?;
-    if !toggle_cascade(&file_path, task_hash)? {
+    let (file_path, _) = projects::file_and_type(conn, project_id)?;
+    // A toggle keeps every line: no splice.
+    if !edit(conn, paths, project_id, |path| {
+        Ok((toggle_cascade(path, task_hash)?, None))
+    })? {
         return Err(Error::NotFound("task"));
     }
-
-    commit_activity(paths, project_id, &project_type);
 
     let tasks = parse_tasks(&file_path);
     let task = tasks
@@ -356,6 +357,155 @@ fn commit_activity(paths: &Paths, project_id: &str, project_type: &str) {
         let name = hardlink.file_name().unwrap_or_default().to_string_lossy();
         git::add_commit_quiet(&paths.root, &hardlink, &format!("activity: {name}"));
     }
+}
+
+/// Each line of `text` normalized, with its hash when it is a checkbox line.
+fn keyed_lines(text: &str) -> (Vec<String>, Vec<Option<String>>) {
+    let text = universal_newlines(text);
+    let mut seen = Occurrences::default();
+    split_lines(&text)
+        .into_iter()
+        .map(|line| {
+            (
+                normalize(line),
+                checkbox(line).is_some().then(|| seen.hash(line)),
+            )
+        })
+        .unzip()
+}
+
+/// Old hash → new hash of the checkbox lines paired by `pairs` (old index, new index).
+fn pair_hashes(
+    old: &[Option<String>],
+    new: &[Option<String>],
+    pairs: impl Iterator<Item = (usize, usize)>,
+) -> HashMap<String, String> {
+    pairs
+        .filter_map(|(i, j)| Some((old.get(i)?.clone()?, new.get(j)?.clone()?)))
+        .collect()
+}
+
+/// Follows the lines an outside edit kept: a diff pairs the unchanged lines of `old` and `new`.
+/// Changed lines aren't paired; a toggled checkbox counts as unchanged.
+fn remap(old: &str, new: &str) -> HashMap<String, String> {
+    let (old_keys, old_hashes) = keyed_lines(old);
+    let (new_keys, new_hashes) = keyed_lines(new);
+    let ops = similar::capture_diff_slices(similar::Algorithm::Myers, &old_keys, &new_keys);
+    let pairs = ops.into_iter().flat_map(|op| match op {
+        similar::DiffOp::Equal {
+            old_index,
+            new_index,
+            len,
+        } => (0..len).map(|k| (old_index + k, new_index + k)).collect(),
+        _ => vec![],
+    });
+    pair_hashes(&old_hashes, &new_hashes, pairs)
+}
+
+/// `removed` lines at line `at` replaced by `inserted` lines.
+struct Splice {
+    at: usize,
+    removed: usize,
+    inserted: usize,
+}
+
+/// Follows the lines around a known splice: exact where a diff can't tell identical lines apart.
+fn remap_splice(old: &str, new: &str, s: &Splice) -> HashMap<String, String> {
+    let (_, old_hashes) = keyed_lines(old);
+    let (_, new_hashes) = keyed_lines(new);
+    let pairs = (0..s.at)
+        .map(|i| (i, i))
+        .chain((s.at + s.removed..old_hashes.len()).map(|i| (i, i - s.removed + s.inserted)));
+    pair_hashes(&old_hashes, &new_hashes, pairs)
+}
+
+/// Moves the project's marks to their tasks' new hashes. A moved mark replaces a mark already
+/// on its new hash.
+fn apply_remap(conn: &Connection, project_id: &str, map: &HashMap<String, String>) -> Result<()> {
+    let rows: Vec<(String, String, String)> = conn
+        .prepare("SELECT task_hash, stage, created_at FROM selected_tasks WHERE project_id = ?")?
+        .query_map([project_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+        .collect::<rusqlite::Result<_>>()?;
+    // Deleting first: chains like `#1 → #2, #2 → #3` would clash on the unique index.
+    let moved: Vec<_> = rows
+        .into_iter()
+        .filter_map(|(hash, stage, created_at)| {
+            let new = map.get(&hash).filter(|new| **new != hash)?;
+            Some((hash, new.clone(), stage, created_at))
+        })
+        .collect();
+    for (hash, ..) in &moved {
+        conn.execute(
+            "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
+            [project_id, hash],
+        )?;
+    }
+    for (_, new, stage, created_at) in &moved {
+        conn.execute(
+            "INSERT OR REPLACE INTO selected_tasks (project_id, task_hash, stage, created_at)
+             VALUES (?, ?, ?, ?)",
+            [project_id, new, stage, created_at],
+        )?;
+    }
+    Ok(())
+}
+
+/// Moves marks over the edits made since the data repo's last commit of the file (an editor,
+/// another process). Projects without a hardlink have no history: their marks stay.
+fn sync_uncommitted(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    project_type: &str,
+) -> Result<()> {
+    let hardlink = paths.hardlink(project_id, project_type);
+    let Ok(rel) = hardlink.strip_prefix(&paths.root) else {
+        return Ok(());
+    };
+    let spec = format!("HEAD:{}", rel.to_string_lossy());
+    let (Ok(old), Some(new)) = (
+        git::run(&paths.root, &["show", &spec]),
+        read_text(&hardlink),
+    ) else {
+        return Ok(());
+    };
+    apply_remap(conn, project_id, &remap(&old, &new))
+}
+
+/// Brings marks up to date with the project's file and commits it. Holds the DB write lock
+/// throughout, so the watcher and other processes don't remap the same edit twice.
+pub fn sync_marks(conn: &Connection, paths: &Paths, project_id: &str) -> Result<()> {
+    edit(conn, paths, project_id, |_| Ok(((), None)))
+}
+
+/// [`sync_marks`] for every project; a project that fails is skipped.
+pub fn sync_all(conn: &Connection, paths: &Paths) -> Result<()> {
+    for row in projects::list_by_name(conn)? {
+        let _ = sync_marks(conn, paths, &row.id);
+    }
+    Ok(())
+}
+
+/// Edits the project's file with `f`, which returns what it spliced, then moves the marks of
+/// the lines that shifted and commits. Outside edits pending since the last commit are synced
+/// first. The DB write lock is held throughout; an error rolls the marks back.
+fn edit<T>(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    f: impl FnOnce(&Path) -> Result<(T, Option<Splice>)>,
+) -> Result<T> {
+    let (file_path, project_type) = projects::file_and_type(conn, project_id)?;
+    let tx = Transaction::new_unchecked(conn, TransactionBehavior::Immediate)?;
+    sync_uncommitted(conn, paths, project_id, &project_type)?;
+    let old = read_text(&file_path);
+    let (out, splice) = f(&file_path)?;
+    if let (Some(old), Some(new), Some(splice)) = (old, read_text(&file_path), splice) {
+        apply_remap(conn, project_id, &remap_splice(&old, &new, &splice))?;
+    }
+    commit_activity(paths, project_id, &project_type);
+    tx.commit()?;
+    Ok(out)
 }
 
 /// The lines a [`delete`] removed, to put them back with [`restore`].
@@ -433,16 +583,22 @@ pub fn delete(
     project_id: &str,
     task_hash: &str,
 ) -> Result<Deleted> {
-    let (file_path, project_type) = projects::file_and_type(conn, project_id)?;
-    let (text, crlf) = read_lf(&file_path).map_err(|_| Error::NotFound("task"))?;
-    let (kept, deleted) = remove_task(&text, task_hash).ok_or(Error::NotFound("task"))?;
-    write_lf(&file_path, &kept, crlf)?;
-    commit_activity(paths, project_id, &project_type);
-    conn.execute(
-        "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
-        [project_id, task_hash],
-    )?;
-    Ok(deleted)
+    edit(conn, paths, project_id, |path| {
+        let (text, crlf) = read_lf(path).map_err(|_| Error::NotFound("task"))?;
+        let (kept, deleted) = remove_task(&text, task_hash).ok_or(Error::NotFound("task"))?;
+        // Before the remap: a shifted duplicate may take this hash.
+        conn.execute(
+            "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
+            [project_id, task_hash],
+        )?;
+        write_lf(path, &kept, crlf)?;
+        let splice = Splice {
+            at: deleted.line_number,
+            removed: split_lines_keep_ends(&deleted.text).len(),
+            inserted: 0,
+        };
+        Ok((deleted, Some(splice)))
+    })
 }
 
 /// Puts deleted lines back at `line_number` (at the end, if the file got shorter) and commits.
@@ -453,11 +609,16 @@ pub fn restore(
     line_number: usize,
     text: &str,
 ) -> Result<()> {
-    let (file_path, project_type) = projects::file_and_type(conn, project_id)?;
-    let (current, crlf) = read_lf(&file_path)?;
-    write_lf(&file_path, &insert_lines(&current, line_number, text), crlf)?;
-    commit_activity(paths, project_id, &project_type);
-    Ok(())
+    edit(conn, paths, project_id, |path| {
+        let (current, crlf) = read_lf(path)?;
+        write_lf(path, &insert_lines(&current, line_number, text), crlf)?;
+        let splice = Splice {
+            at: line_number.min(split_lines_keep_ends(&current).len()),
+            removed: 0,
+            inserted: split_lines_keep_ends(text).len(),
+        };
+        Ok(((), Some(splice)))
+    })
 }
 
 /// Marks a task `stage` (`next` or `inbox`), replacing its other mark.
@@ -1249,5 +1410,114 @@ Some plain text here.
             .map(|e| e.project_name)
             .collect();
         assert_eq!(names, ["zulu", "Bravo", "charlie"]);
+    }
+
+    fn h(line: &str, occurrence: usize) -> String {
+        task_hash(line, occurrence)
+    }
+
+    /// The project's marks as (hash, stage, created_at), by hash.
+    fn mark_list(conn: &Connection) -> Vec<(String, String, String)> {
+        conn.prepare("SELECT task_hash, stage, created_at FROM selected_tasks ORDER BY task_hash")
+            .unwrap()
+            .query_map((), |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap()
+    }
+
+    fn last_subject(paths: &Paths) -> String {
+        git::run(&paths.root, &["log", "-1", "--format=%s"]).unwrap()
+    }
+
+    #[test]
+    fn remap_follows_a_duplicate_shifted_by_an_insert_or_delete() {
+        let before = "## A\n## B\n- [ ] x\n";
+        let after = "## A\n- [ ] x\n## B\n- [ ] x\n";
+        assert_eq!(remap(before, after)[&h("- [ ] x", 1)], h("- [ ] x", 2));
+        assert_eq!(remap(after, before)[&h("- [ ] x", 2)], h("- [ ] x", 1));
+        assert!(!remap(after, before).contains_key(&h("- [ ] x", 1)));
+    }
+
+    #[test]
+    fn remap_pairs_toggled_lines_and_drops_reworded_ones() {
+        let map = remap("- [ ] a\n- [ ] b\n", "- [x] a2\n- [x] b\n");
+        assert_eq!(map[&h("- [ ] b", 1)], h("- [ ] b", 1));
+        assert!(!map.contains_key(&h("- [ ] a", 1)));
+    }
+
+    #[test]
+    fn remap_splice_is_exact_next_to_identical_lines() {
+        let splice = Splice {
+            at: 1,
+            removed: 0,
+            inserted: 1,
+        };
+        let map = remap_splice("- [ ] x\n- [ ] x\n", "- [ ] x\n- [ ] x\n- [ ] x\n", &splice);
+        assert_eq!(map[&h("- [ ] x", 1)], h("- [ ] x", 1));
+        assert_eq!(map[&h("- [ ] x", 2)], h("- [ ] x", 3));
+    }
+
+    #[test]
+    fn sync_marks_follows_an_editor_insert_and_commits() {
+        let (_tmp, paths, conn, todo, id) = project();
+        fs::write(&todo, "## A\n## B\n- [ ] x\n## C\n- [ ] x\n").unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+        select(&conn, &id, &h("- [ ] x", 1)).unwrap();
+        inbox(&conn, &id, &h("- [ ] x", 2)).unwrap();
+        conn.execute("UPDATE selected_tasks SET created_at = '2000-01-01'", ())
+            .unwrap();
+
+        fs::write(&todo, "## A\n- [ ] x\n## B\n- [ ] x\n## C\n- [ ] x\n").unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+
+        let mut expected = vec![
+            (
+                h("- [ ] x", 2),
+                "next".to_string(),
+                "2000-01-01".to_string(),
+            ),
+            (
+                h("- [ ] x", 3),
+                "inbox".to_string(),
+                "2000-01-01".to_string(),
+            ),
+        ];
+        expected.sort();
+        assert_eq!(mark_list(&conn), expected);
+        assert_eq!(last_subject(&paths), "activity: p1.md\n");
+
+        // Already committed: nothing moves twice.
+        sync_marks(&conn, &paths, &id).unwrap();
+        assert_eq!(mark_list(&conn), expected);
+    }
+
+    #[test]
+    fn sync_marks_without_history_or_hardlink_keeps_marks() {
+        let (_tmp, paths, conn, todo, id) = project();
+        fs::write(&todo, "## A\n## B\n- [ ] x\n").unwrap();
+        select(&conn, &id, &h("- [ ] x", 1)).unwrap();
+        fs::write(&todo, "## A\n- [ ] x\n## B\n- [ ] x\n").unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+        assert_eq!(mark_list(&conn)[0].0, h("- [ ] x", 1));
+
+        fs::remove_file(paths.hardlink(&id, "project")).unwrap();
+        fs::write(&todo, "## A\n## B\n- [ ] x\n").unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+        assert_eq!(mark_list(&conn)[0].0, h("- [ ] x", 1));
+    }
+
+    #[test]
+    fn delete_and_restore_keep_a_duplicate_s_mark() {
+        let (_tmp, paths, conn, todo, id) = project();
+        fs::write(&todo, "- [ ] x\n- [ ] x\n").unwrap();
+        select(&conn, &id, &h("- [ ] x", 2)).unwrap();
+
+        let deleted = delete(&conn, &paths, &id, &h("- [ ] x", 1)).unwrap();
+        assert_eq!(mark_list(&conn)[0].0, h("- [ ] x", 1));
+
+        restore(&conn, &paths, &id, deleted.line_number, &deleted.text).unwrap();
+        assert_eq!(mark_list(&conn).len(), 1);
+        assert_eq!(mark_list(&conn)[0].0, h("- [ ] x", 2));
     }
 }

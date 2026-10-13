@@ -119,6 +119,8 @@ pub fn run() {
             let paths = pov_core::Paths::data_dir(dev)?;
             pov_core::storage::init(&paths)?;
             pov_core::db::init(&paths)?;
+            // Edits made while the app was closed: marks follow their shifted tasks.
+            pov_core::tasks::sync_all(&pov_core::db::open(&paths)?, &paths)?;
             // Kept in app state: watching stops when the watcher is dropped.
             app.manage(pov_core::watcher::start(&paths)?);
             app.manage(paths);
