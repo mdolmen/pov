@@ -621,6 +621,124 @@ pub fn restore(
     })
 }
 
+/// A heading of a TODO.md: where [`add`] can put a task.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Section {
+    pub text: String,
+    pub level: usize,
+}
+
+/// The file's headings, in order.
+pub fn sections(path: &Path) -> Vec<Section> {
+    parse_items(path)
+        .into_iter()
+        .filter_map(|item| match item {
+            Item::Heading { text, level } => Some(Section { text, level }),
+            Item::Task(_) => None,
+        })
+        .collect()
+}
+
+/// The line a task appended to `section` goes at: after the section's last non-blank line, or
+/// right after its heading when it is empty. A section runs to the next heading of the same or
+/// a higher level; `None` is the whole file.
+fn section_end(text: &str, section: Option<&str>) -> Result<usize> {
+    let lines = split_lines(text);
+    let heading = |line: &str| {
+        HEADING_RE
+            .captures(line)
+            .map(|h| (strip(&h[2]).to_string(), h[1].len()))
+    };
+    let (start, end) = match section {
+        None => (0, lines.len()),
+        Some(name) => {
+            let (at, level) = lines
+                .iter()
+                .enumerate()
+                .find_map(|(i, line)| {
+                    heading(line)
+                        .filter(|(text, _)| text == name)
+                        .map(|(_, level)| (i, level))
+                })
+                .ok_or_else(|| Error::Invalid(format!("no heading '{name}'")))?;
+            let end = lines[at + 1..]
+                .iter()
+                .position(|line| heading(line).is_some_and(|(_, l)| l <= level))
+                .map_or(lines.len(), |p| at + 1 + p);
+            (at + 1, end)
+        }
+    };
+    Ok(lines[start..end]
+        .iter()
+        .rposition(|line| !strip(line).is_empty())
+        .map_or(start, |p| start + p + 1))
+}
+
+/// [`append_task`], also returning the new task's line.
+fn append(path: &Path, text: &str, section: Option<&str>) -> Result<(String, usize)> {
+    let task = strip(text);
+    if task.is_empty() || split_lines(task).len() != 1 {
+        return Err(Error::Invalid(
+            "a task is one line of non-blank text".to_string(),
+        ));
+    }
+    let (current, crlf) = read_lf(path)?;
+    let at = section_end(&current, section)?;
+    let new = insert_lines(&current, at, &format!("- [ ] {task}\n"));
+    write_lf(path, &new, crlf)?;
+    let hash = tasks_of(&new)
+        .into_iter()
+        .find(|t| t.line_number == at)
+        .map(|t| t.hash)
+        .ok_or(Error::NotFound("task"))?;
+    Ok((hash, at))
+}
+
+/// Appends `- [ ] <text>` at the end of the section under heading `section` (exact text, any
+/// level; `None`: the end of the file) and returns the new task's hash. Writes in place, so
+/// the hardlink keeps the change, and keeps CRLF.
+pub fn append_task(path: &Path, text: &str, section: Option<&str>) -> Result<String> {
+    Ok(append(path, text, section)?.0)
+}
+
+/// Adds a task to a project's file (see [`append_task`]), commits it and marks it `stage`:
+/// `inbox`, `next`, or `backlog` (no mark). Returns its hash.
+pub fn add(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    text: &str,
+    section: Option<&str>,
+    stage: &str,
+) -> Result<String> {
+    let (_, project_type) = projects::file_and_type(conn, project_id)?;
+    if !["inbox", "backlog", "next"].contains(&stage) {
+        return Err(Error::Invalid(format!("unknown stage '{stage}'")));
+    }
+    // A learning project's file may be a PDF.
+    if project_type != "project" {
+        return Err(Error::Invalid(
+            "tasks can only be added to a project, not a learning project".to_string(),
+        ));
+    }
+    let hash = edit(conn, paths, project_id, |path| {
+        let (hash, at) = append(path, text, section)?;
+        let splice = Splice {
+            at,
+            removed: 0,
+            inserted: 1,
+        };
+        Ok((hash, Some(splice)))
+    })?;
+    // After the remap, which moves marks off the hashes the shift reused.
+    match stage {
+        "inbox" => inbox(conn, project_id, &hash)?,
+        "next" => select(conn, project_id, &hash)?,
+        _ => {}
+    }
+    Ok(hash)
+}
+
 /// Marks a task `stage` (`next` or `inbox`), replacing its other mark.
 fn set_stage(conn: &Connection, project_id: &str, task_hash: &str, stage: &str) -> Result<()> {
     projects::file_and_type(conn, project_id)?;
@@ -1519,5 +1637,147 @@ Some plain text here.
         restore(&conn, &paths, &id, deleted.line_number, &deleted.text).unwrap();
         assert_eq!(mark_list(&conn).len(), 1);
         assert_eq!(mark_list(&conn)[0].0, h("- [ ] x", 2));
+    }
+
+    /// Appends to a file holding `before`, checks the result is `after`, returns the hash.
+    fn appended(before: &str, task: &str, section: Option<&str>, after: &str) -> String {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), before);
+        let hash = append_task(&path, task, section).unwrap();
+        assert_eq!(fs::read_to_string(&path).unwrap(), after);
+        hash
+    }
+
+    #[test]
+    fn append_task_at_the_end_of_the_file() {
+        appended(
+            "# T\n- [ ] a\n\n\n",
+            "b",
+            None,
+            "# T\n- [ ] a\n- [ ] b\n\n\n",
+        );
+        appended("", "b", None, "- [ ] b\n");
+        appended("- [ ] a", " b ", None, "- [ ] a\n- [ ] b\n");
+    }
+
+    #[test]
+    fn append_task_at_the_end_of_a_section() {
+        let before = "## A\n- [ ] a\n\n## B\n- [ ] b\n";
+        appended(
+            before,
+            "x",
+            Some("A"),
+            "## A\n- [ ] a\n- [ ] x\n\n## B\n- [ ] b\n",
+        );
+
+        let before = "## A\n### A1\n- [ ] a1\n\n## B\n";
+        let after = "## A\n### A1\n- [ ] a1\n- [ ] x\n\n## B\n";
+        appended(before, "x", Some("A"), after);
+
+        appended("## A\n\n## B\n", "x", Some("A"), "## A\n- [ ] x\n\n## B\n");
+    }
+
+    #[test]
+    fn append_task_keeps_crlf() {
+        let before = "## A\r\n- [ ] a\r\n## B\r\n";
+        appended(
+            before,
+            "x",
+            Some("A"),
+            "## A\r\n- [ ] a\r\n- [ ] x\r\n## B\r\n",
+        );
+    }
+
+    #[test]
+    fn append_task_gives_a_duplicate_its_own_hash() {
+        let hash = appended("- [ ] x\n", "x", None, "- [ ] x\n- [ ] x\n");
+        assert_eq!(hash, h("- [ ] x", 2));
+    }
+
+    #[test]
+    fn append_task_rejects_bad_text_and_unknown_headings() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), TODO);
+        for (text, section) in [
+            ("", None),
+            ("  ", None),
+            ("a\nb", None),
+            ("a\rb", None),
+            ("a", Some("Nope")),
+        ] {
+            assert!(matches!(
+                append_task(&path, text, section),
+                Err(Error::Invalid(_))
+            ));
+        }
+        assert_eq!(fs::read_to_string(&path).unwrap(), TODO);
+    }
+
+    #[test]
+    fn sections_lists_headings_with_levels() {
+        let tmp = tempfile::tempdir().unwrap();
+        let sections = sections(&file(tmp.path(), MIXED_CONTENT));
+        let expected = [("Section one", 1), ("Section two", 2)];
+        let got: Vec<_> = sections
+            .iter()
+            .map(|s| (s.text.as_str(), s.level))
+            .collect();
+        assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn add_writes_through_the_hardlink_commits_and_marks() {
+        use std::os::unix::fs::MetadataExt;
+        let (_tmp, paths, conn, todo, id) = project();
+        let hardlink = paths.hardlink(&id, "project");
+
+        let inboxed = add(&conn, &paths, &id, "In", None, "inbox").unwrap();
+        let next = add(&conn, &paths, &id, "Next", None, "next").unwrap();
+        let backlog = add(&conn, &paths, &id, "Later", None, "backlog").unwrap();
+
+        assert_eq!(
+            fs::read_to_string(&hardlink).unwrap(),
+            format!("{TODO}- [ ] In\n- [ ] Next\n- [ ] Later\n")
+        );
+        assert_eq!(
+            fs::metadata(&todo).unwrap().ino(),
+            fs::metadata(&hardlink).unwrap().ino()
+        );
+        assert_eq!(last_subject(&paths), "activity: p1.md\n");
+        assert_eq!(marks(&conn, &id, &inboxed), (false, true));
+        assert_eq!(marks(&conn, &id, &next), (true, false));
+        assert_eq!(marks(&conn, &id, &backlog), (false, false));
+    }
+
+    #[test]
+    fn add_rejects_bad_stages_and_learning_projects() {
+        let (_tmp, paths, conn, todo, id) = project();
+        assert!(matches!(
+            add(&conn, &paths, &id, "x", None, "later"),
+            Err(Error::Invalid(_))
+        ));
+        conn.execute("UPDATE projects SET type = 'learning'", ())
+            .unwrap();
+        assert!(matches!(
+            add(&conn, &paths, &id, "x", None, "inbox"),
+            Err(Error::Invalid(_))
+        ));
+        assert_eq!(fs::read_to_string(&todo).unwrap(), TODO);
+    }
+
+    #[test]
+    fn add_above_a_marked_duplicate_keeps_its_mark() {
+        let (_tmp, paths, conn, todo, id) = project();
+        fs::write(&todo, "## A\n- [ ] x\n## B\n- [ ] x\n").unwrap();
+        select(&conn, &id, &h("- [ ] x", 1)).unwrap();
+        select(&conn, &id, &h("- [ ] x", 2)).unwrap();
+
+        let hash = add(&conn, &paths, &id, "x", Some("A"), "inbox").unwrap();
+
+        assert_eq!(hash, h("- [ ] x", 2));
+        assert_eq!(marks(&conn, &id, &h("- [ ] x", 1)), (true, false));
+        assert_eq!(marks(&conn, &id, &hash), (false, true));
+        assert_eq!(marks(&conn, &id, &h("- [ ] x", 3)), (true, false));
+        assert_eq!(mark_rows(&conn), 3);
     }
 }

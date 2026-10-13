@@ -284,30 +284,30 @@ See DECISIONS.md (2026-10-13).
   - [x] `edit`: DB write lock, sync pending edits, edit, move marks, commit; used by `toggle` / `delete` / `restore`
   - [x] Watcher calls `sync_marks`; app startup calls `sync_all`
   - [x] Tests: shifted duplicate, chain of 3, no history, no hardlink, delete / undo, watcher
-- [ ] `tasks::append_task(path, text, section) -> Result<String>`, returns the new task's hash:
-  - [ ] appends `- [ ] <text>` at the end of the section under heading `section` (exact text, any level)
-  - [ ] a section ends at the next heading of the same or higher level
-  - [ ] `None` appends at end of file
-  - [ ] writes in place (never rename-replace, which breaks the hardlink)
-  - [ ] keeps CRLF files CRLF
-  - [ ] `Error::Invalid` on empty or multi-line text, or an unknown heading
-- [ ] `tasks::sections(path)`: the file's headings (text, level)
+- [x] `tasks::append_task(path, text, section) -> Result<String>`, returns the new task's hash:
+  - [x] appends `- [ ] <text>` at the end of the section under heading `section` (exact text, any level)
+  - [x] a section ends at the next heading of the same or higher level
+  - [x] `None` appends at end of file
+  - [x] writes in place (never rename-replace, which breaks the hardlink)
+  - [x] keeps CRLF files CRLF
+  - [x] `Error::Invalid` on empty or multi-line text, or an unknown heading
+- [x] `tasks::sections(path)`: the file's headings (text, level)
 - [ ] `projects::resolve(conn, query)`: exact id, else case-insensitive name; error listing candidates on miss / ambiguity
-- [ ] `tasks::add(conn, paths, project_id, text, section, stage)`:
-  - [ ] `append_task`
-  - [ ] commit `activity: <id>.md` on the hardlink, like `toggle`
-  - [ ] `select` / `inbox` per `stage` (`inbox | backlog | next`)
+- [x] `tasks::add(conn, paths, project_id, text, section, stage)`:
+  - [x] `append_task`
+  - [x] commit `activity: <id>.md` on the hardlink, like `toggle`
+  - [x] `select` / `inbox` per `stage` (`inbox | backlog | next`)
 - [ ] Tests:
-  - [ ] append at end of file
-  - [ ] append inside a section followed by another heading
-  - [ ] append inside a section with `###` children
-  - [ ] missing trailing newline
-  - [ ] CRLF kept
-  - [ ] hardlink still shares the inode
-  - [ ] duplicate text gets a distinct hash
-  - [ ] unknown heading and multi-line text rejected
+  - [x] append at end of file
+  - [x] append inside a section followed by another heading
+  - [x] append inside a section with `###` children
+  - [x] missing trailing newline
+  - [x] CRLF kept
+  - [x] hardlink still shares the inode
+  - [x] duplicate text gets a distinct hash
+  - [x] unknown heading and multi-line text rejected
   - [ ] `resolve` by id, by name in any case, ambiguous, unknown
-  - [ ] `add` persists the stage and commits
+  - [x] `add` persists the stage and commits
 
 ### Server (`pov-cli mcp`)
 
