@@ -146,3 +146,12 @@
   - The app syncs every project at startup, for edits made while it was closed.
   - Not covered: projects without a hardlink (no history), reworded lines, and moved lines
     that have duplicates.
+
+## 2026-10-13 — Tile week bands count repo commits
+
+- **Decision:** a tile's week bands count activity like the bottom heatmap: the commits of the
+  git repo holding the project's file, else its `activity:` commits in the data repo.
+- **Why:** the bands only counted TODO.md edits through the hardlink, so code work didn't show,
+  and an editor saving by rename (Claude Code's Edit tool does) broke the hardlink and froze them.
+- **Constraints:** projects sharing a repo show the same bands. The tile's activity level (dimmed
+  tile) still reads the hardlink's last `activity:` commit.

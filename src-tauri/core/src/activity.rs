@@ -171,43 +171,50 @@ pub fn heatmap(
         .collect())
 }
 
-/// Per-day `activity:` commits of one project's hardlink over the last `days` days. A project
-/// without a hardlink has none.
+/// Per-day activity of one project over the last `days` days, counted like [`heatmap`]: the
+/// commits of the git repo holding its file, else its hardlink's `activity:` commits in the data
+/// repo (none without a hardlink).
 pub fn project_days(
     conn: &Connection,
     paths: &Paths,
     project_id: &str,
     days: u64,
 ) -> Result<Vec<ActivityDay>> {
-    let (project_type, has_hardlink): (String, bool) = conn
+    let (project_type, has_hardlink, file_path): (String, bool, String) = conn
         .query_row(
-            "SELECT type, has_hardlink FROM projects WHERE id = ?",
+            "SELECT type, has_hardlink, file_path FROM projects WHERE id = ?",
             [project_id],
-            |row| Ok((row.get(0)?, row.get(1)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .optional()?
         .ok_or(Error::NotFound("project"))?;
-    if !has_hardlink {
-        return Ok(vec![]);
-    }
 
-    let hardlink = paths.hardlink(project_id, &project_type);
-    let since = format!("--since={days} days ago");
-    let out = git::run(
-        &paths.root,
-        &[
-            "log".as_ref(),
-            since.as_ref(),
-            "--grep=^activity:".as_ref(),
-            "--pretty=format:%aI".as_ref(),
-            "--".as_ref(),
-            hardlink.as_os_str(),
-        ],
-    )
-    .unwrap_or_default();
+    let timestamps = if let Some(root) = git_root(Path::new(&file_path)) {
+        git_log(&root, days, "%aI")
+    } else if has_hardlink {
+        let hardlink = paths.hardlink(project_id, &project_type);
+        let since = format!("--since={days} days ago");
+        git::run(
+            &paths.root,
+            &[
+                "log".as_ref(),
+                since.as_ref(),
+                "--grep=^activity:".as_ref(),
+                "--pretty=format:%aI".as_ref(),
+                "--".as_ref(),
+                hardlink.as_os_str(),
+            ],
+        )
+        .unwrap_or_default()
+        .lines()
+        .map(String::from)
+        .collect()
+    } else {
+        vec![]
+    };
 
     let mut counts: BTreeMap<String, u32> = BTreeMap::new();
-    for day in out.lines().filter_map(|line| day_of(line.trim())) {
+    for day in timestamps.iter().filter_map(|line| day_of(line.trim())) {
         *counts.entry(day).or_default() += 1;
     }
     Ok(counts
@@ -504,5 +511,21 @@ mod tests {
             project_days(&env.conn, &env.paths, "nope", 56),
             Err(Error::NotFound("project"))
         ));
+    }
+
+    #[test]
+    fn project_days_count_the_commits_of_the_project_repo() {
+        let env = Env::new();
+        let repo = env.dir("repo", true);
+        env.add("p", &repo, "project");
+        commit_at(&repo, days_ago(200), "too old");
+        commit_at(&repo, days_ago(1), "code");
+        commit_at(&repo, days_ago(0), "more code");
+        // The data repo's `activity:` commits don't add to the repo's.
+        commit_at(&env.paths.root, days_ago(0), "activity: p.md");
+
+        let days = project_days(&env.conn, &env.paths, "p", 56).unwrap();
+
+        assert_eq!(days.iter().map(|d| d.count).sum::<u32>(), 2);
     }
 }
