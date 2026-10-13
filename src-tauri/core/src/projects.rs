@@ -191,6 +191,41 @@ pub fn find_by_name(conn: &Connection, name: &str) -> Result<ProjectRow> {
     }
 }
 
+/// The project with id `query`, else the one named `query` in any case. A miss or several
+/// matches is `Invalid`, naming the candidates.
+pub fn resolve(conn: &Connection, query: &str) -> Result<ProjectRow> {
+    match find_row(conn, query) {
+        Err(Error::NotFound(_)) => {}
+        found => return found,
+    }
+    let mut rows: Vec<ProjectRow> = conn
+        .prepare(&format!(
+            "SELECT {COLUMNS} FROM projects WHERE name = ? COLLATE NOCASE ORDER BY name"
+        ))?
+        .query_map([query], row_of)?
+        .collect::<rusqlite::Result<_>>()?;
+    match rows.len() {
+        1 => Ok(rows.remove(0)),
+        0 => {
+            let names: Vec<_> = list_by_name(conn)?.into_iter().map(|r| r.name).collect();
+            Err(Error::Invalid(format!(
+                "no project '{query}'; projects: {}",
+                names.join(", ")
+            )))
+        }
+        _ => {
+            let matches: Vec<_> = rows
+                .iter()
+                .map(|r| format!("{} ({})", r.id, r.name))
+                .collect();
+            Err(Error::Invalid(format!(
+                "several projects named '{query}': {}",
+                matches.join(", ")
+            )))
+        }
+    }
+}
+
 /// `true` when the hardlink was made, `false` when the file is on another filesystem.
 fn hardlinked(result: io::Result<()>) -> Result<bool> {
     match result {
@@ -605,5 +640,28 @@ mod tests {
             update(&env.conn, &env.paths, &id, &changes),
             Err(Error::Invalid(_))
         ));
+    }
+
+    #[test]
+    fn resolve_by_id_then_by_name_in_any_case() {
+        let env = Env::new();
+        let id = env.add("Pov", &env.todo, "project").unwrap();
+        assert_eq!(resolve(&env.conn, &id).unwrap().id, id);
+        assert_eq!(resolve(&env.conn, "pOV").unwrap().id, id);
+    }
+
+    #[test]
+    fn resolve_names_the_candidates_on_a_miss_or_a_tie() {
+        let env = Env::new();
+        let a = env.add("Same", &env.todo, "project").unwrap();
+        let b = env.add("same", &env.pdf(), "learning").unwrap();
+        let Err(Error::Invalid(tie)) = resolve(&env.conn, "SAME") else {
+            panic!("expected a tie");
+        };
+        assert!(tie.contains(&a) && tie.contains(&b), "{tie}");
+        let Err(Error::Invalid(miss)) = resolve(&env.conn, "nope") else {
+            panic!("expected a miss");
+        };
+        assert_eq!(miss, "no project 'nope'; projects: Same, same");
     }
 }

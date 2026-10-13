@@ -292,12 +292,12 @@ See DECISIONS.md (2026-10-13).
   - [x] keeps CRLF files CRLF
   - [x] `Error::Invalid` on empty or multi-line text, or an unknown heading
 - [x] `tasks::sections(path)`: the file's headings (text, level)
-- [ ] `projects::resolve(conn, query)`: exact id, else case-insensitive name; error listing candidates on miss / ambiguity
+- [x] `projects::resolve(conn, query)`: exact id, else case-insensitive name; error listing candidates on miss / ambiguity
 - [x] `tasks::add(conn, paths, project_id, text, section, stage)`:
   - [x] `append_task`
   - [x] commit `activity: <id>.md` on the hardlink, like `toggle`
   - [x] `select` / `inbox` per `stage` (`inbox | backlog | next`)
-- [ ] Tests:
+- [x] Tests:
   - [x] append at end of file
   - [x] append inside a section followed by another heading
   - [x] append inside a section with `###` children
@@ -306,7 +306,7 @@ See DECISIONS.md (2026-10-13).
   - [x] hardlink still shares the inode
   - [x] duplicate text gets a distinct hash
   - [x] unknown heading and multi-line text rejected
-  - [ ] `resolve` by id, by name in any case, ambiguous, unknown
+  - [x] `resolve` by id, by name in any case, ambiguous, unknown
   - [x] `add` persists the stage and commits
 
 ### Server (`pov-cli mcp`)
