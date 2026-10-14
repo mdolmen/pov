@@ -2,6 +2,8 @@
 
 A macOS desktop app for tracking TODO.md files across projects. Built with Tauri, a React frontend and a Rust core (`src-tauri/core/`), which also provides the `pov` CLI.
 
+Can be fed by external tools via MCP.
+
 ![Project Overview](screens/projects.png)
 
 ## Prerequisites
