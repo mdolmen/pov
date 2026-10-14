@@ -176,7 +176,9 @@ Border color (Archived):
 
 - "Selected" = flagged as "handle next"
 - State persisted in SQLite, keyed by the task's content hash (survives line shifts)
-- Count of selected tasks shown on the project card; projects are ordered by it
+- Count of selected tasks shown on the project card; projects are ordered by it, then by their
+  8-day activity
+- "Next" filters the task pane to the open next tasks; "Inbox" and "Next" are exclusive
 - "Inbox" = added by an external tool, waiting for triage: amber band; a task is next, in the
   inbox or neither (`selected_tasks.stage`). Triage: "Mark next", "Keep" (to backlog), red ×
   (deletes the task and its indented block from the file, Undo for 5 s). Next up ignores inbox

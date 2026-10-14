@@ -264,8 +264,8 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const [timeRefreshKey, setTimeRefreshKey] = useState(0);
   const [timeVisible, setTimeVisible] = useState<boolean>(() => readTimeVisible(project.id));
   const [doneHidden, setDoneHidden] = useState<boolean>(() => readDoneHidden(project.id));
-  // Not saved: a quick look at what's left to triage.
-  const [inboxOnly, setInboxOnly] = useState(false);
+  // Not saved: a quick look at what's left to triage, or at what's next.
+  const [only, setOnly] = useState<"inbox" | "next" | null>(null);
   // The last deleted task, offered for undo for a few seconds.
   const [undo, setUndo] = useState<{ hash: string; text: string; deleted: DeletedTask } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -312,13 +312,19 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
 
   // A milestone caption shows when its milestone shows tasks, even if they're all under `###`.
   const inboxCount = tasks.filter((t) => t.in_inbox && !t.is_done).length;
-  // Triaging the last inbox task leaves the filter on with nothing to show: turn it off.
+  const nextCount = tasks.filter((t) => t.is_selected && !t.is_done).length;
+  // Triaging the last inbox task, or finishing the last next one, leaves the filter on with
+  // nothing to show: turn it off.
   useEffect(() => {
-    if (inboxOnly && inboxCount === 0) setInboxOnly(false);
-  }, [inboxOnly, inboxCount]);
+    if ((only === "inbox" && inboxCount === 0) || (only === "next" && nextCount === 0)) setOnly(null);
+  }, [only, inboxCount, nextCount]);
 
   const sections = sectionsOf(items, (t) =>
-    inboxOnly ? t.in_inbox && !t.is_done : !(doneHidden && t.is_done),
+    only === "inbox"
+      ? t.in_inbox && !t.is_done
+      : only === "next"
+        ? t.is_selected && !t.is_done
+        : !(doneHidden && t.is_done),
   ).filter(
     (s) => s.tasks.length > 0 || (s.heading?.level === 2 && s.progress!.shown > 0),
   );
@@ -342,14 +348,28 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
           {project.name}
         </span>
 
-        {inboxCount > 0 && (
+        {nextCount > 0 && (
           <button
-            onClick={() => setInboxOnly(!inboxOnly)}
-            aria-pressed={inboxOnly}
-            title={inboxOnly ? "Show all tasks" : `Show only the ${inboxCount} inbox tasks`}
+            onClick={() => setOnly(only === "next" ? null : "next")}
+            aria-pressed={only === "next"}
+            title={only === "next" ? "Show all tasks" : `Show only the ${nextCount} next tasks`}
             className={
               "mr-1.5 text-[12px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap cursor-pointer " +
-              (inboxOnly ? "text-inbox bg-inbox-soft" : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
+              (only === "next" ? "text-next bg-next-soft" : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
+            }
+          >
+            Next
+          </button>
+        )}
+
+        {inboxCount > 0 && (
+          <button
+            onClick={() => setOnly(only === "inbox" ? null : "inbox")}
+            aria-pressed={only === "inbox"}
+            title={only === "inbox" ? "Show all tasks" : `Show only the ${inboxCount} inbox tasks`}
+            className={
+              "mr-1.5 text-[12px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap cursor-pointer " +
+              (only === "inbox" ? "text-inbox bg-inbox-soft" : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
             }
           >
             Inbox

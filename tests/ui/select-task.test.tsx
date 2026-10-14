@@ -4,6 +4,7 @@ import { expect, test } from "vitest";
 import {
   addProject,
   checkbox,
+  inboxTasks,
   inOrder,
   nextButton,
   openProject,
@@ -91,4 +92,48 @@ test("a next task checked outside the app no longer counts, before and after a r
     () => expect(projectTiles().getByRole("button", { name: tileName("P") })).toHaveTextContent(/^P2 open/),
     { timeout: 5000 },
   );
+});
+
+test("Next shows only the next tasks, under their milestones", async () => {
+  const project = await addProject({
+    name: "P",
+    content: "## One\n- [ ] alpha\n- [x] beta\n## Two\n- [ ] gamma\n- [ ] delta\n",
+  });
+  await selectTask(project.id, await taskHash(project.id, "gamma"));
+  await inboxTasks(project.id, "delta");
+  const { user } = renderApp();
+  await openProject(user, "P");
+
+  const filter = screen.getByRole("button", { name: "Next", pressed: false });
+  await user.click(filter);
+
+  expect(filter).toHaveAttribute("aria-pressed", "true");
+  expect(taskPane().getByText("gamma")).toBeInTheDocument();
+  for (const text of ["alpha", "beta", "delta"]) {
+    expect(taskPane().queryByText(text)).not.toBeInTheDocument();
+  }
+  expect(taskPane().getByText("Two")).toBeInTheDocument();
+  expect(taskPane().queryByText("One")).not.toBeInTheDocument();
+
+  // Inbox replaces it: one filter at a time.
+  await user.click(screen.getByRole("button", { name: "Inbox", pressed: false }));
+  expect(filter).toHaveAttribute("aria-pressed", "false");
+  expect(taskPane().getByText("delta")).toBeInTheDocument();
+  expect(taskPane().queryByText("gamma")).not.toBeInTheDocument();
+});
+
+test("no Next filter without next tasks; finishing the last one turns it off", async () => {
+  await addProject({ name: "P", content: "- [ ] alpha\n- [ ] beta\n" });
+  const { user } = renderApp();
+  await openProject(user, "P");
+  expect(screen.queryByRole("button", { name: "Next", pressed: false })).not.toBeInTheDocument();
+
+  await user.click(nextButton("alpha"));
+  await user.click(screen.getByRole("button", { name: "Next", pressed: false }));
+  await user.click(checkbox("alpha"));
+
+  await waitFor(() =>
+    expect(screen.queryByRole("button", { name: "Next", pressed: true })).not.toBeInTheDocument(),
+  );
+  expect(taskPane().getByText("beta")).toBeInTheDocument();
 });
