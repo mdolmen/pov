@@ -157,3 +157,11 @@
   and an editor saving by rename (Claude Code's Edit tool does) broke the hardlink and froze them.
 - **Constraints:** projects sharing a repo show the same bars. The tile's activity level (dimmed
   tile) still reads the hardlink's last `activity:` commit.
+
+## 2026-10-14 — Tiles ordered by next tasks, then activity
+
+- **Decision:** project tiles are ordered by next task count, then by activity over the tile's
+  8 days (the summed shades of its cells, then the commits they count), then by name.
+- **Why:** among projects without next tasks, the ones being worked on come first.
+- **Constraints:** the list fetches the 8-day counts of its tab's projects and passes them to
+  the tiles; tiles may reorder once those counts arrive. Next up keeps its own order.

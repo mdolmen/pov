@@ -1,52 +1,11 @@
-import { useEffect, useState } from "react";
-import { listProjectActivity } from "@/lib/backend";
+import { dayLevel } from "@/hooks/useProjectDays";
 import type { Project } from "@/types";
-
-const DAYS = 8;
-
-function dateKey(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-/** Ramp step of a day's activity count. */
-function dayLevel(count: number): number {
-  if (count <= 0) return 0;
-  if (count <= 2) return 1;
-  if (count <= 5) return 2;
-  if (count <= 9) return 3;
-  return 4;
-}
 
 /**
  * Activity of the last 8 days, one cell per day: two bars of four, oldest at the top of the
  * left bar, today at the bottom of the right one.
  */
-function DayBars({ project, refreshKey }: { project: Project; refreshKey: number }) {
-  const [days, setDays] = useState<number[]>(() => Array(DAYS).fill(0));
-
-  useEffect(() => {
-    let cancelled = false;
-    listProjectActivity(project.id, project.type, DAYS)
-      .then((activity) => {
-        if (cancelled) return;
-        const counts = new Map(activity.map((d) => [d.date, d.count]));
-        const cells: number[] = [];
-        for (let ago = DAYS - 1; ago >= 0; ago--) {
-          const d = new Date();
-          d.setDate(d.getDate() - ago);
-          cells.push(counts.get(dateKey(d)) ?? 0);
-        }
-        setDays(cells);
-      })
-      .catch(() => {
-        // Keep the current bars; the next refresh will retry.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [project.id, project.type, refreshKey]);
-
+function DayBars({ days }: { days: number[] }) {
   return (
     <span
       className="grid grid-rows-4 grid-flow-col gap-0.5 shrink-0"
@@ -67,11 +26,12 @@ function DayBars({ project, refreshKey }: { project: Project; refreshKey: number
 interface Props {
   project: Project;
   selected: boolean;
-  activityRefreshKey: number;
+  /** Activity counts of the last 8 days, oldest first. */
+  days: number[];
   onClick: () => void;
 }
 
-export function ProjectTile({ project, selected, activityRefreshKey, onClick }: Props) {
+export function ProjectTile({ project, selected, days, onClick }: Props) {
   const quiet = project.activity === "older" || project.activity === "none";
 
   return (
@@ -103,7 +63,7 @@ export function ProjectTile({ project, selected, activityRefreshKey, onClick }: 
           )}
         </span>
       </span>
-      <DayBars project={project} refreshKey={activityRefreshKey} />
+      <DayBars days={days} />
       {project.inbox_count > 0 && (
         <span
           aria-label={`${project.inbox_count} in inbox`}

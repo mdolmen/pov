@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ProjectTile } from "@/components/ProjectTile";
+import { byActivity, useProjectDays } from "@/hooks/useProjectDays";
 import type { Project, Tab } from "@/types";
 
 interface Props {
@@ -40,16 +41,17 @@ export function ProjectTiles({
 
   const tabType = activeTab === "projects" ? "project" : "learning";
 
-  // Sort by number of selected tasks (desc), then name (asc) as tiebreaker.
-  const bySelected = (a: Project, b: Project) =>
-    b.selected_count - a.selected_count || a.name.localeCompare(b.name);
+  const inTab = projects.filter((p) => p.type === tabType);
+  const daysOf = useProjectDays(inTab, activityRefreshKey);
 
-  const open = projects
-    .filter((p) => p.type === tabType && p.status === "open")
-    .sort(bySelected);
-  const archived = projects
-    .filter((p) => p.type === tabType && p.status === "archived")
-    .sort(bySelected);
+  // Most next tasks first, then most active over the tile's 8 days, then by name.
+  const order = (a: Project, b: Project) =>
+    b.selected_count - a.selected_count ||
+    byActivity(daysOf(a.id), daysOf(b.id)) ||
+    a.name.localeCompare(b.name);
+
+  const open = inTab.filter((p) => p.status === "open").sort(order);
+  const archived = inTab.filter((p) => p.status === "archived").sort(order);
 
   const tiles = (list: Project[]) => (
     <div className="grid grid-cols-2 gap-2">
@@ -58,7 +60,7 @@ export function ProjectTiles({
           key={p.id}
           project={p}
           selected={p.id === selectedId}
-          activityRefreshKey={activityRefreshKey}
+          days={daysOf(p.id)}
           onClick={() => onSelect(p)}
         />
       ))}

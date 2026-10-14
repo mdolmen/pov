@@ -24,24 +24,30 @@ test("tabs show only their own projects", async () => {
   expect(screen.queryByRole("button", { name: /^Work/ })).not.toBeInTheDocument();
 });
 
-test("projects are ordered by next task count, then by name", async () => {
+test("projects are ordered by next task count, then by activity, then by name", async () => {
   await addProject({ name: "Charlie" });
   await addProject({ name: "Bravo" });
+  const active = await addProject({ name: "Yankee", content: "- [ ] a\n" });
+  await toggleTask(active.id, await taskHash(active.id, "a"));
   const busy = await addProject({ name: "Zulu", content: "- [ ] a\n- [ ] b\n" });
   await selectTask(busy.id, await taskHash(busy.id, "a"));
   await selectTask(busy.id, await taskHash(busy.id, "b"));
   renderApp();
 
   await projectTiles().findByRole("button", { name: /^Zulu/ });
-  const names = projectTiles()
-    .getAllByRole("button")
-    .map((b) => b.textContent)
-    .filter((t) => !["Projects", "Learning"].includes(t ?? ""));
-  expect(names).toEqual([
-    expect.stringMatching(/^Zulu2 next of 2 open/),
-    expect.stringMatching(/^Bravo/),
-    expect.stringMatching(/^Charlie/),
-  ]);
+  const names = () =>
+    projectTiles()
+      .getAllByRole("button")
+      .map((b) => b.textContent)
+      .filter((t) => !["Projects", "Learning"].includes(t ?? ""));
+  await waitFor(() =>
+    expect(names()).toEqual([
+      expect.stringMatching(/^Zulu2 next of 2 open/),
+      expect.stringMatching(/^Yankee/),
+      expect.stringMatching(/^Bravo/),
+      expect.stringMatching(/^Charlie/),
+    ]),
+  );
 });
 
 test("archived projects are collapsed until the section is opened", async () => {
