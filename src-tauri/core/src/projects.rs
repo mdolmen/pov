@@ -1,5 +1,6 @@
 //! Tracked projects: the DB row, the hardlink in the data repo, and the config.json entry.
 
+use std::collections::HashSet;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -111,13 +112,29 @@ fn find_row(conn: &Connection, project_id: &str) -> Result<ProjectRow> {
 }
 
 fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project> {
-    let (selected_count, inbox_count) = conn.query_row(
-        "SELECT COUNT(CASE WHEN stage = 'next' THEN 1 END),
-                COUNT(CASE WHEN stage = 'inbox' THEN 1 END)
-         FROM selected_tasks WHERE project_id = ?",
-        [&row.id],
-        |r| Ok((r.get(0)?, r.get(1)?)),
-    )?;
+    // Marks count only on tasks still open in the file, like Next up: a task deleted or checked
+    // in an editor leaves its mark behind.
+    let open: HashSet<String> = tasks::parse_tasks(&row.file_path)
+        .into_iter()
+        .filter(|t| !t.is_done())
+        .map(|t| t.hash)
+        .collect();
+    let (mut selected_count, mut inbox_count) = (0, 0);
+    let mut stmt =
+        conn.prepare("SELECT task_hash, stage FROM selected_tasks WHERE project_id = ?")?;
+    let marks = stmt.query_map([&row.id], |r| {
+        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+    })?;
+    for mark in marks {
+        let (hash, stage) = mark?;
+        if open.contains(&hash) {
+            match stage.as_str() {
+                "next" => selected_count += 1,
+                "inbox" => inbox_count += 1,
+                _ => {}
+            }
+        }
+    }
     // Time recorded on a project counts as activity: reading a PDF or working off-file leaves
     // no trace in git, but the user did work on it.
     let last_time_entry: Option<String> = conn.query_row(
@@ -134,7 +151,7 @@ fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project>
     }
 
     Ok(Project {
-        task_count: tasks::count_tasks(&row.file_path),
+        task_count: open.len(),
         file_path: row.file_path.to_string_lossy().into_owned(),
         id: row.id,
         name: row.name,
@@ -465,9 +482,13 @@ mod tests {
         )
         .unwrap();
 
+        // Marks of tasks no longer in the file don't count.
+        tasks::select(&env.conn, &id, &tasks::task_hash("- [ ] Deleted", 1)).unwrap();
+
         let project = get(&env.conn, &env.paths, &id).unwrap();
 
-        assert_eq!((project.selected_count, project.inbox_count), (1, 2));
+        // The done task's mark doesn't count either, as in Next up.
+        assert_eq!((project.selected_count, project.inbox_count), (1, 1));
     }
 
     #[test]
