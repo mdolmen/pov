@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ProjectTile } from "@/components/ProjectTile";
 import { byActivity, useProjectDays } from "@/hooks/useProjectDays";
-import type { Project, Tab } from "@/types";
+import type { ActivityLevel, Project, Tab } from "@/types";
 
 interface Props {
   projects: Project[];
@@ -12,6 +12,9 @@ interface Props {
   onSelect: (project: Project) => void;
   activityRefreshKey: number;
 }
+
+/** Most recent activity level first. */
+const LEVEL_RANK: Record<ActivityLevel, number> = { this_week: 0, this_month: 1, older: 2, none: 3 };
 
 function Chevron({ expanded }: { expanded: boolean }) {
   return (
@@ -44,10 +47,12 @@ export function ProjectTiles({
   const inTab = projects.filter((p) => p.type === tabType);
   const daysOf = useProjectDays(inTab, activityRefreshKey);
 
-  // Most next tasks first, then most active over the tile's 8 days, then by name.
+  // Most next tasks first, then most active over the tile's 8 days, then by activity level (so
+  // greyed-out tiles come last), then by name.
   const order = (a: Project, b: Project) =>
     b.selected_count - a.selected_count ||
     byActivity(daysOf(a.id), daysOf(b.id)) ||
+    LEVEL_RANK[a.activity] - LEVEL_RANK[b.activity] ||
     a.name.localeCompare(b.name);
 
   const open = inTab.filter((p) => p.status === "open").sort(order);

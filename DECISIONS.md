@@ -161,7 +161,8 @@
 ## 2026-10-14 — Tiles ordered by next tasks, then activity
 
 - **Decision:** project tiles are ordered by next task count, then by activity over the tile's
-  8 days (the summed shades of its cells, then the commits they count), then by name.
+  8 days (the summed shades of its cells, then the commits they count), then by activity level
+  (this week, this month, older, none: greyed-out tiles after idle white ones), then by name.
 - **Why:** among projects without next tasks, the ones being worked on come first.
 - **Constraints:** the list fetches the 8-day counts of its tab's projects and passes them to
   the tiles; tiles may reorder once those counts arrive. Next up keeps its own order.

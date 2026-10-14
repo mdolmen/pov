@@ -1,3 +1,4 @@
+import { utimesSync } from "node:fs";
 import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vitest";
 import { addProject, projectTiles, renderApp, selectTask, taskHash, toggleTask } from "./helpers";
@@ -84,6 +85,24 @@ test("a tile shows its last 8 days of activity, today last", async () => {
   const tile = await projectTiles().findByRole("button", { name: /^Busy/ });
   const bars = tile.querySelector("[data-days]") as HTMLElement;
   await waitFor(() => expect(bars.dataset.days).toBe("0,0,0,0,0,0,0,2"));
+});
+
+test("idle projects come before greyed-out ones", async () => {
+  const stale = await addProject({ name: "Alpha" });
+  const old = new Date(Date.now() - 60 * 24 * 3600 * 1000);
+  utimesSync(stale.file_path, old, old);
+  await addProject({ name: "Zeta" });
+  renderApp();
+
+  await projectTiles().findByRole("button", { name: /^Alpha/ });
+  const names = () =>
+    projectTiles()
+      .getAllByRole("button")
+      .map((b) => b.textContent)
+      .filter((t) => !["Projects", "Learning"].includes(t ?? ""));
+  await waitFor(() =>
+    expect(names()).toEqual([expect.stringMatching(/^Zeta/), expect.stringMatching(/^Alpha/)]),
+  );
 });
 
 test("the open project's tile is ringed", async () => {
