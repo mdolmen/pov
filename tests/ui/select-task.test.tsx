@@ -78,12 +78,12 @@ test("checking a next task strikes it and unselects it", async () => {
   );
 });
 
-test("refresh clears next tasks checked outside the app", async () => {
+test("a next task checked outside the app no longer counts, before and after a refresh", async () => {
   const project = await addProject({ name: "P", content: TODO });
   await selectTask(project.id, await taskHash(project.id, "alpha"));
   writeFileSync(project.file_path, "- [x] alpha\n- [ ] beta\n- [ ] gamma\n");
   const { user } = renderApp();
-  expect(await projectTiles().findByRole("button", { name: /^P1/ })).toBeInTheDocument();
+  expect(await projectTiles().findByRole("button", { name: /^P2 open/ })).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Refresh activity" }));
 
