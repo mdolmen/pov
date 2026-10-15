@@ -408,7 +408,11 @@ fn mcp_lists_tools_and_adds_a_task_to_the_inbox() {
         .collect();
     names.sort_unstable();
     assert_eq!(names, ["add_task", "list_projects", "list_sections"]);
-    assert!(tools.to_string().contains(r#""enum":["inbox","backlog","next"]"#));
+    assert!(
+        tools
+            .to_string()
+            .contains(r#""enum":["inbox","backlog","next"]"#)
+    );
 
     let projects = mcp.call(3, "list_projects", json!({}));
     let projects: Value = serde_json::from_str(text(&projects)).unwrap();
