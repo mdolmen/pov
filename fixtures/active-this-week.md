@@ -5,12 +5,11 @@
 - [ ] Set up database schema in `backend/pov/db.py`
 - [ ] Add authentication endpoints — **blocked** on the token spec
 - [x] Implement rate limiting
-- [ ] Add request logging middleware 0
+- [x] Add request logging middleware 0
 - [ ] Add request logging middleware 1
-- [ ] Add request logging middleware 2
-- [ ] Add request logging middleware 3
-- [ ] Add request logging middleware 4
-- [ ] Add request logging middleware 5
+- [x] Add request logging middleware 2
+- [x] Add request logging middleware 3
+- [x] Add request logging middleware 5
 - [ ] Add request logging middleware 6
 
 ### Get something
@@ -33,11 +32,11 @@
 
 - [ ] ~~Pull in react-markdown~~ superseded by the inline tokenizer
 - [ ] Keep a literal \*asterisk\* unformatted in task text
-- [ ] Confirm `a * b * c` and `2*3*4` match CommonMark
+- [x] Confirm `a * b * c` and `2*3*4` match CommonMark
 
 ## Done (older)
 
-- [ ] Bootstrap project repository
+- [x] Bootstrap project repository
 - [ ] Configure CI pipeline
 - [x] Write API specification
 - [x] Set up staging environment
