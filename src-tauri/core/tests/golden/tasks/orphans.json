@@ -35,7 +35,7 @@
  "count_tasks": 2,
  "toggles": {
   "d628cf044c3b6f32": "  - [ ] orphan before any task\n- [x] task\n  - [x] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
-  "e57beb206670a962": "  - [ ] orphan before any task\n- [x] task\n  - [x] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
+  "e57beb206670a962": "  - [ ] orphan before any task\n- [ ] task\n  - [x] sub\n## Heading\n  - [ ] orphan after heading\n- [ ] other\n",
   "89a3b95c52235cd5": "  - [ ] orphan before any task\n- [ ] task\n  - [ ] sub\n## Heading\n  - [ ] orphan after heading\n- [x] other\n"
  }
 }

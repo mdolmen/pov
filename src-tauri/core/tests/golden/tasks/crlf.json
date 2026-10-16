@@ -12,7 +12,7 @@
    "text": "one",
    "checked": false,
    "line_number": 1,
-   "is_done": true,
+   "is_done": false,
    "subtasks": [
     {
      "hash": "e57beb206670a962",
@@ -32,9 +32,9 @@
    "subtasks": []
   }
  ],
- "count_tasks": 0,
+ "count_tasks": 1,
  "toggles": {
-  "96ee26405bff04aa": "# Title\r\n- [ ] one\r\n  - [ ] sub\r\n- [x] two\r\n",
+  "96ee26405bff04aa": "# Title\r\n- [x] one\r\n  - [x] sub\r\n- [x] two\r\n",
   "e57beb206670a962": "# Title\r\n- [ ] one\r\n  - [ ] sub\r\n- [x] two\r\n",
   "f3b813159f6c7022": "# Title\r\n- [ ] one\r\n  - [x] sub\r\n- [ ] two\r\n"
  }

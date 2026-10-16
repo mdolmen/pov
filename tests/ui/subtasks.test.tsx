@@ -20,7 +20,7 @@ test("checking a subtask writes only that subtask", async () => {
   expect(struck("parent")).toBe(false);
 });
 
-test("checking the last open subtask completes the parent", async () => {
+test("checking the last open subtask leaves the parent open", async () => {
   const project = await addProject({ name: "P", content: TODO });
   const { user } = renderApp();
   await openProject(user, "P");
@@ -29,15 +29,16 @@ test("checking the last open subtask completes the parent", async () => {
   await waitFor(() => expect(readFileSync(project.file_path, "utf8")).toContain("[x] one"));
   await user.click(checkbox("two"));
 
-  await waitFor(() => expect(struck("parent")).toBe(true));
   await waitFor(() =>
     expect(readFileSync(project.file_path, "utf8")).toBe(
-      "- [x] parent\n  - [x] one\n  - [x] two\n- [ ] other\n",
+      "- [ ] parent\n  - [x] one\n  - [x] two\n- [ ] other\n",
     ),
   );
+  expect(struck("two")).toBe(true);
+  expect(struck("parent")).toBe(false);
 });
 
-test("checking or unchecking a parent does the same to all its subtasks", async () => {
+test("checking a parent checks its subtasks, unchecking leaves them", async () => {
   const project = await addProject({ name: "P", content: TODO });
   const { user } = renderApp();
   await openProject(user, "P");
@@ -52,6 +53,11 @@ test("checking or unchecking a parent does the same to all its subtasks", async 
   expect(struck("two")).toBe(true);
 
   await user.click(checkbox("parent"));
-  await waitFor(() => expect(readFileSync(project.file_path, "utf8")).toBe(TODO));
+  await waitFor(() =>
+    expect(readFileSync(project.file_path, "utf8")).toBe(
+      "- [ ] parent\n  - [x] one\n  - [x] two\n- [ ] other\n",
+    ),
+  );
   await waitFor(() => expect(struck("parent")).toBe(false));
+  expect(struck("two")).toBe(true);
 });

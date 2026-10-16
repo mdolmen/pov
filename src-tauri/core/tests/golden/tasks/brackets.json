@@ -34,7 +34,7 @@
    "text": "parent [ ] text",
    "checked": false,
    "line_number": 3,
-   "is_done": true,
+   "is_done": false,
    "subtasks": [
     {
      "hash": "e57beb206670a962",
@@ -45,12 +45,12 @@
    ]
   }
  ],
- "count_tasks": 2,
+ "count_tasks": 3,
  "toggles": {
   "407243a1d684f0ea": "- [x] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
   "13190668d7c5f52c": "- [ ] see [a] and [ ] here\n- [x] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
   "16e19c7f8500d293": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [ ] done [ ] inner\n- [ ] parent [ ] text\n  - [x] sub\n",
-  "26b8ed2fba8c307f": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [ ] sub\n",
+  "26b8ed2fba8c307f": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [x] parent [ ] text\n  - [x] sub\n",
   "e57beb206670a962": "- [ ] see [a] and [ ] here\n- [ ] see [b] and [ ] here\n- [x] done [ ] inner\n- [ ] parent [ ] text\n  - [ ] sub\n"
  }
 }

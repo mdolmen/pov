@@ -490,15 +490,15 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### Task done rule
 
-- [ ] `Task::is_done`: own checkbox only, subtasks ignored
-- [ ] `toggle_cascade`: checking a task checks its open subtasks
-- [ ] `toggle_cascade`: unchecking a task leaves its subtasks as they are
-- [ ] `toggle_cascade`: toggling a subtask never changes its parent
-- [ ] `task_count`, `next_up`, `cleanup_selected` follow the new rule
-- [ ] Tests: all subtasks checked, parent open → task open
-- [ ] Tests: check parent → open subtasks checked; uncheck parent → subtasks unchanged
-- [ ] Tests: subtask toggle leaves the parent line untouched
-- [ ] UI test: checking the last subtask leaves the task open
+- [x] `Task::is_done`: own checkbox only, subtasks ignored
+- [x] `toggle_cascade`: checking a task checks its open subtasks
+- [x] `toggle_cascade`: unchecking a task leaves its subtasks as they are
+- [x] `toggle_cascade`: toggling a subtask never changes its parent
+- [x] `task_count`, `next_up`, `cleanup_selected` follow the new rule
+- [x] Tests: all subtasks checked, parent open → task open
+- [x] Tests: check parent → open subtasks checked; uncheck parent → subtasks unchanged
+- [x] Tests: subtask toggle leaves the parent line untouched
+- [x] UI test: checking the last subtask leaves the task open
 
 ### Reworded tasks
 

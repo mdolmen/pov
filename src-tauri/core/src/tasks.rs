@@ -41,13 +41,9 @@ pub struct Task {
 }
 
 impl Task {
-    /// A task with subtasks is done when all of them are checked.
+    /// A task is done when its own checkbox is checked, whatever its subtasks.
     pub fn is_done(&self) -> bool {
-        if self.subtasks.is_empty() {
-            self.checked
-        } else {
-            self.subtasks.iter().all(|s| s.checked)
-        }
+        self.checked
     }
 }
 
@@ -194,11 +190,10 @@ pub fn count_tasks(path: &Path) -> usize {
     parse_tasks(path).iter().filter(|t| !t.is_done()).count()
 }
 
-/// Toggles a task or subtask, keeping parents and subtasks consistent.
+/// Toggles a task or subtask.
 ///
-/// - Task with subtasks: sets it and all its subtasks to `!is_done`.
-/// - Task without subtasks: plain toggle.
-/// - Subtask: toggles it, then sets its parent to whether all subtasks are now checked.
+/// - Task: toggles it; checking it also checks its open subtasks, unchecking it leaves them.
+/// - Subtask: toggles it, never its parent.
 ///
 /// Keeps the file's CRLF line endings. Returns `false` when no task has that hash.
 pub fn toggle_cascade(path: &Path, target: &str) -> Result<bool> {
@@ -214,54 +209,29 @@ pub fn toggle_cascade(path: &Path, target: &str) -> Result<bool> {
         .collect();
     let mut seen = Occurrences::default();
 
+    // Each line to rewrite, by hash, with its new state.
+    let mut writes: HashMap<&str, bool> = HashMap::new();
     if let Some(task) = tasks.iter().find(|t| t.hash == target) {
-        if task.subtasks.is_empty() {
-            for line in lines.iter_mut().filter(|l| checkbox(l).is_some()) {
-                if seen.hash(line) == target {
-                    *line = set_checked(line, !task.checked);
-                    break;
-                }
-            }
-        } else {
-            let new_state = !task.is_done();
-            let targets: HashSet<&str> = std::iter::once(task.hash.as_str())
-                .chain(task.subtasks.iter().map(|s| s.hash.as_str()))
-                .collect();
-            for line in lines.iter_mut().filter(|l| checkbox(l).is_some()) {
-                if targets.contains(seen.hash(line).as_str()) {
-                    *line = set_checked(line, new_state);
-                }
+        let check = !task.checked;
+        writes.insert(&task.hash, check);
+        if check {
+            for sub in task.subtasks.iter().filter(|s| !s.checked) {
+                writes.insert(&sub.hash, true);
             }
         }
-    } else if let Some(parent) = tasks
+    } else if let Some(sub) = tasks
         .iter()
-        .find(|t| t.subtasks.iter().any(|s| s.hash == target))
+        .flat_map(|t| &t.subtasks)
+        .find(|s| s.hash == target)
     {
-        let new_sub = parent
-            .subtasks
-            .iter()
-            .find(|s| s.hash == target)
-            .is_some_and(|s| !s.checked);
-        let new_parent = parent
-            .subtasks
-            .iter()
-            .all(|s| if s.hash == target { new_sub } else { s.checked });
-        let (mut found_sub, mut found_parent) = (false, false);
-        for line in lines.iter_mut().filter(|l| checkbox(l).is_some()) {
-            let h = seen.hash(line);
-            if h == target && !found_sub {
-                *line = set_checked(line, new_sub);
-                found_sub = true;
-            } else if h == parent.hash && !found_parent {
-                *line = set_checked(line, new_parent);
-                found_parent = true;
-            }
-            if found_sub && found_parent {
-                break;
-            }
-        }
+        writes.insert(&sub.hash, !sub.checked);
     } else {
         return Ok(false);
+    }
+    for line in lines.iter_mut().filter(|l| checkbox(l).is_some()) {
+        if let Some(&check) = writes.get(seen.hash(line).as_str()) {
+            *line = set_checked(line, check);
+        }
     }
 
     let text = lines.concat();
@@ -980,11 +950,11 @@ Some plain text here.
     }
 
     #[test]
-    fn is_done_follows_subtasks() {
+    fn is_done_reads_the_task_checkbox_only() {
         assert!(!tasks_of("- [ ] Task\n")[0].is_done());
         assert!(tasks_of("- [x] Task\n")[0].is_done());
-        assert!(tasks_of("- [ ] Task\n  - [x] Sub A\n  - [x] Sub B\n")[0].is_done());
-        assert!(!tasks_of("- [ ] Task\n  - [x] Sub A\n  - [ ] Sub B\n")[0].is_done());
+        assert!(!tasks_of("- [ ] Task\n  - [x] Sub A\n  - [x] Sub B\n")[0].is_done());
+        assert!(tasks_of("- [x] Task\n  - [x] Sub A\n  - [ ] Sub B\n")[0].is_done());
     }
 
     #[test]
@@ -994,16 +964,16 @@ Some plain text here.
         assert_eq!(count_tasks(&path), 1);
         let path = file(
             tmp.path(),
-            "- [ ] One\n  - [x] Sub A\n- [-] Two\n- [ ] Three\n",
+            "- [ ] One\n  - [x] Sub A\n- [-] Two\n- [x] Four\n  - [ ] Sub\n- [ ] Three\n",
         );
-        assert_eq!(count_tasks(&path), 1);
+        assert_eq!(count_tasks(&path), 2);
     }
 
     #[test]
     fn other_states_are_closed() {
         assert!(tasks_of("- [-] Cancelled\n")[0].is_done());
         assert!(tasks_of("- [~] Deferred\n")[0].is_done());
-        assert!(tasks_of("- [ ] Task\n  - [x] Sub A\n  - [-] Sub B\n")[0].is_done());
+        assert!(tasks_of("- [-] Task\n  - [ ] Sub A\n")[0].is_done());
 
         let tmp = tempfile::tempdir().unwrap();
         let path = file(tmp.path(), "- [-] Cancelled\n");
@@ -1066,12 +1036,52 @@ Some plain text here.
     #[test]
     fn toggle_leaves_brackets_in_the_text() {
         let tmp = tempfile::tempdir().unwrap();
-        let path = file(tmp.path(), "- [x] fix [ ] parser\n  - [ ] sub\n");
+        let path = file(tmp.path(), "- [ ] fix [ ] parser\n  - [ ] sub\n");
         let hash = parse_tasks(&path)[0].hash.clone();
         assert!(toggle_cascade(&path, &hash).unwrap());
         assert_eq!(
             fs::read_to_string(&path).unwrap(),
             "- [x] fix [ ] parser\n  - [x] sub\n"
+        );
+    }
+
+    #[test]
+    fn checking_a_task_checks_its_open_subtasks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), "- [ ] Task\n  - [ ] Sub A\n  - [-] Sub B\n");
+        assert!(toggle_cascade(&path, &task_hash("- [ ] Task", 1)).unwrap());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [x] Task\n  - [x] Sub A\n  - [-] Sub B\n"
+        );
+    }
+
+    #[test]
+    fn unchecking_a_task_leaves_its_subtasks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), "- [x] Task\n  - [x] Sub A\n  - [ ] Sub B\n");
+        assert!(toggle_cascade(&path, &task_hash("- [x] Task", 1)).unwrap());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [ ] Task\n  - [x] Sub A\n  - [ ] Sub B\n"
+        );
+    }
+
+    #[test]
+    fn toggling_a_subtask_leaves_its_parent() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = file(tmp.path(), "- [ ] Task\n  - [x] Sub A\n  - [ ] Sub B\n");
+        assert!(toggle_cascade(&path, &task_hash("  - [ ] Sub B", 1)).unwrap());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [ ] Task\n  - [x] Sub A\n  - [x] Sub B\n"
+        );
+
+        let path = file(tmp.path(), "- [x] Task\n  - [x] Sub A\n");
+        assert!(toggle_cascade(&path, &task_hash("  - [x] Sub A", 1)).unwrap());
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            "- [x] Task\n  - [ ] Sub A\n"
         );
     }
 
@@ -1140,6 +1150,21 @@ Some plain text here.
         )
         .unwrap();
         assert!(list(&conn, "b").unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_task_with_all_subtasks_checked_keeps_its_mark() {
+        let (_tmp, paths, conn, todo, id) = project();
+        fs::write(&todo, "- [ ] Task\n  - [x] Sub A\n  - [ ] Sub B\n").unwrap();
+        let hash = task_hash("- [ ] Task", 1);
+        select(&conn, &id, &hash).unwrap();
+
+        let task = toggle(&conn, &paths, &id, &task_hash("  - [ ] Sub B", 1)).unwrap();
+        assert!(!task.is_done);
+        assert!(task.is_selected);
+
+        cleanup_selected(&conn).unwrap();
+        assert_eq!(hashes(&conn, &id, "next").unwrap(), HashSet::from([hash]));
     }
 
     #[test]

@@ -37,22 +37,19 @@ export function useTasks(projectId: string, onChanged?: () => void) {
       const tIdx = prev.findIndex((i) => i.kind === "task" && (i as Task).hash === hash);
       if (tIdx >= 0) {
         const task = prev[tIdx] as Task;
-        if (task.subtasks.length > 0) {
-          const newDone = !task.is_done;
-          const updated: Task = {
-            ...task,
-            checked: newDone,
-            is_done: newDone,
-            subtasks: task.subtasks.map((s) => ({ ...s, checked: newDone })),
-          };
-          return prev.map((i, idx) => idx === tIdx ? updated : i);
-        }
+        // Checking a task checks its open subtasks; unchecking leaves them.
         const checked = !task.checked;
-        return prev.map((i, idx) =>
-          idx === tIdx ? { ...task, checked, is_done: checked } : i
-        );
+        const updated: Task = {
+          ...task,
+          checked,
+          is_done: checked,
+          subtasks: checked
+            ? task.subtasks.map((s) => ({ ...s, checked: true }))
+            : task.subtasks,
+        };
+        return prev.map((i, idx) => idx === tIdx ? updated : i);
       }
-      // subtask toggle
+      // subtask toggle: the parent stays as it is
       return prev.map((i) => {
         if (i.kind !== "task") return i;
         const t = i as Task;
@@ -61,7 +58,7 @@ export function useTasks(projectId: string, onChanged?: () => void) {
         const subtasks = t.subtasks.map((s, idx) =>
           idx === si ? { ...s, checked: !s.checked } : s
         );
-        return { ...t, subtasks, is_done: subtasks.every((s) => s.checked) };
+        return { ...t, subtasks };
       });
     });
 
