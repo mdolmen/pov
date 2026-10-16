@@ -48,11 +48,15 @@ pub struct Project {
     pub tools: Vec<String>,
 }
 
-/// A tool tasks are delegated to, from `config.json` `tools`.
+/// An agent tasks are delegated to, from `config.json` `tools`.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Tool {
-    /// Absolute path: the app has no shell `PATH`.
-    pub command: PathBuf,
+    /// Where delegated tasks are POSTed, as JSON: `http://host:port/path`.
+    pub url: String,
+    /// Starts the agent when nothing answers at `url`. Absolute path: the app has no shell
+    /// `PATH`.
+    #[serde(default)]
+    pub command: Option<PathBuf>,
 }
 
 /// A project to start tracking.
@@ -111,7 +115,7 @@ pub(crate) fn file_and_type(conn: &Connection, project_id: &str) -> Result<(Path
     Ok((row.file_path, row.project_type))
 }
 
-fn find_row(conn: &Connection, project_id: &str) -> Result<ProjectRow> {
+pub(crate) fn find_row(conn: &Connection, project_id: &str) -> Result<ProjectRow> {
     conn.query_row(
         &format!("SELECT {COLUMNS} FROM projects WHERE id = ?"),
         [project_id],
@@ -347,7 +351,8 @@ pub fn tool(paths: &Paths, name: &str) -> Result<Tool> {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ToolEntry {
     pub name: String,
-    pub command: String,
+    pub url: String,
+    pub command: Option<String>,
 }
 
 /// The tools of `config.json`, by name.
@@ -357,22 +362,28 @@ pub fn list_tools(paths: &Paths) -> Result<Vec<ToolEntry>> {
         .into_iter()
         .map(|(name, tool)| ToolEntry {
             name,
-            command: tool.command.to_string_lossy().into_owned(),
+            url: tool.url,
+            command: tool.command.map(|c| c.to_string_lossy().into_owned()),
         })
         .collect();
     tools.sort_by_key(|t| t.name.to_lowercase());
     Ok(tools)
 }
 
-/// Defines tool `name` in `config.json`, replacing a tool of that name. The command is an
-/// absolute path: the app has no shell `PATH`.
-pub fn save_tool(paths: &Paths, name: &str, command: &str) -> Result<()> {
+/// Defines tool `name` in `config.json`, replacing a tool of that name: the `http://` URL its
+/// tasks are sent to, and the command that starts it, an absolute path (the app has no shell
+/// `PATH`). A blank command means the agent is started some other way.
+pub fn save_tool(paths: &Paths, name: &str, url: &str, command: Option<&str>) -> Result<()> {
     let name = name.trim();
     if name.is_empty() {
         return Err(Error::Invalid("a tool needs a name".to_string()));
     }
-    let command = command.trim();
-    if !Path::new(command).is_absolute() {
+    let url = url.trim();
+    if !url.starts_with("http://") {
+        return Err(Error::Invalid("url must start with http://".to_string()));
+    }
+    let command = command.map(str::trim).filter(|c| !c.is_empty());
+    if command.is_some_and(|c| !Path::new(c).is_absolute()) {
         return Err(Error::Invalid(
             "command must be an absolute path".to_string(),
         ));
@@ -385,7 +396,10 @@ pub fn save_tool(paths: &Paths, name: &str, command: &str) -> Result<()> {
     if !tools.is_object() {
         *tools = json!({});
     }
-    tools[name] = json!({"command": command});
+    tools[name] = match command {
+        Some(command) => json!({"url": url, "command": command}),
+        None => json!({"url": url}),
+    };
     write_config(paths, &config)
 }
 
@@ -617,9 +631,9 @@ mod tests {
         fn link_tools(&self, id: &str, tools: Value) {
             let mut config = read_config(&self.paths).unwrap();
             config["tools"] = json!({
-                "a": {"command": "/bin/a"},
-                "b": {"command": "/bin/b"},
-                "bad": {"cmd": "/bin/bad"},
+                "a": {"url": "http://localhost/a", "command": "/bin/a"},
+                "b": {"url": "http://localhost/b"},
+                "bad": {"command": "/bin/bad"},
             });
             for p in config["projects"].as_array_mut().unwrap() {
                 if p["id"] == id {
@@ -688,7 +702,8 @@ mod tests {
         assert_eq!(
             tool(&env.paths, "a").unwrap(),
             Tool {
-                command: "/bin/a".into()
+                url: "http://localhost/a".into(),
+                command: Some("/bin/a".into()),
             }
         );
         assert!(matches!(
@@ -706,9 +721,9 @@ mod tests {
         let env = Env::new();
         let id = env.add("P", &env.todo, "project").unwrap();
 
-        save_tool(&env.paths, " writer ", "/bin/w").unwrap();
-        save_tool(&env.paths, "Coder", "/bin/c").unwrap();
-        save_tool(&env.paths, "writer", "/bin/w2").unwrap();
+        save_tool(&env.paths, " writer ", "http://h/w", Some("/bin/w")).unwrap();
+        save_tool(&env.paths, "Coder", "http://h/c", Some(" ")).unwrap();
+        save_tool(&env.paths, "writer", "http://h/w2", Some("/bin/w2")).unwrap();
 
         let names: Vec<_> = list_tools(&env.paths).unwrap();
         assert_eq!(
@@ -716,11 +731,13 @@ mod tests {
             [
                 ToolEntry {
                     name: "Coder".into(),
-                    command: "/bin/c".into(),
+                    url: "http://h/c".into(),
+                    command: None,
                 },
                 ToolEntry {
                     name: "writer".into(),
-                    command: "/bin/w2".into(),
+                    url: "http://h/w2".into(),
+                    command: Some("/bin/w2".into()),
                 },
             ]
         );
@@ -741,11 +758,16 @@ mod tests {
     }
 
     #[test]
-    fn save_tool_wants_a_name_and_an_absolute_command() {
+    fn save_tool_wants_a_name_an_http_url_and_an_absolute_command() {
         let env = Env::new();
-        for (name, command) in [(" ", "/bin/w"), ("w", "w")] {
+        for (name, url, command) in [
+            (" ", "http://h/w", None),
+            ("w", "https://h/w", None),
+            ("w", "h/w", None),
+            ("w", "http://h/w", Some("w")),
+        ] {
             assert!(matches!(
-                save_tool(&env.paths, name, command),
+                save_tool(&env.paths, name, url, command),
                 Err(Error::Invalid(_))
             ));
         }
@@ -756,7 +778,7 @@ mod tests {
     fn set_project_tools_refuses_unknown_tools_and_projects() {
         let env = Env::new();
         let id = env.add("P", &env.todo, "project").unwrap();
-        save_tool(&env.paths, "w", "/bin/w").unwrap();
+        save_tool(&env.paths, "w", "http://h/w", None).unwrap();
 
         assert!(matches!(
             set_project_tools(&env.paths, &id, &["ghost".into()]),

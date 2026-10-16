@@ -3,7 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { listTools, removeTool, saveTool } from "@/lib/backend";
 import type { ToolEntry } from "@/types";
 
-const EMPTY_TOOL: ToolEntry = { name: "", command: "" };
+/** The form's fields; a blank command means the agent is started some other way. */
+type ToolForm = { name: string; url: string; command: string };
+
+const EMPTY_TOOL: ToolForm = { name: "", url: "", command: "" };
 
 const field =
   "w-full rounded border border-stone-200 bg-white px-2 py-1 text-[12px] text-stone-800 outline-none focus:border-stone-400 disabled:text-stone-400";
@@ -11,7 +14,7 @@ const field =
 /** The tools tasks can be delegated to: list, add, edit, remove. */
 function ToolsSection() {
   const [tools, setTools] = useState<ToolEntry[]>([]);
-  const [form, setForm] = useState<ToolEntry>(EMPTY_TOOL);
+  const [form, setForm] = useState<ToolForm>(EMPTY_TOOL);
   // The tool being edited; its name can't change.
   const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +32,7 @@ function ToolsSection() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     try {
-      setTools(await saveTool(form));
+      setTools(await saveTool({ ...form, command: form.command.trim() || null }));
       reset();
     } catch (err) {
       setError(String(err));
@@ -45,14 +48,15 @@ function ToolsSection() {
     }
   }
 
-  const set = (key: keyof ToolEntry) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const set = (key: keyof ToolForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [key]: e.target.value });
 
   return (
     <section className="mt-8">
       <p className="text-[9px] font-semibold tracking-widest uppercase text-stone-400 mb-3">Tools</p>
       <p className="text-[11px] text-stone-400 mb-3">
-        Tasks can be delegated to these; link them to a project in its settings.
+        Agents tasks are delegated to: pov sends them the task, starting them first when they
+        don't answer. Link them to a project in its settings.
       </p>
       {tools.length > 0 && (
         <ul aria-label="Tools" className="flex flex-col gap-2 mb-4">
@@ -60,10 +64,13 @@ function ToolsSection() {
             <li key={t.name} className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] text-stone-700">{t.name}</p>
-                <p className="text-[11px] font-mono text-stone-400 break-all select-text">{t.command}</p>
+                <p className="text-[11px] font-mono text-stone-400 break-all select-text">{t.url}</p>
+                {t.command && (
+                  <p className="text-[11px] font-mono text-stone-400 break-all select-text">{t.command}</p>
+                )}
               </div>
               <button
-                onClick={() => { setForm(t); setEditing(t.name); setError(null); }}
+                onClick={() => { setForm({ ...t, command: t.command ?? "" }); setEditing(t.name); setError(null); }}
                 aria-label={`Edit ${t.name}`}
                 className="text-[11px] text-stone-500 hover:text-stone-700 cursor-pointer"
               >
@@ -82,7 +89,8 @@ function ToolsSection() {
       )}
       <form onSubmit={save} className="flex flex-col gap-2">
         <input aria-label="Tool name" placeholder="Name" value={form.name} onChange={set("name")} disabled={editing !== null} className={field} />
-        <input aria-label="Command" placeholder="Command (absolute path)" value={form.command} onChange={set("command")} className={field + " font-mono"} />
+        <input aria-label="URL" placeholder="URL tasks are sent to (http://…)" value={form.url} onChange={set("url")} className={field + " font-mono"} />
+        <input aria-label="Start command" placeholder="Start command, if it isn't running (absolute path, optional)" value={form.command} onChange={set("command")} className={field + " font-mono"} />
         {error && <p role="alert" className="text-[11px] text-red-600">{error}</p>}
         <div className="flex justify-end gap-2">
           {editing && (
@@ -92,7 +100,7 @@ function ToolsSection() {
           )}
           <button
             type="submit"
-            disabled={!form.name.trim() || !form.command.trim()}
+            disabled={!form.name.trim() || !form.url.trim()}
             className="px-3 py-1.5 rounded text-[12px] font-medium bg-stone-800 text-stone-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {editing ? "Save tool" : "Add tool"}

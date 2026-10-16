@@ -44,7 +44,8 @@ test("tools can be added, edited and removed", async () => {
   await openSettings(user);
 
   await user.type(await screen.findByLabelText("Tool name"), "writer");
-  await user.type(screen.getByLabelText("Command"), "/bin/writer");
+  await user.type(screen.getByLabelText("URL"), "http://127.0.0.1:8765/tasks");
+  await user.type(screen.getByLabelText("Start command"), "/bin/writer");
   await user.click(screen.getByRole("button", { name: "Add tool" }));
 
   const list = () => within(screen.getByRole("list", { name: "Tools" }));
@@ -53,8 +54,8 @@ test("tools can be added, edited and removed", async () => {
 
   await user.click(screen.getByRole("button", { name: "Edit writer" }));
   expect(screen.getByLabelText("Tool name")).toBeDisabled();
-  await user.clear(screen.getByLabelText("Command"));
-  await user.type(screen.getByLabelText("Command"), "/bin/writer2");
+  await user.clear(screen.getByLabelText("Start command"));
+  await user.type(screen.getByLabelText("Start command"), "/bin/writer2");
   await user.click(screen.getByRole("button", { name: "Save tool" }));
   expect(await list().findByText("/bin/writer2")).toBeInTheDocument();
   expect(list().queryByText("/bin/writer")).not.toBeInTheDocument();
@@ -63,12 +64,13 @@ test("tools can be added, edited and removed", async () => {
   await waitFor(() => expect(screen.queryByRole("list", { name: "Tools" })).not.toBeInTheDocument());
 });
 
-test("a tool's command must be an absolute path", async () => {
+test("a tool's start command must be an absolute path", async () => {
   const { user } = renderApp();
   await openSettings(user);
 
   await user.type(await screen.findByLabelText("Tool name"), "writer");
-  await user.type(screen.getByLabelText("Command"), "writer");
+  await user.type(screen.getByLabelText("URL"), "http://127.0.0.1:8765/tasks");
+  await user.type(screen.getByLabelText("Start command"), "writer");
   await user.click(screen.getByRole("button", { name: "Add tool" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("command must be an absolute path");

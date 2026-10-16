@@ -107,10 +107,7 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
-  /**
-   * Delegates a task to `tool`. Throws when it fails; the task may stay delegated, when only
-   * the tool's start failed.
-   */
+  /** Sends a task to agent `tool` and delegates it. Throws when the agent didn't take it. */
   async function delegate(hash: string, tool: string, note: string | null) {
     setItems((prev) =>
       prev.map((i) =>

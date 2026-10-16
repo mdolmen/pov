@@ -73,7 +73,7 @@ export async function addTask(projectId: string, text: string, meta: object = {}
 
 /** Defines a tool, as Settings does. */
 export async function saveTool(name: string) {
-  await bridge("save_tool", { name, command: "/usr/bin/true" });
+  await bridge("save_tool", { name, url: "http://127.0.0.1:9/tasks" });
 }
 
 /** Defines `tools` and links a project to them, as Settings and Project settings do. */
@@ -126,7 +126,7 @@ interface Native {
   dialogPath?: string | null;
   cliInstalled?: boolean;
   installCli?: () => string;
-  /** Why the delegated tool fails to start; the task is delegated all the same. */
+  /** Why the agent didn't take a delegated task; the task stays as it was. */
   delegateError?: string;
 }
 
@@ -141,13 +141,9 @@ export function mockNative(native: Native = {}): [string, unknown][] {
         return bridge(command, commandArgs);
       }
       case "delegate": {
+        if (native.delegateError) return Promise.reject(native.delegateError);
         const { projectId, taskHash, tool, note } = args as Record<string, unknown>;
-        return bridge("delegate_task", { project_id: projectId, task_hash: taskHash, tool, note }).then(
-          (result) => {
-            if (native.delegateError) throw native.delegateError;
-            return result;
-          },
-        );
+        return bridge("delegate_task", { project_id: projectId, task_hash: taskHash, tool, note });
       }
       case "plugin:dialog|open":
         return native.dialogPath ?? null;

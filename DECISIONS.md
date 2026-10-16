@@ -239,3 +239,18 @@
 - **Constraints:** after an app restart, a delegation may start a second instance of a tool still
   running; a tool that cares takes its own lock. Replaces the pidfile rules of 2026-10-16
   (delegating tasks to external tools; tools in Settings).
+
+## 2026-10-16 — Delegate sends the task to the agent
+
+- **Decision:** a tool is an agent: a `url` and an optional start `command`. "Delegate" POSTs the
+  task as JSON (metadata id, project, text, subtasks, metadata with the note) to the URL; when
+  nothing answers there, pov runs the command, waits up to 10 s for the URL, then sends. The task
+  is delegated once the agent answered 2xx; otherwise it stays as it was and the UI shows why.
+  The agent still answers through `pov mcp` (subtasks, links, back to the inbox).
+- **Links:** a URL or a file path, with an optional `app` name (macOS `open -a`); never a shell
+  command, since metadata can come from a mail.
+- **Why:** delegating hands the task to an agent; starting an app was only a means. Replaces
+  "pull, not push" and "pov stays without network code" (2026-10-16, delegating tasks to
+  external tools).
+- **Constraints:** plain `http://` only (local agents); a minimal HTTP client on `std`, no new
+  dependency.

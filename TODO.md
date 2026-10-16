@@ -601,10 +601,22 @@ See DECISIONS.md (2026-10-16, delegate any task, tools in Settings).
 - [x] Markdown links in task text: file paths open with their default app, like metadata links
 - [x] `Link.app`: optional app name a link opens with (opener `with`, macOS `open -a`); no shell commands
 
+### Send to the agent
+
+See DECISIONS.md (2026-10-16, delegate sends the task to the agent).
+
+- [x] Tool = `url` (`http://` only) + optional start `command`; Settings: Name, URL, Start command
+- [x] `tasks::delegation`: the task as the agent gets it, metadata row created when missing; `cancel` drops it
+- [x] `tools::send`: JSON POST; nothing answering → run the command, retry up to 10 s; non-2xx → error with the answer
+- [x] `tools::delegate`: send, then delegate; the task stays as it was when the agent didn't take it
+- [x] `delegate` Tauri command calls `tools::delegate`
+- [x] Tests: fake agent on a local port (sent JSON, refusal, unreachable, started by its command), end to end with the DB
+- [x] UI: the failure toast leaves the task as it was
+
 ### Docs
 
 - [ ] README + NOTES.md: `tools` in `config.json`, project `tools`
-- [ ] README + NOTES.md: tool contract (MCP calls, absolute command path)
+- [ ] README + NOTES.md: agent contract (POSTed JSON, 2xx, MCP calls back, absolute command path)
 
 ## Maintenance
 

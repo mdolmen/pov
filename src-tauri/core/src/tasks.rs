@@ -1016,21 +1016,7 @@ pub fn delegate(
     tool: &str,
     note: Option<&str>,
 ) -> Result<()> {
-    let (file_path, _) = projects::file_and_type(conn, project_id)?;
-    if !parse_tasks(&file_path)
-        .iter()
-        .any(|t| t.hash == task_hash && !t.is_done())
-    {
-        return Err(Error::NotFound("task"));
-    }
-    if !projects::tools(paths, project_id)?
-        .iter()
-        .any(|t| t == tool)
-    {
-        return Err(Error::Invalid(format!(
-            "tool '{tool}' isn't linked to this project"
-        )));
-    }
+    delegable(conn, paths, project_id, task_hash, tool)?;
     let old = meta_rows(conn, project_id)?.remove(task_hash);
     let mut data = old.map_or_else(Default::default, |row| data_object(&row.data));
     if let Some(note) = note {
@@ -1044,6 +1030,88 @@ pub fn delegate(
         (project_id, task_hash, tool, Value::Object(data).to_string()),
     )?;
     tx.commit()?;
+    Ok(())
+}
+
+/// The project and the open task `task_hash`, when it can be delegated to `tool`, one of the
+/// project's tools.
+fn delegable(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    task_hash: &str,
+    tool: &str,
+) -> Result<(projects::ProjectRow, Task)> {
+    let row = projects::find_row(conn, project_id)?;
+    let task = parse_tasks(&row.file_path)
+        .into_iter()
+        .find(|t| t.hash == task_hash && !t.is_done())
+        .ok_or(Error::NotFound("task"))?;
+    if !projects::tools(paths, project_id)?
+        .iter()
+        .any(|t| t == tool)
+    {
+        return Err(Error::Invalid(format!(
+            "tool '{tool}' isn't linked to this project"
+        )));
+    }
+    Ok((row, task))
+}
+
+/// A task about to be sent to its agent; [`cancel`] it when the agent doesn't take it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Delegation {
+    /// The task as the agent gets it.
+    pub task: Delegated,
+    /// Whether [`delegation`] created the task's metadata.
+    created: bool,
+}
+
+/// Gets a task ready to send to `tool` without delegating it yet (see [`delegate`]): the task
+/// as the agent gets it, with `note` in its data. A task without metadata gets its row now, so
+/// the agent has an id to refer to it by.
+pub fn delegation(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    task_hash: &str,
+    tool: &str,
+    note: Option<&str>,
+) -> Result<Delegation> {
+    let (row, task) = delegable(conn, paths, project_id, task_hash, tool)?;
+    let existing = meta_rows(conn, project_id)?.remove(task_hash);
+    let created = existing.is_none();
+    let (id, mut data) = match existing {
+        Some(meta) => (meta.id, data_object(&meta.data)),
+        None => {
+            conn.execute(
+                "INSERT INTO task_meta (project_id, task_hash) VALUES (?, ?)",
+                [project_id, task_hash],
+            )?;
+            (conn.last_insert_rowid(), Default::default())
+        }
+    };
+    if let Some(note) = note {
+        data.insert("note".to_string(), note.into());
+    }
+    Ok(Delegation {
+        task: Delegated {
+            id,
+            project_id: row.id,
+            project_name: row.name,
+            text: task.text,
+            subtasks: task.subtasks,
+            data: Value::Object(data),
+        },
+        created,
+    })
+}
+
+/// Undoes a [`delegation`] the agent didn't take: drops the metadata it created.
+pub fn cancel(conn: &Connection, delegation: &Delegation) -> Result<()> {
+    if delegation.created {
+        conn.execute("DELETE FROM task_meta WHERE id = ?", [delegation.task.id])?;
+    }
     Ok(())
 }
 
@@ -2468,7 +2536,7 @@ Some plain text here.
         let defined: serde_json::Map<String, Value> = tools
             .iter()
             .map(|t| {
-                let tool = serde_json::json!({"command": "/bin/true"});
+                let tool = serde_json::json!({"url": "http://127.0.0.1:9/tasks"});
                 (t.to_string(), tool)
             })
             .collect();

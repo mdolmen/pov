@@ -92,11 +92,13 @@ export interface Project {
   tools: string[];
 }
 
-/** A tool tasks can be delegated to, from `config.json`. */
+/** An agent tasks can be delegated to, from `config.json`. */
 export interface ToolEntry {
   name: string;
-  /** Absolute path: the app has no shell `PATH`. */
-  command: string;
+  /** Where delegated tasks are POSTed, as JSON: `http://host:port/path`. */
+  url: string;
+  /** Starts the agent when nothing answers at `url`; an absolute path (the app has no shell `PATH`). */
+  command: string | null;
 }
 
 export interface NextUpEntry {

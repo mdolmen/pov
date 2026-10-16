@@ -14,8 +14,8 @@ async fn api(
         .map_err(|e| e.to_string())
 }
 
-/// Delegates a task to a tool (see `pov_core::tasks::delegate`), then starts the tool unless
-/// it's running. A start failure leaves the task delegated: the next delegation retries.
+/// Sends a task to its agent, starting the agent when it isn't answering, and delegates it once
+/// the agent took it (see `pov_core::tools::delegate`). Otherwise the task stays as it was.
 #[tauri::command]
 async fn delegate(
     paths: tauri::State<'_, pov_core::Paths>,
@@ -29,16 +29,15 @@ async fn delegate(
     let launcher = launcher.inner().clone();
     tauri::async_runtime::spawn_blocking(move || -> pov_core::Result<()> {
         let conn = pov_core::db::open(&paths)?;
-        pov_core::tasks::delegate(
+        pov_core::tools::delegate(
             &conn,
             &paths,
+            &launcher,
             &project_id,
             &task_hash,
             &tool,
             note.as_deref(),
-        )?;
-        launcher.ensure_running(&tool, &pov_core::projects::tool(&paths, &tool)?)?;
-        Ok(())
+        )
     })
     .await
     .map_err(|e| e.to_string())?

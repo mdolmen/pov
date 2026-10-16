@@ -80,7 +80,9 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
 #[derive(Deserialize)]
 struct SaveToolArgs {
     name: String,
-    command: String,
+    url: String,
+    #[serde(default)]
+    command: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -215,7 +217,7 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
         "list_tools" => json(projects::list_tools(paths)?),
         "save_tool" => {
             let a: SaveToolArgs = parse(args)?;
-            projects::save_tool(paths, &a.name, &a.command)?;
+            projects::save_tool(paths, &a.name, &a.url, a.command.as_deref())?;
             json(projects::list_tools(paths)?)
         }
         "remove_tool" => {
@@ -434,7 +436,7 @@ mod tests {
             &paths.config,
             json!({
                 "projects": [{"id": "p", "tools": ["t"]}],
-                "tools": {"t": {"command": "/bin/true"}},
+                "tools": {"t": {"url": "http://127.0.0.1:9/tasks"}},
             })
             .to_string(),
         )
@@ -468,9 +470,12 @@ mod tests {
         let tools = dispatch(
             &paths,
             "save_tool",
-            json!({"name": "t", "command": "/bin/t"}),
+            json!({"name": "t", "url": "http://h/t", "command": "/bin/t"}),
         );
-        assert_eq!(tools.unwrap(), json!([{"name": "t", "command": "/bin/t"}]));
+        assert_eq!(
+            tools.unwrap(),
+            json!([{"name": "t", "url": "http://h/t", "command": "/bin/t"}])
+        );
         let project = dispatch(
             &paths,
             "set_project_tools",

@@ -93,16 +93,17 @@ test("a delegated task has the band and its tool's pill, and no actions", async 
   expect(band("mail")).toBe("delegated");
 });
 
-test("a tool that fails to start shows why; the task stays delegated", async () => {
-  const { user, calls } = await setup({ delegateError: "could not start writer: not found" });
+test("an agent that doesn't take the task shows why; the task stays as it was", async () => {
+  const { user, calls } = await setup({ delegateError: "writer isn't answering at http://127.0.0.1:9/tasks" });
 
   await user.click(delegateButton("mail")!);
   const dialog = await screen.findByRole("dialog", { name: "Delegate to writer" });
   await user.click(within(dialog).getByRole("button", { name: "Delegate" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("could not start writer: not found");
+  expect(await screen.findByRole("alert")).toHaveTextContent("writer isn't answering at http://127.0.0.1:9/tasks");
   expect(calls.find(([cmd]) => cmd === "delegate")?.[1]).toMatchObject({ note: null });
-  expect(band("mail")).toBe("delegated");
+  await waitFor(() => expect(band("mail")).toBe("inbox"));
+  expect(delegateButton("mail")).toBeInTheDocument();
 });
 
 test("Delegated shows only delegated tasks; a finished one comes back to the inbox", async () => {
