@@ -599,6 +599,7 @@ See DECISIONS.md (2026-10-16, delegate any task, tools in Settings).
 - [x] Project settings: a checkbox per tool, saved with the other fields
 - [x] Tests: core functions; UI add / edit / remove a tool, bad path error, link a tool to a project
 - [x] Markdown links in task text: file paths open with their default app, like metadata links
+- [x] `Link.app`: optional app name a link opens with (opener `with`, macOS `open -a`); no shell commands
 
 ### Docs
 

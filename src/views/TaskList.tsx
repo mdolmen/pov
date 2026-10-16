@@ -138,7 +138,7 @@ function InfoButton({ meta }: { meta: TaskMeta }) {
             {meta.links.map((link, i) => (
               <li key={i}>
                 <button
-                  onClick={() => openLink(link.target)}
+                  onClick={() => openLink(link.target, link.app)}
                   title={link.target}
                   className="text-left text-delegated hover:underline cursor-pointer"
                 >

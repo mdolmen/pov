@@ -31,10 +31,12 @@ export interface Task {
   delegated_to: string | null;
 }
 
-/** A link a tool attached to a task: a URL or a file path. */
+/** A link a tool attached to a task: a URL or a file path, opened with `app` or the default app. */
 export interface Link {
   label: string;
   target: string;
+  /** An app name, as macOS `open -a` takes it. */
+  app?: string;
 }
 
 /** A task's metadata; `id` is the handle tools refer to the task by. */

@@ -131,6 +131,7 @@ test("the info icon shows the note and opens the links", async () => {
     links: [
       { label: "Draft", target: "https://example.com/draft" },
       { label: "Mail", target: "/tmp/m.eml" },
+      { label: "Report", target: "/tmp/report.odt", app: "LibreOffice" },
     ],
   });
   await addTask(p.id, "bare", {});
@@ -142,6 +143,7 @@ test("the info icon shows the note and opens the links", async () => {
   expect(popover).toHaveTextContent("Reply by Friday");
   await user.click(within(popover).getByRole("button", { name: "Draft" }));
   await user.click(within(popover).getByRole("button", { name: "Mail" }));
+  await user.click(within(popover).getByRole("button", { name: "Report" }));
 
   expect(calls).toContainEqual([
     "plugin:opener|open_url",
@@ -150,6 +152,10 @@ test("the info icon shows the note and opens the links", async () => {
   expect(calls).toContainEqual([
     "plugin:opener|open_path",
     expect.objectContaining({ path: "/tmp/m.eml" }),
+  ]);
+  expect(calls).toContainEqual([
+    "plugin:opener|open_path",
+    { path: "/tmp/report.odt", with: "LibreOffice" },
   ]);
   await user.keyboard("{Escape}");
   await user.click(within(taskRow("bare")).getByRole("button", { name: "Task details" }));

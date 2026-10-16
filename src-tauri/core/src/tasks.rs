@@ -71,11 +71,14 @@ pub struct TaskView {
     pub delegated_to: Option<String>,
 }
 
-/// A link a tool attached to a task: a URL or a file path.
+/// A link a tool attached to a task: a URL or a file path, opened with `app` (an app name, as
+/// macOS `open -a` takes it) or the default app.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Link {
     pub label: String,
     pub target: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app: Option<String>,
 }
 
 /// A task's metadata as the frontend sees it (`TaskMeta` in `src/types.ts`).
@@ -2315,7 +2318,8 @@ Some plain text here.
                 note: Some("Reply by Friday".into()),
                 links: vec![Link {
                     label: "Mail".into(),
-                    target: "/tmp/m.eml".into()
+                    target: "/tmp/m.eml".into(),
+                    app: None,
                 }],
                 has_source: true,
             })
@@ -2674,6 +2678,7 @@ Some plain text here.
         let link = |label: &str| Link {
             label: label.into(),
             target: format!("/tmp/{label}"),
+            app: (label == "b").then(|| "LibreOffice".to_string()),
         };
 
         add_links(&conn, meta_id, &[link("a")]).unwrap();
