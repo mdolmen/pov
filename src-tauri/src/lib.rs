@@ -14,6 +14,37 @@ async fn api(
         .map_err(|e| e.to_string())
 }
 
+/// Delegates a task to a tool (see `pov_core::tasks::delegate`), then starts the tool unless
+/// it's running. A start failure leaves the task delegated: the next delegation retries.
+#[tauri::command]
+async fn delegate(
+    paths: tauri::State<'_, pov_core::Paths>,
+    launcher: tauri::State<'_, pov_core::tools::Launcher>,
+    project_id: String,
+    task_hash: String,
+    tool: String,
+    note: Option<String>,
+) -> Result<(), String> {
+    let paths = paths.inner().clone();
+    let launcher = launcher.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || -> pov_core::Result<()> {
+        let conn = pov_core::db::open(&paths)?;
+        pov_core::tasks::delegate(
+            &conn,
+            &paths,
+            &project_id,
+            &task_hash,
+            &tool,
+            note.as_deref(),
+        )?;
+        launcher.ensure_running(&tool, &pov_core::projects::tool(&paths, &tool)?)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn open_in_editor(path: String) {
     // -t opens the file in the default text editor registered with Launch Services.
@@ -110,6 +141,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             api,
+            delegate,
             open_in_editor,
             install_cli,
             is_cli_installed
@@ -124,6 +156,7 @@ pub fn run() {
             // Kept in app state: watching stops when the watcher is dropped.
             app.manage(pov_core::watcher::start(&paths)?);
             app.manage(paths);
+            app.manage(pov_core::tools::Launcher::default());
             Ok(())
         })
         .run(tauri::generate_context!())

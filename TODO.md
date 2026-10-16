@@ -546,11 +546,11 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### Tool launch (app)
 
-- [ ] `delegate` Tauri command: `tasks::delegate`, then starts the tool unless it's running
-- [ ] Running: pov's child for that tool hasn't exited (`try_wait`), or the pidfile's process is alive (`kill -0`)
-- [ ] Start: `command` detached, stdio null, never waited on
-- [ ] Start failure: error returned to the UI, task stays delegated (the next click retries)
-- [ ] Test: fake tool script; two delegations while it runs start it once
+- [x] `delegate` Tauri command: `tasks::delegate`, then starts the tool unless it's running
+- [x] Running: pov's child for that tool hasn't exited (`try_wait`), or the pidfile's process is alive (`kill -0`)
+- [x] Start: `command` detached, stdio null, never waited on
+- [x] Start failure: error returned to the UI, task stays delegated (the next click retries)
+- [x] Test: fake tool script; two delegations while it runs start it once
 
 ### MCP (`pov mcp`)
 

@@ -13,6 +13,7 @@ pub mod pyline;
 pub mod storage;
 pub mod tasks;
 pub mod timelog;
+pub mod tools;
 pub mod watcher;
 
 pub use error::{Error, Result};
