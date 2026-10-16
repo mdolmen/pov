@@ -136,7 +136,9 @@ fn summary(
         .filter(|t| !t.is_done())
         .map(|t| t.hash)
         .collect();
-    let (mut selected_count, mut inbox_count, mut delegated_count) = (0, 0, 0);
+    let delegated = tasks::delegated_hashes(conn, &row.id)?;
+    let delegated_count = open.intersection(&delegated).count() as i64;
+    let (mut selected_count, mut inbox_count) = (0, 0);
     let mut stmt =
         conn.prepare("SELECT task_hash, stage FROM selected_tasks WHERE project_id = ?")?;
     let marks = stmt.query_map([&row.id], |r| {
@@ -144,11 +146,10 @@ fn summary(
     })?;
     for mark in marks {
         let (hash, stage) = mark?;
-        if open.contains(&hash) {
+        if open.contains(&hash) && !delegated.contains(&hash) {
             match stage.as_str() {
                 "next" => selected_count += 1,
                 "inbox" => inbox_count += 1,
-                "delegated" => delegated_count += 1,
                 _ => {}
             }
         }
@@ -629,14 +630,16 @@ mod tests {
     }
 
     #[test]
-    fn counts_open_delegated_tasks() {
+    fn counts_open_delegated_tasks_apart_from_their_marks() {
         let env = Env::new();
         let id = env.add("P", &env.todo, "project").unwrap();
+        // A next mark left on a delegated task, as edited by hand: the tool wins.
+        let one = tasks::task_hash("- [ ] Task one", 1);
+        tasks::select(&env.conn, &id, &one).unwrap();
         for line in ["- [ ] Task one", "- [x] Task two (done)"] {
             env.conn
                 .execute(
-                    "INSERT INTO selected_tasks (project_id, task_hash, stage)
-                     VALUES (?, ?, 'delegated')",
+                    "INSERT INTO task_meta (project_id, task_hash, tool) VALUES (?, ?, 't')",
                     [&id, &tasks::task_hash(line, 1)],
                 )
                 .unwrap();

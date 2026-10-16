@@ -261,18 +261,18 @@ function TaskRow({
   onDelegate: (hash: string, tool: string, note: string | null) => void;
 }) {
   const done = task.is_done;
-  const next = task.is_selected && !done;
-  const inbox = task.in_inbox && !done;
   // No actions until the tool sends it back.
   const delegated = task.delegated_to !== null && !done;
+  const next = task.is_selected && !done && !delegated;
+  const inbox = task.in_inbox && !done && !delegated;
   const canDelegate = !done && !delegated && task.meta !== null && tools.length > 0;
   const flip = () => (task.is_selected ? onUnselect(task.hash) : onSelect(task.hash));
-  const band = next
-    ? "var(--pov-next)"
-    : inbox
-      ? "var(--pov-inbox)"
-      : delegated
-        ? "var(--pov-delegated)"
+  const band = delegated
+    ? "var(--pov-delegated)"
+    : next
+      ? "var(--pov-next)"
+      : inbox
+        ? "var(--pov-inbox)"
         : null;
 
   return (

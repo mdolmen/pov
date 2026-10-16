@@ -304,6 +304,15 @@ fn hashes(conn: &Connection, project_id: &str, stage: &str) -> Result<HashSet<St
     Ok(hashes.collect::<rusqlite::Result<_>>()?)
 }
 
+/// The hashes of a project's tasks delegated to a tool. The tool, not the stage, says a task is
+/// delegated: a next or inbox mark left on it doesn't count.
+pub(crate) fn delegated_hashes(conn: &Connection, project_id: &str) -> Result<HashSet<String>> {
+    let mut stmt =
+        conn.prepare("SELECT task_hash FROM task_meta WHERE project_id = ? AND tool IS NOT NULL")?;
+    let hashes = stmt.query_map([project_id], |row| row.get(0))?;
+    Ok(hashes.collect::<rusqlite::Result<_>>()?)
+}
+
 /// A project's `task_meta` rows, by task hash.
 fn meta_rows(conn: &Connection, project_id: &str) -> Result<HashMap<String, MetaRow>> {
     let mut stmt =
@@ -340,12 +349,15 @@ impl Marks {
 
 fn view(task: Task, marks: &Marks) -> TaskView {
     let meta = marks.meta.get(&task.hash);
+    let delegated_to = meta.and_then(|m| m.tool.clone());
+    // A delegated task is neither next nor in the inbox, whatever marks it has.
+    let free = delegated_to.is_none();
     TaskView {
         is_done: task.is_done(),
-        is_selected: marks.next.contains(&task.hash),
-        in_inbox: marks.inbox.contains(&task.hash),
+        is_selected: free && marks.next.contains(&task.hash),
+        in_inbox: free && marks.inbox.contains(&task.hash),
         meta: meta.map(MetaRow::view),
-        delegated_to: meta.and_then(|m| m.tool.clone()),
+        delegated_to,
         hash: task.hash,
         text: task.text,
         checked: task.checked,
@@ -1200,7 +1212,9 @@ pub fn next_up(conn: &Connection) -> Result<Vec<NextUpEntry>> {
             continue;
         }
         let selected = hashes(conn, &row.id, "next")?;
-        let is_next = |t: &Task| selected.contains(&t.hash) && !t.is_done();
+        let delegated = delegated_hashes(conn, &row.id)?;
+        let is_next =
+            |t: &Task| selected.contains(&t.hash) && !delegated.contains(&t.hash) && !t.is_done();
         let Some((milestone, tasks)) = milestones(parse_items(&row.file_path))
             .into_iter()
             .find(|(_, tasks)| tasks.iter().any(is_next))
@@ -2646,5 +2660,19 @@ Some plain text here.
         assert_eq!(meta.links, [link("a"), link("b"), link("c")]);
         assert!(meta.has_source);
         assert_eq!(meta.note.as_deref(), Some("n"));
+    }
+
+    #[test]
+    fn a_task_with_a_tool_is_delegated_whatever_its_mark() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        let hash = with_meta(&conn, &paths, &id, "Task");
+        select(&conn, &id, &hash).unwrap();
+        conn.execute("UPDATE task_meta SET tool = 't'", ()).unwrap();
+
+        let task = view_of(&conn, &id, &hash);
+
+        assert_eq!(task.delegated_to.as_deref(), Some("t"));
+        assert!(!task.is_selected && !task.in_inbox);
+        assert!(next_up(&conn).unwrap().is_empty());
     }
 }
