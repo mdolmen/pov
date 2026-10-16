@@ -78,6 +78,24 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
 }
 
 #[derive(Deserialize)]
+struct SaveToolArgs {
+    name: String,
+    command: String,
+    pidfile: String,
+}
+
+#[derive(Deserialize)]
+struct ToolArgs {
+    name: String,
+}
+
+#[derive(Deserialize)]
+struct ProjectToolsArgs {
+    project_id: String,
+    tools: Vec<String>,
+}
+
+#[derive(Deserialize)]
 struct ListTimeArgs {
     project_id: String,
     #[serde(default = "default_days")]
@@ -194,6 +212,23 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
                 paused_until: a.paused_until,
             };
             json(projects::update(&conn, paths, &a.project_id, &changes)?)
+        }
+        "list_tools" => json(projects::list_tools(paths)?),
+        "save_tool" => {
+            let a: SaveToolArgs = parse(args)?;
+            projects::save_tool(paths, &a.name, &a.command, &a.pidfile)?;
+            json(projects::list_tools(paths)?)
+        }
+        "remove_tool" => {
+            let a: ToolArgs = parse(args)?;
+            projects::remove_tool(paths, &a.name)?;
+            json(projects::list_tools(paths)?)
+        }
+        "set_project_tools" => {
+            let a: ProjectToolsArgs = parse(args)?;
+            projects::get(&conn, paths, &a.project_id)?;
+            projects::set_project_tools(paths, &a.project_id, &a.tools)?;
+            json(projects::get(&conn, paths, &a.project_id)?)
         }
         "list_time" => {
             let a: ListTimeArgs = parse(args)?;
@@ -416,6 +451,42 @@ mod tests {
         let items = dispatch(&paths, "list_tasks", json!({"project_id": "p"})).unwrap();
         assert_eq!(items[0]["delegated_to"], "t");
         assert_eq!(items[0]["meta"]["note"], "go");
+    }
+
+    #[test]
+    fn tools_from_settings() {
+        let (tmp, paths) = paths();
+        let todo = tmp.path().join("TODO.md");
+        fs::write(&todo, "- [ ] one\n").unwrap();
+        let id = dispatch(
+            &paths,
+            "add_project",
+            json!({"name": "P", "file_path": todo}),
+        )
+        .unwrap()["id"]
+            .clone();
+
+        let tools = dispatch(
+            &paths,
+            "save_tool",
+            json!({"name": "t", "command": "/bin/t", "pidfile": "/tmp/t.pid"}),
+        );
+        assert_eq!(
+            tools.unwrap(),
+            json!([{"name": "t", "command": "/bin/t", "pidfile": "/tmp/t.pid"}])
+        );
+        let project = dispatch(
+            &paths,
+            "set_project_tools",
+            json!({"project_id": id, "tools": ["t"]}),
+        );
+        assert_eq!(project.unwrap()["tools"], json!(["t"]));
+        let tools = dispatch(&paths, "remove_tool", json!({"name": "t"})).unwrap();
+        assert_eq!(tools, json!([]));
+        assert_eq!(
+            dispatch(&paths, "list_projects", json!({})).unwrap()[0]["tools"],
+            json!([])
+        );
     }
 
     #[test]

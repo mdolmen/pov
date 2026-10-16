@@ -1,5 +1,6 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vitest";
+import { within } from "@testing-library/react";
 import { renderApp } from "./helpers";
 
 async function openSettings(user: ReturnType<typeof renderApp>["user"]) {
@@ -36,4 +37,42 @@ test("an install error is shown", async () => {
 
   expect(await screen.findByText("pov binary not found")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Install CLI" })).toBeEnabled();
+});
+
+test("tools can be added, edited and removed", async () => {
+  const { user } = renderApp();
+  await openSettings(user);
+
+  await user.type(await screen.findByLabelText("Tool name"), "writer");
+  await user.type(screen.getByLabelText("Command"), "/bin/writer");
+  await user.type(screen.getByLabelText("Pidfile"), "/tmp/writer.pid");
+  await user.click(screen.getByRole("button", { name: "Add tool" }));
+
+  const list = () => within(screen.getByRole("list", { name: "Tools" }));
+  expect(await list().findByText("/bin/writer")).toBeInTheDocument();
+  expect(screen.getByLabelText("Tool name")).toHaveValue("");
+
+  await user.click(screen.getByRole("button", { name: "Edit writer" }));
+  expect(screen.getByLabelText("Tool name")).toBeDisabled();
+  await user.clear(screen.getByLabelText("Command"));
+  await user.type(screen.getByLabelText("Command"), "/bin/writer2");
+  await user.click(screen.getByRole("button", { name: "Save tool" }));
+  expect(await list().findByText("/bin/writer2")).toBeInTheDocument();
+  expect(list().queryByText("/bin/writer")).not.toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Remove writer" }));
+  await waitFor(() => expect(screen.queryByRole("list", { name: "Tools" })).not.toBeInTheDocument());
+});
+
+test("a tool's command must be an absolute path", async () => {
+  const { user } = renderApp();
+  await openSettings(user);
+
+  await user.type(await screen.findByLabelText("Tool name"), "writer");
+  await user.type(screen.getByLabelText("Command"), "writer");
+  await user.type(screen.getByLabelText("Pidfile"), "/tmp/writer.pid");
+  await user.click(screen.getByRole("button", { name: "Add tool" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent("command must be an absolute path");
+  expect(screen.queryByRole("list", { name: "Tools" })).not.toBeInTheDocument();
 });

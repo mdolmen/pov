@@ -90,6 +90,14 @@ export interface Project {
   tools: string[];
 }
 
+/** A tool tasks can be delegated to, from `config.json`. */
+export interface ToolEntry {
+  name: string;
+  /** Absolute paths: the app has no shell `PATH`. */
+  command: string;
+  pidfile: string;
+}
+
 export interface NextUpEntry {
   project_id: string;
   project_name: string;

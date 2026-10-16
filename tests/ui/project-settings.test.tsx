@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { expect, test } from "vitest";
-import { addProject, choose, getProject, openProject, renderApp } from "./helpers";
+import { addProject, choose, getProject, openProject, renderApp, saveTool } from "./helpers";
 
 async function openSettings(user: ReturnType<typeof renderApp>["user"], name: string) {
   await openProject(user, name);
@@ -87,4 +87,28 @@ test("delete asks for confirmation and keeps the original file", async () => {
 
   expect(await screen.findByText("No projects yet.")).toBeInTheDocument();
   expect(existsSync(project.file_path)).toBe(true);
+});
+
+test("linking a tool lets the project's tasks be delegated to it", async () => {
+  const project = await addProject({ name: "P", content: "- [ ] task\n" });
+  await saveTool("writer");
+  await saveTool("coder");
+  const { user } = renderApp();
+  await openSettings(user, "P");
+  expect(screen.queryByRole("button", { name: "Delegate" })).not.toBeInTheDocument();
+
+  await user.click(await screen.findByRole("checkbox", { name: "writer" }));
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await closed();
+
+  expect((await getProject(project.id)).tools).toEqual(["writer"]);
+  expect(screen.getByRole("button", { name: "Delegate" })).toBeInTheDocument();
+});
+
+test("no tools to link until Settings has some", async () => {
+  await addProject({ name: "P" });
+  const { user } = renderApp();
+  await openSettings(user, "P");
+
+  expect(screen.getByText("No tools yet: add them in Settings.")).toBeInTheDocument();
 });

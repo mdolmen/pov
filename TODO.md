@@ -591,13 +591,13 @@ See DECISIONS.md (2026-10-16, delegate any task, tools in Settings).
 
 ### Tools in Settings
 
-- [ ] `projects::list_tools`, `save_tool`, `remove_tool`, `set_project_tools`, written to `config.json`
-- [ ] `save_tool`: name not blank, command and pidfile absolute, else `Invalid`
-- [ ] `remove_tool` unlinks it from every project; `set_project_tools` refuses unknown names
-- [ ] `list_tools`, `save_tool`, `remove_tool`, `set_project_tools` in `api::dispatch`
-- [ ] Settings: "Tools" section listing tools, with Edit / Remove, and an add / edit form
-- [ ] Project settings: a checkbox per tool, saved with the other fields
-- [ ] Tests: core functions; UI add / edit / remove a tool, bad path error, link a tool to a project
+- [x] `projects::list_tools`, `save_tool`, `remove_tool`, `set_project_tools`, written to `config.json`
+- [x] `save_tool`: name not blank, command and pidfile absolute, else `Invalid`
+- [x] `remove_tool` unlinks it from every project; `set_project_tools` refuses unknown names
+- [x] `list_tools`, `save_tool`, `remove_tool`, `set_project_tools` in `api::dispatch`
+- [x] Settings: "Tools" section listing tools, with Edit / Remove, and an add / edit form
+- [x] Project settings: a checkbox per tool, saved with the other fields
+- [x] Tests: core functions; UI add / edit / remove a tool, bad path error, link a tool to a project
 
 ### Docs
 

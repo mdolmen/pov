@@ -33,7 +33,7 @@ async function setup({ tools = ["writer"], delegateError, delegated = [] }: Opti
   const p = await addProject({ name: "P", content: "- [ ] plain\n- [x] finished\n" });
   await addTask(p.id, "mail", { source: { mail: "m.eml" } });
   await addTask(p.id, "other", { source: { mail: "o.eml" } });
-  if (tools.length > 0) linkTools(p.id, ...tools);
+  if (tools.length > 0) await linkTools(p.id, ...tools);
   for (const text of delegated) await delegate(p.id, text, tools[0]);
   const { user, calls } = renderApp({ delegateError });
   await openProject(user, "P");

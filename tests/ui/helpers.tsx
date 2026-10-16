@@ -1,14 +1,14 @@
 // Shared helpers: fake native calls, seed projects through the real backend, read the data dir.
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, inject } from "vitest";
 import App from "@/App";
-import type { ListItem, Project } from "@/types";
+import type { ListItem, Project, ToolEntry } from "@/types";
 
 /** The backend's data dir (`~/.local/share/pov-dev` under the temp HOME). */
 export const dataDir = () => join(inject("povHome"), ".local/share/pov-dev");
@@ -23,10 +23,12 @@ async function bridge<T>(cmd: string, args: unknown = {}): Promise<T> {
   return r.json();
 }
 
-/** Deletes every project, so each test starts from an empty list. */
+/** Deletes every project and tool, so each test starts from an empty list. */
 export async function resetData() {
   const projects = await bridge<Project[]>("list_projects");
   for (const p of projects) await bridge("remove_project", { project_id: p.id });
+  const tools = await bridge<ToolEntry[]>("list_tools");
+  for (const t of tools) await bridge("remove_tool", { name: t.name });
 }
 
 /** Writes a TODO.md in its own folder (outside any git repo) and returns its path. */
@@ -69,15 +71,15 @@ export async function addTask(projectId: string, text: string, meta: object = {}
   return bridge<string>("add_task", { project_id: projectId, text, meta });
 }
 
-/** Links a project to `tools` in `config.json`, as edited by hand. */
-export function linkTools(projectId: string, ...tools: string[]) {
-  const file = join(dataDir(), "config.json");
-  const config = JSON.parse(readFileSync(file, "utf8"));
-  config.tools = Object.fromEntries(
-    tools.map((t) => [t, { command: "/usr/bin/true", pidfile: join(dataDir(), `${t}.pid`) }]),
-  );
-  for (const p of config.projects) if (p.id === projectId) p.tools = tools;
-  writeFileSync(file, JSON.stringify(config));
+/** Defines a tool, as Settings does. */
+export async function saveTool(name: string) {
+  await bridge("save_tool", { name, command: "/usr/bin/true", pidfile: join(dataDir(), `${name}.pid`) });
+}
+
+/** Defines `tools` and links a project to them, as Settings and Project settings do. */
+export async function linkTools(projectId: string, ...tools: string[]) {
+  for (const t of tools) await saveTool(t);
+  await bridge("set_project_tools", { project_id: projectId, tools });
 }
 
 /** Delegates a task to a tool, without starting it. */

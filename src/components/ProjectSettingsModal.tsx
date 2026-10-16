@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { removeProject, updateProject } from "@/lib/backend";
+import { listTools, removeProject, setProjectTools, updateProject } from "@/lib/backend";
 import type { Project } from "@/types";
 
 type ProjectStatus = "open" | "paused" | "done" | "canceled";
@@ -45,6 +45,9 @@ export function ProjectSettingsModal({ open, project, onClose, onUpdated, onDele
   const [pausedUntil, setPausedUntil] = useState<string>(project.paused_until ?? "");
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
+  // The tools defined in Settings, and the ones this project links to.
+  const [available, setAvailable] = useState<string[]>([]);
+  const [linked, setLinked] = useState<string[]>(project.tools);
 
   // Reset form whenever the modal opens for a different project.
   useEffect(() => {
@@ -52,21 +55,34 @@ export function ProjectSettingsModal({ open, project, onClose, onUpdated, onDele
       setName(project.name);
       setStatus(projectToStatus(project));
       setPausedUntil(project.paused_until ?? "");
+      setLinked(project.tools);
       setConfirming(false);
+      listTools().then((tools) => setAvailable(tools.map((t) => t.name)), () => {});
     }
   }, [open, project]);
+
+  const toolsChanged =
+    linked.length !== project.tools.length || linked.some((t) => !project.tools.includes(t));
+
+  function toggleTool(name: string) {
+    setLinked(linked.includes(name) ? linked.filter((t) => t !== name) : [...linked, name]);
+  }
 
   async function save() {
     setSaving(true);
     try {
       const { status: dbStatus, sub_status } = STATUS_MAP[status];
-      const updated = await updateProject(project.id, {
+      let updated = await updateProject(project.id, {
         name: name.trim(),
         status: dbStatus,
         sub_status,
         // empty string clears the date on the backend
         paused_until: status === "paused" ? pausedUntil : "",
       });
+      if (toolsChanged) {
+        // In Settings order.
+        updated = await setProjectTools(project.id, available.filter((t) => linked.includes(t)));
+      }
       onUpdated(updated);
       onClose();
     } finally {
@@ -87,7 +103,8 @@ export function ProjectSettingsModal({ open, project, onClose, onUpdated, onDele
   const dirty =
     name.trim() !== project.name ||
     status !== projectToStatus(project) ||
-    (status === "paused" && pausedUntil !== (project.paused_until ?? ""));
+    (status === "paused" && pausedUntil !== (project.paused_until ?? "")) ||
+    toolsChanged;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -146,6 +163,24 @@ export function ProjectSettingsModal({ open, project, onClose, onUpdated, onDele
               />
             </label>
           )}
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-medium tracking-wide text-stone-500 uppercase">Tools</span>
+            {available.length === 0 ? (
+              <p className="text-xs text-stone-400">No tools yet: add them in Settings.</p>
+            ) : (
+              available.map((name) => (
+                <label key={name} className="flex items-center gap-2 text-sm text-stone-700">
+                  <input
+                    type="checkbox"
+                    checked={linked.includes(name)}
+                    onChange={() => toggleTool(name)}
+                  />
+                  {name}
+                </label>
+              ))
+            )}
+          </div>
 
           <div className="flex items-center justify-between pt-2 mt-1 border-t border-stone-200">
             {confirming ? (

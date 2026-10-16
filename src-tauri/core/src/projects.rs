@@ -345,6 +345,96 @@ pub fn tool(paths: &Paths, name: &str) -> Result<Tool> {
         .ok_or(Error::NotFound("tool"))
 }
 
+/// A tool as Settings shows it (`ToolEntry` in `src/types.ts`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ToolEntry {
+    pub name: String,
+    pub command: String,
+    pub pidfile: String,
+}
+
+/// The tools of `config.json`, by name.
+pub fn list_tools(paths: &Paths) -> Result<Vec<ToolEntry>> {
+    let mut tools: Vec<ToolEntry> = config_tools(paths)?
+        .defined
+        .into_iter()
+        .map(|(name, tool)| ToolEntry {
+            name,
+            command: tool.command.to_string_lossy().into_owned(),
+            pidfile: tool.pidfile.to_string_lossy().into_owned(),
+        })
+        .collect();
+    tools.sort_by_key(|t| t.name.to_lowercase());
+    Ok(tools)
+}
+
+/// Defines tool `name` in `config.json`, replacing a tool of that name. The command and the
+/// pidfile are absolute paths: the app has no shell `PATH`.
+pub fn save_tool(paths: &Paths, name: &str, command: &str, pidfile: &str) -> Result<()> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(Error::Invalid("a tool needs a name".to_string()));
+    }
+    let (command, pidfile) = (command.trim(), pidfile.trim());
+    for (field, path) in [("command", command), ("pidfile", pidfile)] {
+        if !Path::new(path).is_absolute() {
+            return Err(Error::Invalid(format!("{field} must be an absolute path")));
+        }
+    }
+    let mut config = read_config(paths)?;
+    let obj = config
+        .as_object_mut()
+        .ok_or_else(|| Error::Invalid("config.json is not a JSON object".to_string()))?;
+    let tools = obj.entry("tools").or_insert_with(|| json!({}));
+    if !tools.is_object() {
+        *tools = json!({});
+    }
+    tools[name] = json!({"command": command, "pidfile": pidfile});
+    write_config(paths, &config)
+}
+
+/// Removes tool `name` from `config.json` and unlinks it from every project.
+pub fn remove_tool(paths: &Paths, name: &str) -> Result<()> {
+    let mut config = read_config(paths)?;
+    let removed = config
+        .get_mut("tools")
+        .and_then(Value::as_object_mut)
+        .and_then(|tools| tools.remove(name));
+    if removed.is_none() {
+        return Err(Error::NotFound("tool"));
+    }
+    for p in config
+        .get_mut("projects")
+        .and_then(Value::as_array_mut)
+        .into_iter()
+        .flatten()
+    {
+        if let Some(linked) = p.get_mut("tools").and_then(Value::as_array_mut) {
+            linked.retain(|t| t.as_str() != Some(name));
+        }
+    }
+    write_config(paths, &config)
+}
+
+/// Links a project to `tools`, all defined in `config.json`, in place of its tools.
+pub fn set_project_tools(paths: &Paths, project_id: &str, tools: &[String]) -> Result<()> {
+    let defined = config_tools(paths)?.defined;
+    if let Some(unknown) = tools.iter().find(|t| !defined.contains_key(*t)) {
+        return Err(Error::Invalid(format!("no tool '{unknown}'")));
+    }
+    let mut config = read_config(paths)?;
+    let entry = config
+        .get_mut("projects")
+        .and_then(Value::as_array_mut)
+        .and_then(|list| {
+            list.iter_mut()
+                .find(|p| p.get("id").and_then(Value::as_str) == Some(project_id))
+        })
+        .ok_or(Error::NotFound("project"))?;
+    entry["tools"] = json!(tools);
+    write_config(paths, &config)
+}
+
 fn write_config(paths: &Paths, config: &Value) -> Result<()> {
     fs::write(&paths.config, serde_json::to_string_pretty(config)?)?;
     Ok(())
@@ -614,6 +704,81 @@ mod tests {
             tool(&env.paths, "bad"),
             Err(Error::NotFound("tool"))
         ));
+    }
+
+    #[test]
+    fn save_list_and_remove_tools() {
+        let env = Env::new();
+        let id = env.add("P", &env.todo, "project").unwrap();
+
+        save_tool(&env.paths, " writer ", "/bin/w", "/tmp/w.pid").unwrap();
+        save_tool(&env.paths, "Coder", "/bin/c", "/tmp/c.pid").unwrap();
+        save_tool(&env.paths, "writer", "/bin/w2", "/tmp/w.pid").unwrap();
+
+        let names: Vec<_> = list_tools(&env.paths).unwrap();
+        assert_eq!(
+            names,
+            [
+                ToolEntry {
+                    name: "Coder".into(),
+                    command: "/bin/c".into(),
+                    pidfile: "/tmp/c.pid".into()
+                },
+                ToolEntry {
+                    name: "writer".into(),
+                    command: "/bin/w2".into(),
+                    pidfile: "/tmp/w.pid".into()
+                },
+            ]
+        );
+
+        set_project_tools(&env.paths, &id, &["writer".into(), "Coder".into()]).unwrap();
+        assert_eq!(
+            get(&env.conn, &env.paths, &id).unwrap().tools,
+            ["writer", "Coder"]
+        );
+
+        remove_tool(&env.paths, "writer").unwrap();
+        assert_eq!(tools(&env.paths, &id).unwrap(), ["Coder"]);
+        assert_eq!(list_tools(&env.paths).unwrap().len(), 1);
+        assert!(matches!(
+            remove_tool(&env.paths, "writer"),
+            Err(Error::NotFound("tool"))
+        ));
+    }
+
+    #[test]
+    fn save_tool_wants_a_name_and_absolute_paths() {
+        let env = Env::new();
+        for (name, command, pidfile) in [
+            (" ", "/bin/w", "/tmp/w.pid"),
+            ("w", "w", "/tmp/w.pid"),
+            ("w", "/bin/w", "w.pid"),
+        ] {
+            assert!(matches!(
+                save_tool(&env.paths, name, command, pidfile),
+                Err(Error::Invalid(_))
+            ));
+        }
+        assert!(list_tools(&env.paths).unwrap().is_empty());
+    }
+
+    #[test]
+    fn set_project_tools_refuses_unknown_tools_and_projects() {
+        let env = Env::new();
+        let id = env.add("P", &env.todo, "project").unwrap();
+        save_tool(&env.paths, "w", "/bin/w", "/tmp/w.pid").unwrap();
+
+        assert!(matches!(
+            set_project_tools(&env.paths, &id, &["ghost".into()]),
+            Err(Error::Invalid(_))
+        ));
+        assert!(matches!(
+            set_project_tools(&env.paths, "nope", &["w".into()]),
+            Err(Error::NotFound("project"))
+        ));
+        set_project_tools(&env.paths, &id, &[]).unwrap();
+        assert!(tools(&env.paths, &id).unwrap().is_empty());
     }
 
     #[test]

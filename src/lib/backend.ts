@@ -10,6 +10,7 @@ import type {
   Task,
   TimeDay,
   TimeEntry,
+  ToolEntry,
 } from "@/types";
 
 // Commands served by Rust (`pov_core::api`), through the app's single `api` command.
@@ -74,6 +75,17 @@ export const updateProject = (projectId: string, changes: ProjectChanges) =>
 
 export const removeProject = (projectId: string) =>
   call<null>("remove_project", { project_id: projectId });
+
+export const listTools = () => call<ToolEntry[]>("list_tools");
+
+/** Defines or replaces a tool; returns all the tools. */
+export const saveTool = (tool: ToolEntry) => call<ToolEntry[]>("save_tool", { ...tool });
+
+/** Removes a tool and unlinks it from every project; returns the tools left. */
+export const removeTool = (name: string) => call<ToolEntry[]>("remove_tool", { name });
+
+export const setProjectTools = (projectId: string, tools: string[]) =>
+  call<Project>("set_project_tools", { project_id: projectId, tools });
 
 export const listTime = (projectId: string, days: number) =>
   call<TimeDay[]>("list_time", { project_id: projectId, days });
