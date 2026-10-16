@@ -26,6 +26,8 @@ struct RestoreTaskArgs {
     project_id: String,
     line_number: usize,
     text: String,
+    #[serde(default)]
+    meta: Option<tasks::MetaRow>,
 }
 
 #[derive(Deserialize)]
@@ -145,6 +147,7 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
                 &a.project_id,
                 a.line_number,
                 &a.text,
+                a.meta.as_ref(),
             )?)
         }
         "cleanup_selected" => json(tasks::cleanup_selected(&conn)?),

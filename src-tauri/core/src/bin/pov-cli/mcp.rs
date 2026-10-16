@@ -171,6 +171,7 @@ impl Server {
                 &args.text,
                 args.section.as_deref(),
                 args.stage.as_str(),
+                None,
             )?;
             Ok(serde_json::json!({ "hash": hash, "project": row.name }))
         })

@@ -512,17 +512,17 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### Metadata (`pov-core`)
 
-- [ ] `db::init`: `task_meta` table:
-  - [ ] `id` INTEGER PRIMARY KEY: the stable task handle for tools
-  - [ ] `project_id` (FK → projects, ON DELETE CASCADE), `task_hash`, UNIQUE(project_id, task_hash)
-  - [ ] `tool` TEXT nullable: the tool the task is delegated to
-  - [ ] `data` JSON TEXT: `note?`, `links?: [{label, target}]`, `source?` (opaque to pov)
-- [ ] `tasks::add` takes optional metadata and stores the row
-- [ ] `TaskView.meta`: `id`, `note`, `links`, `has_source`; `TaskView.delegated_to`
-- [ ] Done tasks keep their metadata; `cleanup_selected` leaves `task_meta` alone
-- [ ] `sync_marks` drops `task_meta` rows whose task is gone, as for marks
-- [ ] `delete` returns the metadata in `Deleted`; `restore` puts it back
-- [ ] Tests: add with metadata, view fields, kept when done, delete / restore, project removal cascade
+- [x] `db::init`: `task_meta` table:
+  - [x] `id` INTEGER PRIMARY KEY: the stable task handle for tools
+  - [x] `project_id` (FK → projects, ON DELETE CASCADE), `task_hash`, UNIQUE(project_id, task_hash)
+  - [x] `tool` TEXT nullable: the tool the task is delegated to
+  - [x] `data` JSON TEXT: `note?`, `links?: [{label, target}]`, `source?` (opaque to pov)
+- [x] `tasks::add` takes optional metadata and stores the row
+- [x] `TaskView.meta`: `id`, `note`, `links`, `has_source`; `TaskView.delegated_to`
+- [x] Done tasks keep their metadata; `cleanup_selected` leaves `task_meta` alone
+- [x] `sync_marks` drops `task_meta` rows whose task is gone, as for marks
+- [x] `delete` returns the metadata in `Deleted`; `restore` puts it back
+- [x] Tests: add with metadata, view fields, kept when done, delete / restore, project removal cascade
 
 ### Delegation (`pov-core`)
 

@@ -26,6 +26,23 @@ export interface Task {
   is_done: boolean;
   is_selected: boolean;
   in_inbox: boolean;
+  meta: TaskMeta | null;
+  /** The tool the task is delegated to. */
+  delegated_to: string | null;
+}
+
+/** A link a tool attached to a task: a URL or a file path. */
+export interface Link {
+  label: string;
+  target: string;
+}
+
+/** A task's metadata; `id` is the handle tools refer to the task by. */
+export interface TaskMeta {
+  id: number;
+  note: string | null;
+  links: Link[];
+  has_source: boolean;
 }
 
 export type ListItem = HeadingItem | Task;
@@ -34,6 +51,8 @@ export type ListItem = HeadingItem | Task;
 export interface DeletedTask {
   line_number: number;
   text: string;
+  /** The task's metadata, opaque to the frontend. */
+  meta?: unknown;
 }
 
 export interface TimeDay {

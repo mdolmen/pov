@@ -35,6 +35,18 @@ CREATE TABLE IF NOT EXISTS time_entries (
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Optional per-task data set by tools. `id` is the stable handle tools refer to a task by,
+-- never reused, so an undone delete gets its id back. `data` is a JSON object: `note`,
+-- `links`, `source`, and whatever the tool adds.
+CREATE TABLE IF NOT EXISTS task_meta (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    task_hash   TEXT NOT NULL,
+    tool        TEXT,
+    data        TEXT NOT NULL DEFAULT '{}',
+    UNIQUE(project_id, task_hash)
+);
+
 CREATE INDEX IF NOT EXISTS idx_time_entries_project_date
 ON time_entries(project_id, date);
 
@@ -103,6 +115,7 @@ mod tests {
         assert!(has_column(&conn, "projects", "paused_until").unwrap());
         assert!(has_column(&conn, "time_entries", "topic").unwrap());
         assert!(has_column(&conn, "selected_tasks", "stage").unwrap());
+        assert!(has_column(&conn, "task_meta", "data").unwrap());
     }
 
     #[test]

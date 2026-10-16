@@ -6,8 +6,9 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use regex::Regex;
-use rusqlite::{Connection, Transaction, TransactionBehavior};
-use serde::Serialize;
+use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::pyline::{
@@ -65,6 +66,55 @@ pub struct TaskView {
     pub is_done: bool,
     pub is_selected: bool,
     pub in_inbox: bool,
+    pub meta: Option<TaskMeta>,
+    /// The tool the task is delegated to.
+    pub delegated_to: Option<String>,
+}
+
+/// A link a tool attached to a task: a URL or a file path.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Link {
+    pub label: String,
+    pub target: String,
+}
+
+/// A task's metadata as the frontend sees it (`TaskMeta` in `src/types.ts`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct TaskMeta {
+    pub id: i64,
+    pub note: Option<String>,
+    pub links: Vec<Link>,
+    pub has_source: bool,
+}
+
+/// The keys of `task_meta.data` pov reads; the others are the tools' own.
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct MetaData {
+    note: Option<String>,
+    links: Vec<Link>,
+    source: Option<Value>,
+}
+
+/// A `task_meta` row, without its task: what a [`delete`] hands to [`restore`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MetaRow {
+    pub id: i64,
+    pub tool: Option<String>,
+    /// JSON object, as stored.
+    pub data: String,
+}
+
+impl MetaRow {
+    fn view(&self) -> TaskMeta {
+        let data: MetaData = serde_json::from_str(&self.data).unwrap_or_default();
+        TaskMeta {
+            id: self.id,
+            note: data.note,
+            links: data.links,
+            has_source: data.source.is_some(),
+        }
+    }
 }
 
 /// A task list entry as the frontend sees it (`ListItem` in `src/types.ts`).
@@ -254,11 +304,48 @@ fn hashes(conn: &Connection, project_id: &str, stage: &str) -> Result<HashSet<St
     Ok(hashes.collect::<rusqlite::Result<_>>()?)
 }
 
-fn view(task: Task, next: &HashSet<String>, inbox: &HashSet<String>) -> TaskView {
+/// A project's `task_meta` rows, by task hash.
+fn meta_rows(conn: &Connection, project_id: &str) -> Result<HashMap<String, MetaRow>> {
+    let mut stmt =
+        conn.prepare("SELECT task_hash, id, tool, data FROM task_meta WHERE project_id = ?")?;
+    let rows = stmt.query_map([project_id], |r| {
+        Ok((
+            r.get(0)?,
+            MetaRow {
+                id: r.get(1)?,
+                tool: r.get(2)?,
+                data: r.get(3)?,
+            },
+        ))
+    })?;
+    Ok(rows.collect::<rusqlite::Result<_>>()?)
+}
+
+/// What the DB holds on a project's tasks: next / inbox marks and metadata.
+struct Marks {
+    next: HashSet<String>,
+    inbox: HashSet<String>,
+    meta: HashMap<String, MetaRow>,
+}
+
+impl Marks {
+    fn load(conn: &Connection, project_id: &str) -> Result<Self> {
+        Ok(Self {
+            next: hashes(conn, project_id, "next")?,
+            inbox: hashes(conn, project_id, "inbox")?,
+            meta: meta_rows(conn, project_id)?,
+        })
+    }
+}
+
+fn view(task: Task, marks: &Marks) -> TaskView {
+    let meta = marks.meta.get(&task.hash);
     TaskView {
         is_done: task.is_done(),
-        is_selected: next.contains(&task.hash),
-        in_inbox: inbox.contains(&task.hash),
+        is_selected: marks.next.contains(&task.hash),
+        in_inbox: marks.inbox.contains(&task.hash),
+        meta: meta.map(MetaRow::view),
+        delegated_to: meta.and_then(|m| m.tool.clone()),
         hash: task.hash,
         text: task.text,
         checked: task.checked,
@@ -267,16 +354,15 @@ fn view(task: Task, next: &HashSet<String>, inbox: &HashSet<String>) -> TaskView
     }
 }
 
-/// Lists a project's headings and tasks, with their next / inbox marks.
+/// Lists a project's headings and tasks, with their next / inbox marks and metadata.
 pub fn list(conn: &Connection, project_id: &str) -> Result<Vec<ListItem>> {
     let (file_path, _) = projects::file_and_type(conn, project_id)?;
-    let next = hashes(conn, project_id, "next")?;
-    let inbox = hashes(conn, project_id, "inbox")?;
+    let marks = Marks::load(conn, project_id)?;
     Ok(parse_items(&file_path)
         .into_iter()
         .map(|item| match item {
             Item::Heading { text, level } => ListItem::Heading { text, level },
-            Item::Task(task) => ListItem::Task(view(task, &next, &inbox)),
+            Item::Task(task) => ListItem::Task(view(task, &marks)),
         })
         .collect())
 }
@@ -315,9 +401,7 @@ pub fn toggle(
             [project_id, &task.hash],
         )?;
     }
-    let next = hashes(conn, project_id, "next")?;
-    let inbox = hashes(conn, project_id, "inbox")?;
-    Ok(view(task, &next, &inbox))
+    Ok(view(task, &Marks::load(conn, project_id)?))
 }
 
 /// Commits an edit of the project's file to the data repo, through its hardlink.
@@ -389,9 +473,14 @@ fn remap_splice(old: &str, new: &str, s: &Splice) -> HashMap<String, String> {
     pair_hashes(&old_hashes, &new_hashes, pairs)
 }
 
-/// Moves the project's marks to their tasks' new hashes. A moved mark replaces a mark already
-/// on its new hash.
+/// Moves the project's marks and metadata to their tasks' new hashes. A moved row replaces a
+/// row already on its new hash.
 fn apply_remap(conn: &Connection, project_id: &str, map: &HashMap<String, String>) -> Result<()> {
+    move_marks(conn, project_id, map)?;
+    move_meta(conn, project_id, map)
+}
+
+fn move_marks(conn: &Connection, project_id: &str, map: &HashMap<String, String>) -> Result<()> {
     let rows: Vec<(String, String, String)> = conn
         .prepare("SELECT task_hash, stage, created_at FROM selected_tasks WHERE project_id = ?")?
         .query_map([project_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
@@ -420,8 +509,54 @@ fn apply_remap(conn: &Connection, project_id: &str, map: &HashMap<String, String
     Ok(())
 }
 
+/// [`move_marks`] for `task_meta`; a row keeps its `id`.
+fn move_meta(conn: &Connection, project_id: &str, map: &HashMap<String, String>) -> Result<()> {
+    let moved: Vec<(String, MetaRow)> = meta_rows(conn, project_id)?
+        .into_iter()
+        .filter_map(|(hash, row)| Some((map.get(&hash).filter(|new| **new != hash)?.clone(), row)))
+        .collect();
+    for (_, row) in &moved {
+        conn.execute("DELETE FROM task_meta WHERE id = ?", [row.id])?;
+    }
+    for (new, row) in &moved {
+        put_meta(conn, project_id, new, row)?;
+    }
+    Ok(())
+}
+
+/// Stores `row` on task `task_hash`, replacing the row already there.
+fn put_meta(conn: &Connection, project_id: &str, task_hash: &str, row: &MetaRow) -> Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO task_meta (id, project_id, task_hash, tool, data)
+         VALUES (?, ?, ?, ?, ?)",
+        (row.id, project_id, task_hash, &row.tool, &row.data),
+    )?;
+    Ok(())
+}
+
+/// Deletes the metadata of the checkbox lines of `old` that `map` doesn't pair: their tasks
+/// are gone. Run before the remap moves rows onto these hashes.
+fn drop_meta(
+    conn: &Connection,
+    project_id: &str,
+    old: &str,
+    map: &HashMap<String, String>,
+) -> Result<()> {
+    for hash in keyed_lines(old).1.into_iter().flatten() {
+        if !map.contains_key(&hash) {
+            conn.execute(
+                "DELETE FROM task_meta WHERE project_id = ? AND task_hash = ?",
+                [project_id, &hash],
+            )?;
+        }
+    }
+    Ok(())
+}
+
 /// Moves marks over the edits made since the data repo's last commit of the file (an editor,
-/// another process). Projects without a hardlink have no history: their marks stay.
+/// another process). Metadata of tasks no longer there is dropped; their marks stay, so an
+/// undo in the editor brings them back. Projects without a hardlink have no history: their
+/// marks and metadata stay.
 fn sync_uncommitted(
     conn: &Connection,
     paths: &Paths,
@@ -439,7 +574,9 @@ fn sync_uncommitted(
     ) else {
         return Ok(());
     };
-    apply_remap(conn, project_id, &remap(&old, &new))
+    let map = remap(&old, &new);
+    drop_meta(conn, project_id, &old, &map)?;
+    apply_remap(conn, project_id, &map)
 }
 
 /// Brings marks up to date with the project's file and commits it. Holds the DB write lock
@@ -485,6 +622,9 @@ pub struct Deleted {
     pub line_number: usize,
     /// The removed lines, with their `\n` endings (the file's last line may have none).
     pub text: String,
+    /// The task's metadata.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub meta: Option<MetaRow>,
 }
 
 /// Whether a line belongs to the block of the task above it: indented and not blank.
@@ -506,6 +646,7 @@ fn remove_task(text: &str, target: &str) -> Option<(String, Deleted)> {
     let deleted = Deleted {
         line_number: start,
         text: lines[start..end].concat(),
+        meta: None,
     };
     let kept = [&lines[..start], &lines[end..]].concat().concat();
     Some((kept, deleted))
@@ -546,7 +687,8 @@ fn write_lf(path: &Path, text: &str, crlf: bool) -> Result<()> {
 }
 
 /// Deletes a top-level task and its indented block from the project's file, commits the change
-/// to the data repo and clears the task's mark. Returns what was removed, for [`restore`].
+/// to the data repo and clears the task's mark and metadata. Returns what was removed, for
+/// [`restore`].
 pub fn delete(
     conn: &Connection,
     paths: &Paths,
@@ -555,12 +697,13 @@ pub fn delete(
 ) -> Result<Deleted> {
     edit(conn, paths, project_id, |path| {
         let (text, crlf) = read_lf(path).map_err(|_| Error::NotFound("task"))?;
-        let (kept, deleted) = remove_task(&text, task_hash).ok_or(Error::NotFound("task"))?;
+        let (kept, mut deleted) = remove_task(&text, task_hash).ok_or(Error::NotFound("task"))?;
         // Before the remap: a shifted duplicate may take this hash.
         conn.execute(
             "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
             [project_id, task_hash],
         )?;
+        deleted.meta = take_meta(conn, project_id, task_hash)?;
         write_lf(path, &kept, crlf)?;
         let splice = Splice {
             at: deleted.line_number,
@@ -571,24 +714,58 @@ pub fn delete(
     })
 }
 
-/// Puts deleted lines back at `line_number` (at the end, if the file got shorter) and commits.
+/// Removes a task's metadata and returns it.
+fn take_meta(conn: &Connection, project_id: &str, task_hash: &str) -> Result<Option<MetaRow>> {
+    let row = conn
+        .query_row(
+            "SELECT id, tool, data FROM task_meta WHERE project_id = ? AND task_hash = ?",
+            [project_id, task_hash],
+            |r| {
+                Ok(MetaRow {
+                    id: r.get(0)?,
+                    tool: r.get(1)?,
+                    data: r.get(2)?,
+                })
+            },
+        )
+        .optional()?;
+    if let Some(row) = &row {
+        conn.execute("DELETE FROM task_meta WHERE id = ?", [row.id])?;
+    }
+    Ok(row)
+}
+
+/// Puts deleted lines back at `line_number` (at the end, if the file got shorter), with the
+/// task's metadata under its old `id`, and commits.
 pub fn restore(
     conn: &Connection,
     paths: &Paths,
     project_id: &str,
     line_number: usize,
     text: &str,
+    meta: Option<&MetaRow>,
 ) -> Result<()> {
-    edit(conn, paths, project_id, |path| {
+    let hash = edit(conn, paths, project_id, |path| {
         let (current, crlf) = read_lf(path)?;
-        write_lf(path, &insert_lines(&current, line_number, text), crlf)?;
+        let new = insert_lines(&current, line_number, text);
+        write_lf(path, &new, crlf)?;
+        let at = line_number.min(split_lines_keep_ends(&current).len());
+        let hash = tasks_of(&new)
+            .into_iter()
+            .find(|t| t.line_number == at)
+            .map(|t| t.hash);
         let splice = Splice {
-            at: line_number.min(split_lines_keep_ends(&current).len()),
+            at,
             removed: 0,
             inserted: split_lines_keep_ends(text).len(),
         };
-        Ok(((), Some(splice)))
-    })
+        Ok((hash, Some(splice)))
+    })?;
+    // After the remap, which moves rows off the hashes the shift reused.
+    if let (Some(hash), Some(meta)) = (hash, meta) {
+        put_meta(conn, project_id, &hash, meta)?;
+    }
+    Ok(())
 }
 
 /// A heading of a TODO.md: where [`add`] can put a task.
@@ -672,7 +849,8 @@ pub fn append_task(path: &Path, text: &str, section: Option<&str>) -> Result<Str
 }
 
 /// Adds a task to a project's file (see [`append_task`]), commits it and marks it `stage`:
-/// `inbox`, `next`, or `backlog` (no mark). Returns its hash.
+/// `inbox`, `next`, or `backlog` (no mark). `meta`, a JSON object, is stored as the task's
+/// metadata. Returns its hash.
 pub fn add(
     conn: &Connection,
     paths: &Paths,
@@ -680,10 +858,14 @@ pub fn add(
     text: &str,
     section: Option<&str>,
     stage: &str,
+    meta: Option<&Value>,
 ) -> Result<String> {
     let (_, project_type) = projects::file_and_type(conn, project_id)?;
     if !["inbox", "backlog", "next"].contains(&stage) {
         return Err(Error::Invalid(format!("unknown stage '{stage}'")));
+    }
+    if meta.is_some_and(|m| !m.is_object()) {
+        return Err(Error::Invalid("metadata is a JSON object".to_string()));
     }
     // A learning project's file may be a PDF.
     if project_type != "project" {
@@ -705,6 +887,12 @@ pub fn add(
         "inbox" => inbox(conn, project_id, &hash)?,
         "next" => select(conn, project_id, &hash)?,
         _ => {}
+    }
+    if let Some(meta) = meta {
+        conn.execute(
+            "INSERT OR REPLACE INTO task_meta (project_id, task_hash, data) VALUES (?, ?, ?)",
+            [project_id, &hash, &meta.to_string()],
+        )?;
     }
     Ok(hash)
 }
@@ -1344,7 +1532,8 @@ Some plain text here.
             deleted,
             Deleted {
                 line_number: 1,
-                text: "- [ ] a\n".into()
+                text: "- [ ] a\n".into(),
+                meta: None,
             }
         );
     }
@@ -1411,7 +1600,7 @@ Some plain text here.
         let log = git::run(&paths.root, &["log", "-1", "--format=%s"]).unwrap();
         assert_eq!(log, "activity: p1.md\n");
 
-        restore(&conn, &paths, &id, deleted.line_number, &deleted.text).unwrap();
+        restore(&conn, &paths, &id, deleted.line_number, &deleted.text, None).unwrap();
         assert_eq!(fs::read_to_string(&hardlink).unwrap(), TODO);
     }
 
@@ -1423,7 +1612,7 @@ Some plain text here.
         let deleted = delete(&conn, &paths, &id, &task_hash("- [ ] a", 1)).unwrap();
         assert_eq!(fs::read_to_string(&todo).unwrap(), "- [ ] b\r\n");
 
-        restore(&conn, &paths, &id, deleted.line_number, &deleted.text).unwrap();
+        restore(&conn, &paths, &id, deleted.line_number, &deleted.text, None).unwrap();
         assert_eq!(
             fs::read_to_string(&todo).unwrap(),
             "- [ ] a\r\n  - [ ] a1\r\n- [ ] b\r\n"
@@ -1673,7 +1862,7 @@ Some plain text here.
         let deleted = delete(&conn, &paths, &id, &h("- [ ] x", 1)).unwrap();
         assert_eq!(mark_list(&conn)[0].0, h("- [ ] x", 1));
 
-        restore(&conn, &paths, &id, deleted.line_number, &deleted.text).unwrap();
+        restore(&conn, &paths, &id, deleted.line_number, &deleted.text, None).unwrap();
         assert_eq!(mark_list(&conn).len(), 1);
         assert_eq!(mark_list(&conn)[0].0, h("- [ ] x", 2));
     }
@@ -1770,9 +1959,9 @@ Some plain text here.
         let (_tmp, paths, conn, todo, id) = project();
         let hardlink = paths.hardlink(&id, "project");
 
-        let inboxed = add(&conn, &paths, &id, "In", None, "inbox").unwrap();
-        let next = add(&conn, &paths, &id, "Next", None, "next").unwrap();
-        let backlog = add(&conn, &paths, &id, "Later", None, "backlog").unwrap();
+        let inboxed = add(&conn, &paths, &id, "In", None, "inbox", None).unwrap();
+        let next = add(&conn, &paths, &id, "Next", None, "next", None).unwrap();
+        let backlog = add(&conn, &paths, &id, "Later", None, "backlog", None).unwrap();
 
         assert_eq!(
             fs::read_to_string(&hardlink).unwrap(),
@@ -1792,13 +1981,13 @@ Some plain text here.
     fn add_rejects_bad_stages_and_learning_projects() {
         let (_tmp, paths, conn, todo, id) = project();
         assert!(matches!(
-            add(&conn, &paths, &id, "x", None, "later"),
+            add(&conn, &paths, &id, "x", None, "later", None),
             Err(Error::Invalid(_))
         ));
         conn.execute("UPDATE projects SET type = 'learning'", ())
             .unwrap();
         assert!(matches!(
-            add(&conn, &paths, &id, "x", None, "inbox"),
+            add(&conn, &paths, &id, "x", None, "inbox", None),
             Err(Error::Invalid(_))
         ));
         assert_eq!(fs::read_to_string(&todo).unwrap(), TODO);
@@ -1811,12 +2000,161 @@ Some plain text here.
         select(&conn, &id, &h("- [ ] x", 1)).unwrap();
         select(&conn, &id, &h("- [ ] x", 2)).unwrap();
 
-        let hash = add(&conn, &paths, &id, "x", Some("A"), "inbox").unwrap();
+        let hash = add(&conn, &paths, &id, "x", Some("A"), "inbox", None).unwrap();
 
         assert_eq!(hash, h("- [ ] x", 2));
         assert_eq!(marks(&conn, &id, &h("- [ ] x", 1)), (true, false));
         assert_eq!(marks(&conn, &id, &hash), (false, true));
         assert_eq!(marks(&conn, &id, &h("- [ ] x", 3)), (true, false));
         assert_eq!(mark_rows(&conn), 3);
+    }
+
+    /// The project's metadata rows as (hash, id), by hash.
+    fn meta_list(conn: &Connection) -> Vec<(String, i64)> {
+        conn.prepare("SELECT task_hash, id FROM task_meta ORDER BY task_hash")
+            .unwrap()
+            .query_map((), |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .collect::<rusqlite::Result<_>>()
+            .unwrap()
+    }
+
+    fn view_of(conn: &Connection, id: &str, hash: &str) -> TaskView {
+        tasks_of_list(&list(conn, id).unwrap())
+            .into_iter()
+            .find(|t| t.hash == hash)
+            .unwrap()
+            .clone()
+    }
+
+    fn with_meta(conn: &Connection, paths: &Paths, id: &str, text: &str) -> String {
+        let meta = serde_json::json!({"note": "n", "source": {"mail": "m.eml"}});
+        add(conn, paths, id, text, None, "inbox", Some(&meta)).unwrap()
+    }
+
+    #[test]
+    fn add_stores_metadata_and_list_shows_it() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        let meta = serde_json::json!({
+            "note": "Reply by Friday",
+            "links": [{"label": "Mail", "target": "/tmp/m.eml"}],
+            "source": {"mail": "m.eml"},
+            "extra": 1,
+        });
+
+        let hash = add(&conn, &paths, &id, "Reply", None, "inbox", Some(&meta)).unwrap();
+        let plain = add(&conn, &paths, &id, "Plain", None, "inbox", None).unwrap();
+
+        let task = view_of(&conn, &id, &hash);
+        let meta_id = meta_list(&conn)[0].1;
+        assert_eq!(
+            task.meta,
+            Some(TaskMeta {
+                id: meta_id,
+                note: Some("Reply by Friday".into()),
+                links: vec![Link {
+                    label: "Mail".into(),
+                    target: "/tmp/m.eml".into()
+                }],
+                has_source: true,
+            })
+        );
+        assert_eq!(task.delegated_to, None);
+        conn.execute("UPDATE task_meta SET tool = 'epc-os'", ())
+            .unwrap();
+        assert_eq!(
+            view_of(&conn, &id, &hash).delegated_to.as_deref(),
+            Some("epc-os")
+        );
+        assert_eq!(view_of(&conn, &id, &plain).meta, None);
+        let data: String = conn
+            .query_row("SELECT data FROM task_meta", (), |r| r.get(0))
+            .unwrap();
+        assert!(data.contains("\"extra\":1"));
+    }
+
+    #[test]
+    fn add_rejects_metadata_that_is_not_an_object() {
+        let (_tmp, paths, conn, todo, id) = project();
+        let meta = serde_json::json!(["note"]);
+        assert!(matches!(
+            add(&conn, &paths, &id, "x", None, "inbox", Some(&meta)),
+            Err(Error::Invalid(_))
+        ));
+        assert_eq!(fs::read_to_string(&todo).unwrap(), TODO);
+    }
+
+    #[test]
+    fn done_tasks_keep_their_metadata() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        let hash = with_meta(&conn, &paths, &id, "Reply");
+
+        toggle(&conn, &paths, &id, &hash).unwrap();
+        cleanup_selected(&conn).unwrap();
+
+        let task = view_of(&conn, &id, &hash);
+        assert!(task.is_done && !task.in_inbox);
+        assert!(task.meta.is_some());
+    }
+
+    #[test]
+    fn delete_and_restore_keep_the_metadata_id() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        let hash = with_meta(&conn, &paths, &id, "Reply");
+        let before = meta_list(&conn);
+
+        let deleted = delete(&conn, &paths, &id, &hash).unwrap();
+        assert!(meta_list(&conn).is_empty());
+        assert_eq!(deleted.meta.as_ref().map(|m| m.id), Some(before[0].1));
+        // A task added meanwhile doesn't take the deleted id.
+        with_meta(&conn, &paths, &id, "Other");
+        assert_ne!(meta_list(&conn)[0].1, before[0].1);
+
+        restore(
+            &conn,
+            &paths,
+            &id,
+            deleted.line_number,
+            &deleted.text,
+            deleted.meta.as_ref(),
+        )
+        .unwrap();
+        assert!(meta_list(&conn).contains(&before[0]));
+        assert_eq!(
+            view_of(&conn, &id, &hash).meta.unwrap().note.as_deref(),
+            Some("n")
+        );
+    }
+
+    #[test]
+    fn removing_a_project_drops_its_metadata() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        with_meta(&conn, &paths, &id, "Reply");
+
+        conn.execute("DELETE FROM projects WHERE id = ?", [&id])
+            .unwrap();
+
+        assert!(meta_list(&conn).is_empty());
+    }
+
+    #[test]
+    fn sync_marks_drops_the_metadata_of_tasks_deleted_outside() {
+        let (_tmp, paths, conn, todo, id) = project();
+        let gone = with_meta(&conn, &paths, &id, "Reply");
+        with_meta(&conn, &paths, &id, "x");
+        inbox(&conn, &id, &gone).unwrap();
+
+        // An editor deletes `Reply` and adds an `x` above the other.
+        let text = fs::read_to_string(&todo)
+            .unwrap()
+            .replace("- [ ] Reply\n", "");
+        fs::write(&todo, format!("- [ ] x\n{text}")).unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+
+        let rows = meta_list(&conn);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].0, h("- [ ] x", 2));
+        // The mark stays, for an undo in the editor.
+        assert!(mark_list(&conn).iter().any(|m| m.0 == gone));
     }
 }
