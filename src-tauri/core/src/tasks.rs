@@ -1074,6 +1074,77 @@ pub fn delegated(conn: &Connection, paths: &Paths, tool: &str) -> Result<Vec<Del
     Ok(out)
 }
 
+/// Appends a subtask under the task whose metadata is `id`: after its last subtask, with that
+/// subtask's indent (2 spaces when it has none). Writes in place, keeps CRLF and commits, like
+/// [`toggle`]. Returns the subtask's hash.
+pub fn add_subtask(
+    conn: &Connection,
+    paths: &Paths,
+    id: i64,
+    text: &str,
+    checked: bool,
+) -> Result<String> {
+    let subtask = strip(text);
+    if subtask.is_empty() || split_lines(subtask).len() != 1 {
+        return Err(Error::Invalid(
+            "a subtask is one line of non-blank text".to_string(),
+        ));
+    }
+    let (project_id, ..) = meta_by_id(conn, id)?;
+    edit(conn, paths, &project_id, |path| {
+        // After the sync of outside edits, which may have moved the task to a new hash.
+        let (_, task_hash, _) = meta_by_id(conn, id)?;
+        let (current, crlf) = read_lf(path)?;
+        let task = tasks_of(&current)
+            .into_iter()
+            .find(|t| t.hash == task_hash)
+            .ok_or(Error::NotFound("task"))?;
+        let (at, indent) = match task.subtasks.last() {
+            Some(sub) => {
+                let line = split_lines(&current)[sub.line_number];
+                let indent = checkbox(line).map(|m| m[1].to_string());
+                (sub.line_number + 1, indent.unwrap_or_default())
+            }
+            None => (task.line_number + 1, "  ".to_string()),
+        };
+        let state = if checked { 'x' } else { ' ' };
+        let new = insert_lines(&current, at, &format!("{indent}- [{state}] {subtask}\n"));
+        write_lf(path, &new, crlf)?;
+        let hash = keyed_lines(&new)
+            .1
+            .swap_remove(at)
+            .ok_or(Error::NotFound("task"))?;
+        let splice = Splice {
+            at,
+            removed: 0,
+            inserted: 1,
+        };
+        Ok((hash, Some(splice)))
+    })
+}
+
+/// Appends `links` to the links of the task whose metadata is `id`.
+pub fn add_links(conn: &Connection, id: i64, links: &[Link]) -> Result<()> {
+    let tx = Transaction::new_unchecked(conn, TransactionBehavior::Immediate)?;
+    let (_, _, row) = meta_by_id(&tx, id)?;
+    let mut data = data_object(&row.data);
+    let mut all = data
+        .get("links")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    for link in links {
+        all.push(serde_json::to_value(link)?);
+    }
+    data.insert("links".to_string(), Value::Array(all));
+    tx.execute(
+        "UPDATE task_meta SET data = ? WHERE id = ?",
+        (Value::Object(data).to_string(), id),
+    )?;
+    tx.commit()?;
+    Ok(())
+}
+
 /// Ends a delegation: the task goes back to the inbox, for review, and leaves its tool.
 pub fn finish(conn: &Connection, id: i64) -> Result<()> {
     let (project_id, task_hash, _) = meta_by_id(conn, id)?;
@@ -2497,7 +2568,83 @@ Some plain text here.
 
     #[test]
     fn unknown_metadata_id_is_not_found() {
-        let (_tmp, _paths, conn, _todo, _id) = project();
+        let (_tmp, paths, conn, _todo, _id) = project();
         assert!(matches!(finish(&conn, 999), Err(Error::NotFound("task"))));
+        assert!(matches!(
+            add_subtask(&conn, &paths, 999, "x", true),
+            Err(Error::NotFound("task"))
+        ));
+        assert!(matches!(
+            add_links(&conn, 999, &[]),
+            Err(Error::NotFound("task"))
+        ));
+    }
+
+    /// Writes `content` to the project's file and gives the task on `line` metadata; returns
+    /// its id.
+    fn meta_on(conn: &Connection, todo: &Path, content: &str, line: &str) -> i64 {
+        fs::write(todo, content).unwrap();
+        conn.execute(
+            "INSERT INTO task_meta (project_id, task_hash) VALUES ('p1', ?)",
+            [task_hash(line, 1)],
+        )
+        .unwrap();
+        conn.last_insert_rowid()
+    }
+
+    #[test]
+    fn add_subtask_goes_after_the_last_subtask_with_its_indent() {
+        let (_tmp, paths, conn, todo, id) = project();
+        let content = "- [ ] Task\n    - [ ] A\n- [ ] Next\n";
+        let meta_id = meta_on(&conn, &todo, content, "- [ ] Task");
+        select(&conn, &id, &task_hash("- [ ] Next", 1)).unwrap();
+
+        let hash = add_subtask(&conn, &paths, meta_id, " B ", true).unwrap();
+
+        assert_eq!(
+            fs::read_to_string(&todo).unwrap(),
+            "- [ ] Task\n    - [ ] A\n    - [x] B\n- [ ] Next\n"
+        );
+        assert_eq!(hash, task_hash("    - [x] B", 1));
+        assert!(!view_of(&conn, &id, &task_hash("- [ ] Task", 1)).is_done);
+        assert!(view_of(&conn, &id, &task_hash("- [ ] Next", 1)).is_selected);
+        let log = git::run(&paths.root, &["log", "--format=%s"]).unwrap();
+        assert!(log.starts_with("activity: p1.md"), "{log}");
+    }
+
+    #[test]
+    fn add_subtask_indents_two_spaces_and_keeps_crlf() {
+        let (_tmp, paths, conn, todo, _id) = project();
+        let meta_id = meta_on(&conn, &todo, "- [ ] Task\r\n- [ ] Other\r\n", "- [ ] Task");
+
+        add_subtask(&conn, &paths, meta_id, "B", false).unwrap();
+
+        assert_eq!(
+            fs::read_to_string(&todo).unwrap(),
+            "- [ ] Task\r\n  - [ ] B\r\n- [ ] Other\r\n"
+        );
+        assert!(matches!(
+            add_subtask(&conn, &paths, meta_id, "a\nb", true),
+            Err(Error::Invalid(_))
+        ));
+    }
+
+    #[test]
+    fn add_links_appends_and_keeps_the_other_data() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        let hash = with_meta(&conn, &paths, &id, "Task");
+        let meta_id = view_of(&conn, &id, &hash).meta.unwrap().id;
+        let link = |label: &str| Link {
+            label: label.into(),
+            target: format!("/tmp/{label}"),
+        };
+
+        add_links(&conn, meta_id, &[link("a")]).unwrap();
+        add_links(&conn, meta_id, &[link("b"), link("c")]).unwrap();
+
+        let meta = view_of(&conn, &id, &hash).meta.unwrap();
+        assert_eq!(meta.links, [link("a"), link("b"), link("c")]);
+        assert!(meta.has_source);
+        assert_eq!(meta.note.as_deref(), Some("n"));
     }
 }

@@ -535,14 +535,14 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
   - [x] `Error::Invalid` if the task has no metadata or the tool isn't linked to the project
   - [x] sets the stage to `delegated`, `task_meta.tool`, and `note` in `data`
 - [x] `tasks::delegated(conn, paths, tool)`: `id`, project, text, subtasks, `data`
-- [ ] `tasks::add_subtask(conn, paths, id, text, checked)`:
-  - [ ] appends after the task's last subtask, with its indent (2 spaces when none)
-  - [ ] in place, CRLF kept, committed like `toggle`, marks moved by `remap_splice`
-- [ ] `tasks::add_links(conn, id, links)`: appends to `data.links`
+- [x] `tasks::add_subtask(conn, paths, id, text, checked)`:
+  - [x] appends after the task's last subtask, with its indent (2 spaces when none)
+  - [x] in place, CRLF kept, committed like `toggle`, marks moved by `remap_splice`
+- [x] `tasks::add_links(conn, id, links)`: appends to `data.links`
 - [x] `tasks::finish(conn, id)`: stage → `inbox`, `tool` cleared
-- [ ] Unknown `id` → `NotFound` everywhere
+- [x] Unknown `id` → `NotFound` everywhere
 - [x] `delegate_task` in `api::dispatch`
-- [ ] Tests: each function, delegate refused without metadata / unlinked tool, finish lands in the inbox
+- [x] Tests: each function, delegate refused without metadata / unlinked tool, finish lands in the inbox
 
 ### Tool launch (app)
 
