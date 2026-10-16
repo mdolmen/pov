@@ -41,6 +41,10 @@ export const deleteTask = (projectId: string, taskHash: string) =>
 export const restoreTask = (projectId: string, deleted: DeletedTask) =>
   call<null>("restore_task", { project_id: projectId, ...deleted });
 
+/** Delegates a task to a tool and starts the tool unless it's running (the app's own command). */
+export const delegateTask = (projectId: string, taskHash: string, tool: string, note: string | null) =>
+  invoke<null>("delegate", { projectId, taskHash, tool, note });
+
 export const cleanupSelected = () => call<null>("cleanup_selected");
 
 export const listNextUp = () => call<NextUpEntry[]>("next_up");

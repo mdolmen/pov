@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AddTimeModal } from "@/components/AddTimeModal";
 import { InlineMarkdown } from "@/components/InlineMarkdown";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@/components/ui/menu";
+import { Popover, PopoverContent, PopoverTitle } from "@/components/ui/popover";
 import { ProjectSettingsModal } from "@/components/ProjectSettingsModal";
 import { TimeHeatmap } from "@/components/TimeHeatmap";
 import { useTasks } from "@/hooks/useTasks";
@@ -76,12 +78,21 @@ function CheckboxIcon({ checked }: { checked: boolean }) {
   );
 }
 
-function SubtaskRow({ subtask, onToggle }: { subtask: Subtask; onToggle: () => void }) {
+function SubtaskRow({
+  subtask,
+  onToggle,
+  disabled,
+}: {
+  subtask: Subtask;
+  onToggle: () => void;
+  disabled: boolean;
+}) {
   return (
     <div className="flex items-start gap-2 pl-[25px]">
       <button
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        className="cursor-pointer"
+        disabled={disabled}
+        className={disabled ? "cursor-default" : "cursor-pointer"}
       >
         <CheckboxIcon checked={subtask.checked} />
       </button>
@@ -102,26 +113,118 @@ const pill =
   "shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap cursor-pointer transition-opacity ";
 const onHover = "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ";
 
+/** Stops a double-click in a popover from reaching the task row, through the portal. */
+const stopDoubleClick = (e: React.MouseEvent) => e.stopPropagation();
+
+/** The "Delegate" pill: a menu of the tools when there are several, then a note to confirm. */
+function DelegateButton({
+  tools,
+  onDelegate,
+}: {
+  tools: string[];
+  onDelegate: (tool: string, note: string | null) => void;
+}) {
+  const anchor = useRef<HTMLButtonElement>(null);
+  const [tool, setTool] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const className = pill + "text-ink-muted " + onHover + "hover:text-delegated hover:bg-delegated-soft";
+
+  function pick(name: string) {
+    setNote("");
+    setTool(name);
+  }
+
+  return (
+    <>
+      {tools.length === 1 ? (
+        <button
+          ref={anchor}
+          onClick={(e) => { e.stopPropagation(); pick(tools[0]); }}
+          className={className}
+        >
+          Delegate
+        </button>
+      ) : (
+        <Menu>
+          <MenuTrigger ref={anchor} onClick={(e) => e.stopPropagation()} className={className}>
+            Delegate
+          </MenuTrigger>
+          <MenuContent onDoubleClick={stopDoubleClick}>
+            {tools.map((name) => (
+              <MenuItem key={name} onClick={() => pick(name)}>
+                {name}
+              </MenuItem>
+            ))}
+          </MenuContent>
+        </Menu>
+      )}
+      <Popover open={tool !== null} onOpenChange={(open) => { if (!open) setTool(null); }}>
+        <PopoverContent anchor={anchor} onDoubleClick={stopDoubleClick}>
+          <PopoverTitle>Delegate to {tool}</PopoverTitle>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (tool) onDelegate(tool, note.trim() || null);
+              setTool(null);
+            }}
+          >
+            <textarea
+              aria-label="Note"
+              placeholder="Note for the tool (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              className="w-full resize-none rounded-lg bg-pane px-2 py-1.5 text-[13px] ring-1 ring-line outline-none focus:ring-delegated"
+            />
+            <div className="flex justify-end mt-2">
+              <button
+                type="submit"
+                className="text-[12px] font-semibold px-3 py-1 rounded-full text-white bg-delegated cursor-pointer"
+              >
+                Delegate
+              </button>
+            </div>
+          </form>
+        </PopoverContent>
+      </Popover>
+    </>
+  );
+}
+
 function TaskRow({
   task,
+  tools,
   onToggle,
   onSelect,
   onUnselect,
   onKeep,
   onDelete,
+  onDelegate,
 }: {
   task: Task;
+  /** The project's tools. */
+  tools: string[];
   onToggle: (hash: string) => void;
   onSelect: (hash: string) => void;
   onUnselect: (hash: string) => void;
   onKeep: (hash: string) => void;
   onDelete: (hash: string) => void;
+  onDelegate: (hash: string, tool: string, note: string | null) => void;
 }) {
   const done = task.is_done;
   const next = task.is_selected && !done;
   const inbox = task.in_inbox && !done;
+  // No actions until the tool sends it back.
+  const delegated = task.delegated_to !== null && !done;
+  const canDelegate = !done && !delegated && task.meta !== null && tools.length > 0;
   const flip = () => (task.is_selected ? onUnselect(task.hash) : onSelect(task.hash));
-  const band = next ? "var(--pov-next)" : inbox ? "var(--pov-inbox)" : null;
+  const band = next
+    ? "var(--pov-next)"
+    : inbox
+      ? "var(--pov-inbox)"
+      : delegated
+        ? "var(--pov-delegated)"
+        : null;
 
   return (
     <div
@@ -131,13 +234,14 @@ function TaskRow({
       style={{ boxShadow: band ? `inset 3px 0 0 ${band}` : undefined }}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        if (!done) flip();
+        if (!done && !delegated) flip();
       }}
     >
       <div className="flex items-start gap-2.5">
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task.hash); }}
-          className="cursor-pointer"
+          disabled={delegated}
+          className={delegated ? "cursor-default" : "cursor-pointer"}
         >
           <CheckboxIcon checked={done} />
         </button>
@@ -150,7 +254,18 @@ function TaskRow({
         >
           <InlineMarkdown text={task.text} />
         </span>
-        {!done && (
+        {canDelegate && (
+          <DelegateButton tools={tools} onDelegate={(tool, note) => onDelegate(task.hash, tool, note)} />
+        )}
+        {delegated && (
+          <span
+            title={`Delegated to ${task.delegated_to}`}
+            className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap text-delegated bg-delegated-soft"
+          >
+            {task.delegated_to}
+          </span>
+        )}
+        {!done && !delegated && (
           <button
             onClick={(e) => { e.stopPropagation(); flip(); }}
             className={
@@ -189,7 +304,12 @@ function TaskRow({
       {task.subtasks.length > 0 && (
         <div className="flex flex-col gap-1 mt-1.5">
           {task.subtasks.map((s) => (
-            <SubtaskRow key={s.hash} subtask={s} onToggle={() => onToggle(s.hash)} />
+            <SubtaskRow
+              key={s.hash}
+              subtask={s}
+              onToggle={() => onToggle(s.hash)}
+              disabled={delegated}
+            />
           ))}
         </div>
       )}
@@ -255,7 +375,7 @@ function SectionCaption({ section }: { section: Section }) {
 }
 
 export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus }: Props) {
-  const { items, tasks, loading, toggle, select, unselect, keep, remove, undoRemove } = useTasks(
+  const { items, tasks, loading, toggle, select, unselect, keep, delegate, remove, undoRemove } = useTasks(
     project.id,
     onChanged,
   );
@@ -265,9 +385,11 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const [timeVisible, setTimeVisible] = useState<boolean>(() => readTimeVisible(project.id));
   const [doneHidden, setDoneHidden] = useState<boolean>(() => readDoneHidden(project.id));
   // Not saved: a quick look at what's left to triage, or at what's next.
-  const [only, setOnly] = useState<"inbox" | "next" | null>(null);
+  const [only, setOnly] = useState<"inbox" | "next" | "delegated" | null>(null);
   // The last deleted task, offered for undo for a few seconds.
   const [undo, setUndo] = useState<{ hash: string; text: string; deleted: DeletedTask } | null>(null);
+  // Why the last delegation failed, shown for a few seconds.
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const tracksTime = project.type === "learning";
@@ -283,6 +405,20 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
     setUndo(null);
     await undoRemove(undo.hash, undo.deleted);
   }
+
+  async function delegateTask(hash: string, tool: string, note: string | null) {
+    try {
+      await delegate(hash, tool, note);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   // A new delete restarts the timer; another project drops the offer.
   useEffect(() => {
@@ -313,18 +449,27 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   // A milestone caption shows when its milestone shows tasks, even if they're all under `###`.
   const inboxCount = tasks.filter((t) => t.in_inbox && !t.is_done).length;
   const nextCount = tasks.filter((t) => t.is_selected && !t.is_done).length;
-  // Triaging the last inbox task, or finishing the last next one, leaves the filter on with
-  // nothing to show: turn it off.
+  const delegatedCount = tasks.filter((t) => t.delegated_to !== null && !t.is_done).length;
+  // Triaging the last inbox task, finishing the last next one, or the last delegated task coming
+  // back, leaves the filter on with nothing to show: turn it off.
   useEffect(() => {
-    if ((only === "inbox" && inboxCount === 0) || (only === "next" && nextCount === 0)) setOnly(null);
-  }, [only, inboxCount, nextCount]);
+    if (
+      (only === "inbox" && inboxCount === 0) ||
+      (only === "next" && nextCount === 0) ||
+      (only === "delegated" && delegatedCount === 0)
+    ) {
+      setOnly(null);
+    }
+  }, [only, inboxCount, nextCount, delegatedCount]);
 
   const sections = sectionsOf(items, (t) =>
     only === "inbox"
       ? t.in_inbox && !t.is_done
       : only === "next"
         ? t.is_selected && !t.is_done
-        : !(doneHidden && t.is_done),
+        : only === "delegated"
+          ? t.delegated_to !== null && !t.is_done
+          : !(doneHidden && t.is_done),
   ).filter(
     (s) => s.tasks.length > 0 || (s.heading?.level === 2 && s.progress!.shown > 0),
   );
@@ -373,6 +518,22 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
             }
           >
             Inbox
+          </button>
+        )}
+
+        {delegatedCount > 0 && (
+          <button
+            onClick={() => setOnly(only === "delegated" ? null : "delegated")}
+            aria-pressed={only === "delegated"}
+            title={only === "delegated" ? "Show all tasks" : `Show only the ${delegatedCount} delegated tasks`}
+            className={
+              "mr-1.5 text-[12px] font-medium px-2.5 py-1 rounded-full whitespace-nowrap cursor-pointer " +
+              (only === "delegated"
+                ? "text-delegated bg-delegated-soft"
+                : "text-ink-2 ring-1 ring-line hover:text-ink hover:bg-hover")
+            }
+          >
+            Delegated
           </button>
         )}
 
@@ -462,11 +623,13 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
                         <TaskRow
                           key={t.hash}
                           task={t}
+                          tools={project.tools}
                           onToggle={toggle}
                           onSelect={select}
                           onUnselect={unselect}
                           onKeep={keep}
                           onDelete={deleteTask}
+                          onDelegate={delegateTask}
                         />
                       ))}
                     </div>
@@ -492,18 +655,31 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
           )}
         </div>
 
-        {undo && (
-          <div
-            role="status"
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[80%] flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-full bg-ink text-pane text-[12.5px] shadow-lg whitespace-nowrap"
-          >
-            <span className="truncate">Deleted “{undo.text}”</span>
-            <button
-              onClick={undoDelete}
-              className="font-semibold text-inbox-soft px-2 py-0.5 rounded-full hover:bg-white/10 cursor-pointer"
-            >
-              Undo
-            </button>
+        {(error || undo) && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 max-w-[80%] flex flex-col items-center gap-2">
+            {error && (
+              <div
+                role="alert"
+                onClick={() => setError(null)}
+                className="max-w-full px-4 py-1.5 rounded-full bg-ink text-pane text-[12.5px] shadow-lg truncate cursor-pointer"
+              >
+                {error}
+              </div>
+            )}
+            {undo && (
+              <div
+                role="status"
+                className="max-w-full flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-full bg-ink text-pane text-[12.5px] shadow-lg whitespace-nowrap"
+              >
+                <span className="truncate">Deleted “{undo.text}”</span>
+                <button
+                  onClick={undoDelete}
+                  className="font-semibold text-inbox-soft px-2 py-0.5 rounded-full hover:bg-white/10 cursor-pointer"
+                >
+                  Undo
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

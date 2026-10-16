@@ -20,6 +20,8 @@
     --color-next-soft: var(--pov-next-soft);
     --color-inbox: var(--pov-inbox);
     --color-inbox-soft: var(--pov-inbox-soft);
+    --color-delegated: var(--pov-delegated);
+    --color-delegated-soft: var(--pov-delegated-soft);
     --color-live: var(--pov-live);
     --color-track: var(--pov-track);
     --font-heading: var(--font-sans);
@@ -66,7 +68,7 @@
 
 :root {
     /* pov palette: left pane on the ground, right pane lighter, violet marks next tasks, amber
-       inbox ones. */
+       inbox ones, teal the ones delegated to a tool. */
     --pov-ground: #f1f0ec;
     --pov-pane: #fbfbfa;
     --pov-surface: #fff;
@@ -81,6 +83,8 @@
     --pov-next-soft: #eee9fb;
     --pov-inbox: #d97706;
     --pov-inbox-soft: #fdf3e2;
+    --pov-delegated: #0f766e;
+    --pov-delegated-soft: #e3f4f1;
     --pov-live: #2f8a48;
     --pov-track: #e4e2e8;
     /* Activity ramp: empty, then four steps. */

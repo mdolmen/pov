@@ -83,8 +83,11 @@ export interface Project {
   task_count: number;
   selected_count: number;
   inbox_count: number;
+  delegated_count: number;
   activity: ActivityLevel;
   paused_until: string | null;
+  /** The tools its tasks can be delegated to, from `config.json`. */
+  tools: string[];
 }
 
 export interface NextUpEntry {

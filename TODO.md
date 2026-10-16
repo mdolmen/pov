@@ -563,21 +563,21 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### Frontend
 
-- [ ] `types.ts`: `Task.meta`, `Task.delegated_to`, `Project.tools`, `Project.delegated_count`
-- [ ] `backend.ts`: `delegateTask`
-- [ ] "Delegate" pill on hover, on tasks with metadata in projects with tools
-- [ ] Several tools: the pill opens a menu of them
-- [ ] Delegate opens a popover: optional note, "Delegate" confirms
-- [ ] Delegated tasks: band in a new colour (`--pov-delegated*` tokens), "<tool>" pill, no actions
+- [x] `types.ts`: `Task.meta`, `Task.delegated_to`, `Project.tools`, `Project.delegated_count`
+- [x] `backend.ts`: `delegateTask`
+- [x] "Delegate" pill on hover, on tasks with metadata in projects with tools
+- [x] Several tools: the pill opens a menu of them
+- [x] Delegate opens a popover: optional note, "Delegate" confirms
+- [x] Delegated tasks: band in a new colour (`--pov-delegated*` tokens), "<tool>" pill, no actions
 - [ ] Info icon on tasks with metadata → popover with the note and the links
 - [ ] Link click: `http(s)` → opener `openUrl`, else `openPath`
-- [ ] "Delegated" filter pill beside "Inbox"
-- [ ] Start failure → error toast
+- [x] "Delegated" filter pill beside "Inbox"
+- [x] Start failure → error toast
 - [ ] New `delegate.test.tsx`:
-  - [ ] pill shown only with metadata and tools; menu with several tools
-  - [ ] note sent, band and pill shown, no actions
+  - [x] pill shown only with metadata and tools; menu with several tools
+  - [x] note sent, band and pill shown, no actions
   - [ ] info popover lists links; clicks call the opener (`mockIPC`)
-  - [ ] filter; task back in the inbox after `finish_task`
+  - [x] filter; task back in the inbox after `finish_task`
 
 ### Docs
 

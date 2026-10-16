@@ -1,7 +1,7 @@
 // Shared helpers: fake native calls, seed projects through the real backend, read the data dir.
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mockIPC } from "@tauri-apps/api/mocks";
 import { render, screen, waitFor, within } from "@testing-library/react";
@@ -64,6 +64,36 @@ export async function inboxTasks(projectId: string, ...texts: string[]) {
   }
 }
 
+/** Adds a task with metadata, as a tool does through `pov mcp`; returns its hash. */
+export async function addTask(projectId: string, text: string, meta: object = {}): Promise<string> {
+  return bridge<string>("add_task", { project_id: projectId, text, meta });
+}
+
+/** Links a project to `tools` in `config.json`, as edited by hand. */
+export function linkTools(projectId: string, ...tools: string[]) {
+  const file = join(dataDir(), "config.json");
+  const config = JSON.parse(readFileSync(file, "utf8"));
+  config.tools = Object.fromEntries(
+    tools.map((t) => [t, { command: "/usr/bin/true", pidfile: join(dataDir(), `${t}.pid`) }]),
+  );
+  for (const p of config.projects) if (p.id === projectId) p.tools = tools;
+  writeFileSync(file, JSON.stringify(config));
+}
+
+/** Delegates a task to a tool, without starting it. */
+export async function delegate(projectId: string, text: string, tool: string) {
+  const hash = await taskHash(projectId, text);
+  await bridge("delegate_task", { project_id: projectId, task_hash: hash, tool });
+}
+
+/** Sends a delegated task back to the inbox, as its tool does through `pov mcp`. */
+export async function finishTask(projectId: string, text: string) {
+  const items = await bridge<ListItem[]>("list_tasks", { project_id: projectId });
+  const task = items.find((i) => i.kind === "task" && i.text === text);
+  if (task?.kind !== "task" || !task.meta) throw new Error(`no task "${text}" with metadata`);
+  await bridge("finish_task", { id: task.meta.id });
+}
+
 export async function recordTime(projectId: string, minutes: number, date: string, topic?: string) {
   await bridge("add_time", { project_id: projectId, minutes, date, topic });
 }
@@ -94,6 +124,8 @@ interface Native {
   dialogPath?: string | null;
   cliInstalled?: boolean;
   installCli?: () => string;
+  /** Why the delegated tool fails to start; the task is delegated all the same. */
+  delegateError?: string;
 }
 
 /** Fakes the Tauri side; returns the calls made, as `[command, args]`. */
@@ -105,6 +137,15 @@ export function mockNative(native: Native = {}): [string, unknown][] {
       case "api": {
         const { cmd: command, args: commandArgs } = args as { cmd: string; args: unknown };
         return bridge(command, commandArgs);
+      }
+      case "delegate": {
+        const { projectId, taskHash, tool, note } = args as Record<string, unknown>;
+        return bridge("delegate_task", { project_id: projectId, task_hash: taskHash, tool, note }).then(
+          (result) => {
+            if (native.delegateError) throw native.delegateError;
+            return result;
+          },
+        );
       }
       case "plugin:dialog|open":
         return native.dialogPath ?? null;
@@ -165,7 +206,7 @@ export function checkbox(text: string): HTMLElement {
 }
 
 /** The row of a task, found by its text. */
-function taskRow(text: string): HTMLElement {
+export function taskRow(text: string): HTMLElement {
   return taskPane().getByText(text).closest("[data-task]") as HTMLElement;
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
+  delegateTask,
   deleteTask,
   inboxTask,
   keepTask,
@@ -106,6 +107,28 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
+  /**
+   * Delegates a task to `tool`. Throws when it fails; the task may stay delegated, when only
+   * the tool's start failed.
+   */
+  async function delegate(hash: string, tool: string, note: string | null) {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.kind === "task" && (i as Task).hash === hash
+          ? { ...i, delegated_to: tool, is_selected: false, in_inbox: false }
+          : i
+      )
+    );
+    try {
+      await delegateTask(projectId, hash, tool, note);
+    } catch (e) {
+      await fetchTasks();
+      throw e;
+    } finally {
+      onChanged?.();
+    }
+  }
+
   /** Deletes an inbox task from the file; returns what to pass to `undoRemove`. */
   async function remove(hash: string): Promise<DeletedTask | null> {
     setItems((prev) => prev.filter((i) => !(i.kind === "task" && (i as Task).hash === hash)));
@@ -127,5 +150,5 @@ export function useTasks(projectId: string, onChanged?: () => void) {
     onChanged?.();
   }
 
-  return { items, tasks, loading, refresh: fetchTasks, toggle, select, unselect, keep, remove, undoRemove };
+  return { items, tasks, loading, refresh: fetchTasks, toggle, select, unselect, keep, delegate, remove, undoRemove };
 }
