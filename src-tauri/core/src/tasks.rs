@@ -784,8 +784,8 @@ pub fn unselect(conn: &Connection, project_id: &str, task_hash: &str) -> Result<
 
 /// What a project should handle next (`NextUpEntry` in `src/types.ts`).
 ///
-/// A milestone entry has `milestone` set, with `done` / `total` over its tasks. A task entry
-/// (next tasks before any `##`) has `task_text` and `task_hash` set, with `done` / `total` over
+/// A milestone entry has `milestone` set (the nearest `##` or deeper heading), with `done` /
+/// `total` over the tasks under it. A task entry (next tasks before any `##`) has `task_text` and `task_hash` set, with `done` / `total` over
 /// that task's subtasks.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct NextUpEntry {
@@ -800,13 +800,13 @@ pub struct NextUpEntry {
     pub total: usize,
 }
 
-/// Groups top-level tasks by their `##` milestone, in file order. Tasks before any `##` form a
-/// group without a name; `###` and deeper stay in the `##` above them; `#` is ignored.
+/// Groups top-level tasks by the nearest `##` or deeper heading above them (their milestone), in
+/// file order. Tasks before any such heading form a group without a name; `#` is ignored.
 fn milestones(items: Vec<Item>) -> Vec<(Option<String>, Vec<Task>)> {
     let mut groups: Vec<(Option<String>, Vec<Task>)> = vec![(None, vec![])];
     for item in items {
         match item {
-            Item::Heading { text, level: 2 } => groups.push((Some(text), vec![])),
+            Item::Heading { text, level } if level >= 2 => groups.push((Some(text), vec![])),
             Item::Heading { .. } => {}
             Item::Task(task) => {
                 if let Some((_, tasks)) = groups.last_mut() {
@@ -1471,11 +1471,25 @@ Some plain text here.
                 milestone: Some("Two".into()),
                 task_text: None,
                 task_hash: None,
-                next_count: 2,
-                done: 1,
-                total: 4,
+                next_count: 1,
+                done: 0,
+                total: 2,
             }]
         );
+    }
+
+    #[test]
+    fn next_up_takes_the_nearest_heading_as_milestone() {
+        let (tmp, _paths, conn, _todo, _id) = project();
+        let content = "# T\n## Phase\nIntro.\n### Step\n- [ ] a\n- [x] b\n#### Detail\n- [ ] c\n";
+        add_project(&conn, tmp.path(), "Q", "open", content, &["a", "c"]);
+
+        let entries = next_up(&conn).unwrap();
+
+        assert_eq!(entries.len(), 1);
+        let e = &entries[0];
+        assert_eq!(e.milestone.as_deref(), Some("Step"));
+        assert_eq!((e.next_count, e.done, e.total), (1, 1, 2));
     }
 
     #[test]

@@ -207,3 +207,9 @@
     menu.
   - Tool commands are absolute paths: the app has no shell `PATH`.
 - **Plan:** TODO.md, Phase 15. First tool: epc-os (local Ollama), drafts mails and documents.
+
+## 2026-10-16 — Next up subtitle: nearest heading
+
+- **Decision:** a Next up milestone is the nearest `##` or deeper heading above the next task,
+  not only `##`; `done` / `total` count the tasks under that heading.
+- **Why:** a phase split into `###` steps says more by naming the step being worked on.
