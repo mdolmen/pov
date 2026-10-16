@@ -502,13 +502,13 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### Reworded tasks
 
-- [ ] `remap`: a diff block replacing N checkbox lines with N at the same indentation pairs them in order
-- [ ] Blocks that change the line count still drop their marks
-- [ ] The same pairing moves `selected_tasks` and `task_meta` rows
-- [ ] Rename test `remap_pairs_toggled_lines_and_drops_reworded_ones`
-- [ ] Tests: reword a next task, an inbox task, a task with metadata
-- [ ] Tests: reword two neighbouring tasks; 2 lines → 1 drops both
-- [ ] Test: watcher picks up a reword made in an editor
+- [x] `remap`: a diff block replacing N checkbox lines with N at the same indentation pairs them in order
+- [x] Blocks that change the line count still drop their marks
+- [x] The same pairing moves `selected_tasks` and `task_meta` rows
+- [x] Rename test `remap_pairs_toggled_lines_and_drops_reworded_ones`
+- [x] Tests: reword a next task, an inbox task, a task with metadata
+- [x] Tests: reword two neighbouring tasks; 2 lines → 1 drops both
+- [x] Test: watcher picks up a reword made in an editor
 
 ### Metadata (`pov-core`)
 

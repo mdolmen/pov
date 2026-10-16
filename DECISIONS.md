@@ -184,7 +184,10 @@
   to a task by its metadata ID, never by its hash.
 - **Why:** rewording a task lost its next / inbox mark, and would lose a delegated task's link to
   its tool.
-- **Constraints:** a block that changes the number of lines still drops them.
+- **Constraints:**
+  - A block that changes the number of lines still drops them.
+  - Metadata of a task gone from the file is deleted; its mark row stays, so an undo in the
+    editor brings the mark back.
 - **Plan:** TODO.md, Phase 15 › Reworded tasks.
 
 ## 2026-10-16 — Delegating tasks to external tools

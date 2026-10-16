@@ -428,6 +428,14 @@ fn keyed_lines(text: &str) -> (Vec<String>, Vec<Option<String>>) {
         .unzip()
 }
 
+/// The indentation of each line of `text` that is a checkbox line.
+fn indents(text: &str) -> Vec<Option<String>> {
+    split_lines(&universal_newlines(text))
+        .into_iter()
+        .map(|line| checkbox(line).map(|m| m[1].to_string()))
+        .collect()
+}
+
 /// Old hash → new hash of the checkbox lines paired by `pairs` (old index, new index).
 fn pair_hashes(
     old: &[Option<String>],
@@ -440,10 +448,18 @@ fn pair_hashes(
 }
 
 /// Follows the lines an outside edit kept: a diff pairs the unchanged lines of `old` and `new`.
-/// Changed lines aren't paired; a toggled checkbox counts as unchanged.
+/// A toggled checkbox counts as unchanged. A block replacing N checkbox lines with N at the same
+/// indentation is a rewording: its lines are paired in order. Other changed lines aren't paired.
 fn remap(old: &str, new: &str) -> HashMap<String, String> {
     let (old_keys, old_hashes) = keyed_lines(old);
     let (new_keys, new_hashes) = keyed_lines(new);
+    let (old_indents, new_indents) = (indents(old), indents(new));
+    let reworded = |i: usize, j: usize, len: usize| {
+        (0..len).all(|k| match (&old_indents[i + k], &new_indents[j + k]) {
+            (Some(a), Some(b)) => a == b,
+            _ => false,
+        })
+    };
     let ops = similar::capture_diff_slices(similar::Algorithm::Myers, &old_keys, &new_keys);
     let pairs = ops.into_iter().flat_map(|op| match op {
         similar::DiffOp::Equal {
@@ -451,6 +467,14 @@ fn remap(old: &str, new: &str) -> HashMap<String, String> {
             new_index,
             len,
         } => (0..len).map(|k| (old_index + k, new_index + k)).collect(),
+        similar::DiffOp::Replace {
+            old_index,
+            old_len,
+            new_index,
+            new_len,
+        } if old_len == new_len && reworded(old_index, new_index, old_len) => (0..old_len)
+            .map(|k| (old_index + k, new_index + k))
+            .collect(),
         _ => vec![],
     });
     pair_hashes(&old_hashes, &new_hashes, pairs)
@@ -1786,10 +1810,37 @@ Some plain text here.
     }
 
     #[test]
-    fn remap_pairs_toggled_lines_and_drops_reworded_ones() {
+    fn remap_pairs_toggled_and_reworded_lines() {
         let map = remap("- [ ] a\n- [ ] b\n", "- [x] a2\n- [x] b\n");
         assert_eq!(map[&h("- [ ] b", 1)], h("- [ ] b", 1));
-        assert!(!map.contains_key(&h("- [ ] a", 1)));
+        assert_eq!(map[&h("- [ ] a", 1)], h("- [ ] a2", 1));
+    }
+
+    #[test]
+    fn remap_pairs_neighbouring_rewordings_in_order() {
+        let map = remap(
+            "# T\n- [ ] a\n  - [ ] a1\n- [ ] b\n- [ ] c\n",
+            "# T\n- [ ] A\n  - [ ] A1\n- [ ] B\n- [ ] c\n",
+        );
+        assert_eq!(map[&h("- [ ] a", 1)], h("- [ ] A", 1));
+        assert_eq!(map[&h("  - [ ] a1", 1)], h("  - [ ] A1", 1));
+        assert_eq!(map[&h("- [ ] b", 1)], h("- [ ] B", 1));
+        assert_eq!(map[&h("- [ ] c", 1)], h("- [ ] c", 1));
+    }
+
+    #[test]
+    fn remap_drops_blocks_that_change_the_count_indent_or_kind() {
+        let only_c = |old: &str, new: &str| {
+            let map = remap(old, new);
+            assert_eq!(map.len(), 1, "{old:?} → {new:?}");
+            assert_eq!(map[&h("- [ ] c", 1)], h("- [ ] c", 1));
+        };
+        only_c("- [ ] a\n- [ ] b\n- [ ] c\n", "- [ ] d\n- [ ] c\n");
+        only_c(
+            "- [ ] a\n  - [ ] b\n- [ ] c\n",
+            "- [ ] a2\n- [ ] b2\n- [ ] c\n",
+        );
+        only_c("- [ ] a\n- [ ] c\n", "Some text\n- [ ] c\n");
     }
 
     #[test]
@@ -2156,5 +2207,45 @@ Some plain text here.
         assert_eq!(rows[0].0, h("- [ ] x", 2));
         // The mark stays, for an undo in the editor.
         assert!(mark_list(&conn).iter().any(|m| m.0 == gone));
+    }
+
+    #[test]
+    fn rewording_in_an_editor_keeps_marks_and_metadata() {
+        let (_tmp, paths, conn, todo, id) = project();
+        let meta = with_meta(&conn, &paths, &id, "Reply");
+        let meta_id = meta_list(&conn)[0].1;
+        select(&conn, &id, &h("- [ ] Task one", 1)).unwrap();
+        inbox(&conn, &id, &h("- [ ] Task three", 1)).unwrap();
+        assert_eq!(marks(&conn, &id, &meta), (false, true));
+
+        let text = fs::read_to_string(&todo).unwrap();
+        let text = text
+            .replace("Task one", "Task 1")
+            .replace("Task three", "Task 3")
+            .replace("Reply", "Reply to Ann");
+        fs::write(&todo, text).unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+
+        assert_eq!(marks(&conn, &id, &h("- [ ] Task 1", 1)), (true, false));
+        assert_eq!(marks(&conn, &id, &h("- [ ] Task 3", 1)), (false, true));
+        let reply = view_of(&conn, &id, &h("- [ ] Reply to Ann", 1));
+        assert!(reply.in_inbox);
+        assert_eq!(reply.meta.map(|m| m.id), Some(meta_id));
+    }
+
+    #[test]
+    fn two_lines_reworded_into_one_lose_their_marks() {
+        let (_tmp, paths, conn, todo, id) = project();
+        fs::write(&todo, "- [ ] a\n- [ ] b\n- [ ] c\n").unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+        select(&conn, &id, &h("- [ ] a", 1)).unwrap();
+        select(&conn, &id, &h("- [ ] b", 1)).unwrap();
+        select(&conn, &id, &h("- [ ] c", 1)).unwrap();
+
+        fs::write(&todo, "- [ ] ab\n- [ ] c\n").unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+
+        assert_eq!(marks(&conn, &id, &h("- [ ] ab", 1)), (false, false));
+        assert_eq!(marks(&conn, &id, &h("- [ ] c", 1)), (true, false));
     }
 }

@@ -164,4 +164,32 @@ mod tests {
         assert_eq!(hash, tasks::task_hash("- [ ] x", 2));
         assert_eq!(last_subject(&paths), "activity: p1.md");
     }
+
+    #[test]
+    fn a_task_reworded_in_an_editor_keeps_its_mark() {
+        let tmp = tempfile::tempdir().unwrap();
+        let paths = Paths::new(tmp.path().join("pov"));
+        storage::init(&paths).unwrap();
+        db::init(&paths).unwrap();
+        let conn = db::open(&paths).unwrap();
+        let original = tmp.path().join("TODO.md");
+        fs::write(&original, "## A\n- [ ] x\n- [ ] y\n").unwrap();
+        let md = paths.hardlink("p1", "project");
+        fs::hard_link(&original, &md).unwrap();
+        conn.execute(
+            "INSERT INTO projects (id, name, file_path) VALUES ('p1', 'P', ?)",
+            [original.to_str().unwrap()],
+        )
+        .unwrap();
+        handle(&paths, &modified(&md));
+        tasks::select(&conn, "p1", &tasks::task_hash("- [ ] x", 1)).unwrap();
+
+        fs::write(&original, "## A\n- [ ] x, reworded\n- [ ] y\n").unwrap();
+        handle(&paths, &modified(&md));
+
+        let hash: String = conn
+            .query_row("SELECT task_hash FROM selected_tasks", (), |r| r.get(0))
+            .unwrap();
+        assert_eq!(hash, tasks::task_hash("- [ ] x, reworded", 1));
+    }
 }
