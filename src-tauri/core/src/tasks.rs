@@ -1002,9 +1002,9 @@ fn data_object(data: &str) -> serde_json::Map<String, Value> {
     serde_json::from_str(data).unwrap_or_default()
 }
 
-/// Delegates a task to `tool`, one of the project's tools: it moves to the `delegated` stage
-/// until the tool [`finish`]es it. `note`, when given, replaces the task's note. Only a task
-/// with metadata can be delegated.
+/// Delegates an open task to `tool`, one of the project's tools: it moves to the `delegated`
+/// stage until the tool [`finish`]es it. A task without metadata gets some, so the tool has an
+/// id to refer to it by. `note`, when given, replaces the task's note.
 pub fn delegate(
     conn: &Connection,
     paths: &Paths,
@@ -1013,10 +1013,13 @@ pub fn delegate(
     tool: &str,
     note: Option<&str>,
 ) -> Result<()> {
-    projects::file_and_type(conn, project_id)?;
-    let row = meta_rows(conn, project_id)?
-        .remove(task_hash)
-        .ok_or_else(|| Error::Invalid("only a task with metadata can be delegated".to_string()))?;
+    let (file_path, _) = projects::file_and_type(conn, project_id)?;
+    if !parse_tasks(&file_path)
+        .iter()
+        .any(|t| t.hash == task_hash && !t.is_done())
+    {
+        return Err(Error::NotFound("task"));
+    }
     if !projects::tools(paths, project_id)?
         .iter()
         .any(|t| t == tool)
@@ -1025,15 +1028,17 @@ pub fn delegate(
             "tool '{tool}' isn't linked to this project"
         )));
     }
-    let mut data = data_object(&row.data);
+    let old = meta_rows(conn, project_id)?.remove(task_hash);
+    let mut data = old.map_or_else(Default::default, |row| data_object(&row.data));
     if let Some(note) = note {
         data.insert("note".to_string(), note.into());
     }
     let tx = conn.unchecked_transaction()?;
     set_stage(&tx, project_id, task_hash, "delegated")?;
     tx.execute(
-        "UPDATE task_meta SET tool = ?, data = ? WHERE id = ?",
-        (tool, Value::Object(data).to_string(), row.id),
+        "INSERT INTO task_meta (project_id, task_hash, tool, data) VALUES (?, ?, ?, ?)
+         ON CONFLICT(project_id, task_hash) DO UPDATE SET tool = excluded.tool, data = excluded.data",
+        (project_id, task_hash, tool, Value::Object(data).to_string()),
     )?;
     tx.commit()?;
     Ok(())
@@ -2502,15 +2507,33 @@ Some plain text here.
     }
 
     #[test]
-    fn delegate_needs_metadata_and_a_linked_tool() {
+    fn delegate_gives_a_task_without_metadata_some() {
         let (_tmp, paths, conn, _todo, id) = project();
         link_tools(&paths, &id, &["a"]);
         let plain = add(&conn, &paths, &id, "Plain", None, "inbox", None).unwrap();
+
+        delegate(&conn, &paths, &id, &plain, "a", Some("Go")).unwrap();
+
+        let task = view_of(&conn, &id, &plain);
+        assert_eq!(task.delegated_to.as_deref(), Some("a"));
+        assert_eq!(task.meta.unwrap().note.as_deref(), Some("Go"));
+        assert_eq!(delegated(&conn, &paths, "a").unwrap()[0].text, "Plain");
+    }
+
+    #[test]
+    fn delegate_needs_an_open_task_and_a_linked_tool() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        link_tools(&paths, &id, &["a"]);
         let meta = with_meta(&conn, &paths, &id, "Meta");
+        let done = task_hash("- [x] Task two (done)", 1);
 
         assert!(matches!(
-            delegate(&conn, &paths, &id, &plain, "a", None),
-            Err(Error::Invalid(_))
+            delegate(&conn, &paths, &id, &done, "a", None),
+            Err(Error::NotFound("task"))
+        ));
+        assert!(matches!(
+            delegate(&conn, &paths, &id, "nope", "a", None),
+            Err(Error::NotFound("task"))
         ));
         assert!(matches!(
             delegate(&conn, &paths, &id, &meta, "other", None),

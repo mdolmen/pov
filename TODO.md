@@ -579,6 +579,26 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
   - [x] info popover lists links; clicks call the opener (`mockIPC`)
   - [x] filter; task back in the inbox after `finish_task`
 
+### Delegate any task
+
+See DECISIONS.md (2026-10-16, delegate any task, tools in Settings).
+
+- [x] A task with a tool is delegated whatever its mark: not next, not inbox, out of Next up and the counts
+- [x] `tasks::delegate`: any open task; creates the `task_meta` row when missing
+- [x] `tasks::delegate`: `NotFound` for a task gone from the file or done
+- [x] "Delegate" pill on every open task in a project with tools
+- [x] Tests: delegate without metadata, refused for done / unknown tasks; UI pill on a plain task
+
+### Tools in Settings
+
+- [ ] `projects::list_tools`, `save_tool`, `remove_tool`, `set_project_tools`, written to `config.json`
+- [ ] `save_tool`: name not blank, command and pidfile absolute, else `Invalid`
+- [ ] `remove_tool` unlinks it from every project; `set_project_tools` refuses unknown names
+- [ ] `list_tools`, `save_tool`, `remove_tool`, `set_project_tools` in `api::dispatch`
+- [ ] Settings: "Tools" section listing tools, with Edit / Remove, and an add / edit form
+- [ ] Project settings: a checkbox per tool, saved with the other fields
+- [ ] Tests: core functions; UI add / edit / remove a tool, bad path error, link a tool to a project
+
 ### Docs
 
 - [ ] README + NOTES.md: `tools` in `config.json`, project `tools`

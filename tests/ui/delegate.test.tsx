@@ -28,9 +28,9 @@ interface Options {
   delegated?: string[];
 }
 
-/** Opens project "P": a plain task, and "mail" and "other" with metadata, in the inbox. */
+/** Opens project "P": a plain task, a done one, and "mail" and "other" with metadata, in the inbox. */
 async function setup({ tools = ["writer"], delegateError, delegated = [] }: Options = {}) {
-  const p = await addProject({ name: "P", content: "- [ ] plain\n" });
+  const p = await addProject({ name: "P", content: "- [ ] plain\n- [x] finished\n" });
   await addTask(p.id, "mail", { source: { mail: "m.eml" } });
   await addTask(p.id, "other", { source: { mail: "o.eml" } });
   if (tools.length > 0) linkTools(p.id, ...tools);
@@ -46,9 +46,10 @@ test("no Delegate in a project without tools", async () => {
   expect(delegateButton("mail")).not.toBeInTheDocument();
 });
 
-test("Delegate shows on tasks with metadata; with one tool it asks for a note", async () => {
+test("Delegate shows on open tasks, with or without metadata; with one tool it asks for a note", async () => {
   const { user } = await setup();
-  expect(delegateButton("plain")).not.toBeInTheDocument();
+  expect(delegateButton("plain")).toBeInTheDocument();
+  expect(delegateButton("finished")).not.toBeInTheDocument();
 
   await user.click(delegateButton("mail")!);
 
@@ -111,8 +112,9 @@ test("Delegated shows only delegated tasks; a finished one comes back to the inb
   await user.click(filter);
 
   expect(taskPane().getByText("mail")).toBeInTheDocument();
-  expect(taskPane().queryByText("plain")).not.toBeInTheDocument();
-  expect(taskPane().queryByText("other")).not.toBeInTheDocument();
+  for (const text of ["plain", "finished", "other"]) {
+    expect(taskPane().queryByText(text)).not.toBeInTheDocument();
+  }
 
   await finishTask(project.id, "mail");
   fireEvent.focus(window);

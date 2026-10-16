@@ -216,3 +216,16 @@
 - **Decision:** a Next up milestone is the nearest `##` or deeper heading above the next task,
   not only `##`; `done` / `total` count the tasks under that heading.
 - **Why:** a phase split into `###` steps says more by naming the step being worked on.
+
+## 2026-10-16 — Delegate any task, tools in Settings
+
+- **Decision:** "Delegate" shows on every open task in a project with tools; delegating a task
+  without metadata creates its row. Tools are defined in Settings (name, command, pidfile) and
+  linked in Project settings, written to `config.json`; editing it by hand still works.
+- **Why:** only a tool could give a task metadata, and tools were hand-edited JSON: in practice
+  nothing could be delegated.
+- **Constraints:**
+  - The tool, not the stage, makes a task delegated: a next / inbox mark left on it is ignored.
+  - Command and pidfile are absolute paths; removing a tool unlinks it from every project.
+- **Plan:** TODO.md, Phase 15 › Delegate any task, Tools in Settings. Replaces "Delegate shows
+  only on tasks with metadata" (2026-10-16, delegating tasks to external tools).

@@ -265,7 +265,7 @@ function TaskRow({
   const delegated = task.delegated_to !== null && !done;
   const next = task.is_selected && !done && !delegated;
   const inbox = task.in_inbox && !done && !delegated;
-  const canDelegate = !done && !delegated && task.meta !== null && tools.length > 0;
+  const canDelegate = !done && !delegated && tools.length > 0;
   const flip = () => (task.is_selected ? onUnselect(task.hash) : onSelect(task.hash));
   const band = delegated
     ? "var(--pov-delegated)"
