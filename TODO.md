@@ -569,14 +569,14 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 - [x] Several tools: the pill opens a menu of them
 - [x] Delegate opens a popover: optional note, "Delegate" confirms
 - [x] Delegated tasks: band in a new colour (`--pov-delegated*` tokens), "<tool>" pill, no actions
-- [ ] Info icon on tasks with metadata → popover with the note and the links
-- [ ] Link click: `http(s)` → opener `openUrl`, else `openPath`
+- [x] Info icon on tasks with metadata → popover with the note and the links
+- [x] Link click: `http(s)` → opener `openUrl`, else `openPath`
 - [x] "Delegated" filter pill beside "Inbox"
 - [x] Start failure → error toast
-- [ ] New `delegate.test.tsx`:
+- [x] New `delegate.test.tsx`:
   - [x] pill shown only with metadata and tools; menu with several tools
   - [x] note sent, band and pill shown, no actions
-  - [ ] info popover lists links; clicks call the opener (`mockIPC`)
+  - [x] info popover lists links; clicks call the opener (`mockIPC`)
   - [x] filter; task back in the inbox after `finish_task`
 
 ### Docs

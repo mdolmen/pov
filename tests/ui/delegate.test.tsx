@@ -121,3 +121,35 @@ test("Delegated shows only delegated tasks; a finished one comes back to the inb
   expect(screen.queryByRole("button", { name: "Delegated" })).not.toBeInTheDocument();
   expect(taskPane().getByText("plain")).toBeInTheDocument();
 });
+
+test("the info icon shows the note and opens the links", async () => {
+  const p = await addProject({ name: "P", content: "" });
+  await addTask(p.id, "mail", {
+    note: "Reply by Friday",
+    links: [
+      { label: "Draft", target: "https://example.com/draft" },
+      { label: "Mail", target: "/tmp/m.eml" },
+    ],
+  });
+  await addTask(p.id, "bare", {});
+  const { user, calls } = renderApp();
+  await openProject(user, "P");
+
+  await user.click(within(taskRow("mail")).getByRole("button", { name: "Task details" }));
+  const popover = await screen.findByRole("dialog", { name: "Details" });
+  expect(popover).toHaveTextContent("Reply by Friday");
+  await user.click(within(popover).getByRole("button", { name: "Draft" }));
+  await user.click(within(popover).getByRole("button", { name: "Mail" }));
+
+  expect(calls).toContainEqual([
+    "plugin:opener|open_url",
+    expect.objectContaining({ url: "https://example.com/draft" }),
+  ]);
+  expect(calls).toContainEqual([
+    "plugin:opener|open_path",
+    expect.objectContaining({ path: "/tmp/m.eml" }),
+  ]);
+  await user.keyboard("{Escape}");
+  await user.click(within(taskRow("bare")).getByRole("button", { name: "Task details" }));
+  expect(await screen.findByText("No note or links yet.")).toBeInTheDocument();
+});
