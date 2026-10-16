@@ -1,12 +1,12 @@
 //! Tracked projects: the DB row, the hardlink in the data repo, and the config.json entry.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, OptionalExtension, Row};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::activity::{self, Level};
@@ -41,8 +41,20 @@ pub struct Project {
     pub task_count: usize,
     pub selected_count: i64,
     pub inbox_count: i64,
+    pub delegated_count: i64,
     pub activity: Level,
     pub paused_until: Option<String>,
+    /// The tools tasks can be delegated to, from `config.json`.
+    pub tools: Vec<String>,
+}
+
+/// A tool tasks are delegated to, from `config.json` `tools`.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct Tool {
+    /// Absolute path: the app has no shell `PATH`.
+    pub command: PathBuf,
+    /// Holds the pid of the running tool.
+    pub pidfile: PathBuf,
 }
 
 /// A project to start tracking.
@@ -111,7 +123,12 @@ fn find_row(conn: &Connection, project_id: &str) -> Result<ProjectRow> {
     .ok_or(Error::NotFound("project"))
 }
 
-fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project> {
+fn summary(
+    conn: &Connection,
+    paths: &Paths,
+    row: ProjectRow,
+    tools: Vec<String>,
+) -> Result<Project> {
     // Marks count only on tasks still open in the file, like Next up: a task deleted or checked
     // in an editor leaves its mark behind.
     let open: HashSet<String> = tasks::parse_tasks(&row.file_path)
@@ -119,7 +136,7 @@ fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project>
         .filter(|t| !t.is_done())
         .map(|t| t.hash)
         .collect();
-    let (mut selected_count, mut inbox_count) = (0, 0);
+    let (mut selected_count, mut inbox_count, mut delegated_count) = (0, 0, 0);
     let mut stmt =
         conn.prepare("SELECT task_hash, stage FROM selected_tasks WHERE project_id = ?")?;
     let marks = stmt.query_map([&row.id], |r| {
@@ -131,6 +148,7 @@ fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project>
             match stage.as_str() {
                 "next" => selected_count += 1,
                 "inbox" => inbox_count += 1,
+                "delegated" => delegated_count += 1,
                 _ => {}
             }
         }
@@ -161,8 +179,10 @@ fn summary(conn: &Connection, paths: &Paths, row: ProjectRow) -> Result<Project>
         has_hardlink: row.has_hardlink,
         selected_count,
         inbox_count,
+        delegated_count,
         activity: level,
         paused_until: row.paused_until,
+        tools,
     })
 }
 
@@ -174,14 +194,19 @@ pub fn list(conn: &Connection, paths: &Paths) -> Result<Vec<Project>> {
         ))?
         .query_map((), row_of)?
         .collect::<rusqlite::Result<_>>()?;
+    let mut linked = config_tools(paths)?.linked;
     rows.into_iter()
-        .map(|row| summary(conn, paths, row))
+        .map(|row| {
+            let tools = linked.remove(&row.id).unwrap_or_default();
+            summary(conn, paths, row, tools)
+        })
         .collect()
 }
 
 /// One project, with its counts and activity.
 pub fn get(conn: &Connection, paths: &Paths, project_id: &str) -> Result<Project> {
-    summary(conn, paths, find_row(conn, project_id)?)
+    let row = find_row(conn, project_id)?;
+    summary(conn, paths, row, tools(paths, project_id)?)
 }
 
 /// All project rows, by name.
@@ -261,6 +286,62 @@ fn expand_user(path: &Path) -> PathBuf {
 
 fn read_config(paths: &Paths) -> Result<Value> {
     Ok(serde_json::from_str(&fs::read_to_string(&paths.config)?)?)
+}
+
+/// The `config.json` tools.
+struct ConfigTools {
+    /// `tools`, by name.
+    defined: HashMap<String, Tool>,
+    /// The tools each project links to, by project id.
+    linked: HashMap<String, Vec<String>>,
+}
+
+/// Reads the tools of `config.json`. A project's tool names missing from `tools` are ignored,
+/// like malformed entries.
+fn config_tools(paths: &Paths) -> Result<ConfigTools> {
+    let config = read_config(paths)?;
+    let defined: HashMap<String, Tool> = config
+        .get("tools")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+        .filter_map(|(name, tool)| Some((name.clone(), Tool::deserialize(tool).ok()?)))
+        .collect();
+    let linked = config
+        .get("projects")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|p| {
+            let id = p.get("id")?.as_str()?.to_string();
+            let names = p
+                .get("tools")?
+                .as_array()?
+                .iter()
+                .filter_map(Value::as_str)
+                .filter(|name| defined.contains_key(*name))
+                .map(String::from)
+                .collect();
+            Some((id, names))
+        })
+        .collect();
+    Ok(ConfigTools { defined, linked })
+}
+
+/// The tools a project links to in `config.json`.
+pub fn tools(paths: &Paths, project_id: &str) -> Result<Vec<String>> {
+    Ok(config_tools(paths)?
+        .linked
+        .remove(project_id)
+        .unwrap_or_default())
+}
+
+/// A tool defined in `config.json`, or `NotFound`.
+pub fn tool(paths: &Paths, name: &str) -> Result<Tool> {
+    config_tools(paths)?
+        .defined
+        .remove(name)
+        .ok_or(Error::NotFound("tool"))
 }
 
 fn write_config(paths: &Paths, config: &Value) -> Result<()> {
@@ -444,6 +525,22 @@ mod tests {
                 .map(|p| p["id"].as_str().unwrap().to_string())
                 .collect()
         }
+
+        /// Defines tools `a` and `b` and links project `id` to `tools`, as edited by hand.
+        fn link_tools(&self, id: &str, tools: Value) {
+            let mut config = read_config(&self.paths).unwrap();
+            config["tools"] = json!({
+                "a": {"command": "/bin/a", "pidfile": "/tmp/a.pid"},
+                "b": {"command": "/bin/b", "pidfile": "/tmp/b.pid"},
+                "bad": {"command": "/bin/bad"},
+            });
+            for p in config["projects"].as_array_mut().unwrap() {
+                if p["id"] == id {
+                    p["tools"] = tools.clone();
+                }
+            }
+            write_config(&self.paths, &config).unwrap();
+        }
     }
 
     #[test]
@@ -489,6 +586,72 @@ mod tests {
 
         // The done task's mark doesn't count either, as in Next up.
         assert_eq!((project.selected_count, project.inbox_count), (1, 1));
+    }
+
+    #[test]
+    fn tools_come_from_config() {
+        let env = Env::new();
+        let id = env.add("P", &env.todo, "project").unwrap();
+        assert!(get(&env.conn, &env.paths, &id).unwrap().tools.is_empty());
+
+        env.link_tools(&id, json!(["b", "ghost", "bad", "a"]));
+
+        assert_eq!(get(&env.conn, &env.paths, &id).unwrap().tools, ["b", "a"]);
+        assert_eq!(list(&env.conn, &env.paths).unwrap()[0].tools, ["b", "a"]);
+        assert_eq!(
+            tool(&env.paths, "a").unwrap(),
+            Tool {
+                command: "/bin/a".into(),
+                pidfile: "/tmp/a.pid".into()
+            }
+        );
+        assert!(matches!(
+            tool(&env.paths, "ghost"),
+            Err(Error::NotFound("tool"))
+        ));
+        assert!(matches!(
+            tool(&env.paths, "bad"),
+            Err(Error::NotFound("tool"))
+        ));
+    }
+
+    #[test]
+    fn add_and_remove_keep_hand_written_tools() {
+        let env = Env::new();
+        let id = env.add("P", &env.todo, "project").unwrap();
+        env.link_tools(&id, json!(["a"]));
+
+        let other = env.add("Book", &env.pdf(), "learning").unwrap();
+        remove(&env.conn, &env.paths, &other).unwrap();
+
+        assert_eq!(tools(&env.paths, &id).unwrap(), ["a"]);
+        assert!(tool(&env.paths, "b").is_ok());
+    }
+
+    #[test]
+    fn counts_open_delegated_tasks() {
+        let env = Env::new();
+        let id = env.add("P", &env.todo, "project").unwrap();
+        for line in ["- [ ] Task one", "- [x] Task two (done)"] {
+            env.conn
+                .execute(
+                    "INSERT INTO selected_tasks (project_id, task_hash, stage)
+                     VALUES (?, ?, 'delegated')",
+                    [&id, &tasks::task_hash(line, 1)],
+                )
+                .unwrap();
+        }
+
+        let project = get(&env.conn, &env.paths, &id).unwrap();
+
+        assert_eq!(
+            (
+                project.selected_count,
+                project.inbox_count,
+                project.delegated_count
+            ),
+            (0, 0, 1)
+        );
     }
 
     #[test]

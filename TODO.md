@@ -526,11 +526,11 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### Delegation (`pov-core`)
 
-- [ ] `config.json` `tools`: `{ "<name>": { "command": "<abs path>", "pidfile": "<abs path>" } }`, edited by hand
-- [ ] `config.json` project entry: `tools: ["<name>"]`, edited by hand
-- [ ] `Project.tools` read from config; unknown tool names ignored
+- [x] `config.json` `tools`: `{ "<name>": { "command": "<abs path>", "pidfile": "<abs path>" } }`, edited by hand
+- [x] `config.json` project entry: `tools: ["<name>"]`, edited by hand
+- [x] `Project.tools` read from config; unknown tool names ignored
 - [ ] `delegated` stage in `selected_tasks` (no migration: free text column)
-- [ ] `Project.delegated_count`
+- [x] `Project.delegated_count`
 - [ ] `tasks::delegate(conn, project_id, hash, tool, note)`:
   - [ ] `Error::Invalid` if the task has no metadata or the tool isn't linked to the project
   - [ ] sets the stage to `delegated`, `task_meta.tool`, and `note` in `data`
