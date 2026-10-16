@@ -1,0 +1,120 @@
+#!/usr/bin/python3
+"""A fake agent to try delegation: takes each task pov sends, then answers through `pov mcp`.
+
+It adds a checked subtask linking to the Calculator, attaches the same link to the task's
+details, and hands the task back to the inbox.
+
+Settings → Tools in pov:
+    URL            http://127.0.0.1:8765/tasks
+    Start command  <absolute path to this script>
+
+Environment (all optional):
+    FAKE_AGENT_PORT   port to listen on (8765)
+    FAKE_AGENT_DELAY  seconds of "work" before answering (3)
+    POV               the pov CLI (this repo's debug build, else ~/.local/bin/pov)
+
+pov starts it with no stdout: it logs to /tmp/fake-agent.log.
+"""
+
+import http.server
+import json
+import os
+import subprocess
+import threading
+import time
+from pathlib import Path
+
+PORT = int(os.environ.get("FAKE_AGENT_PORT", "8765"))
+DELAY = float(os.environ.get("FAKE_AGENT_DELAY", "3"))
+CALCULATOR = "/System/Applications/Calculator.app"
+LOG = Path("/tmp/fake-agent.log")
+
+
+def pov_cli() -> str:
+    if "POV" in os.environ:
+        return os.environ["POV"]
+    # Debug builds use pov's dev data dir, like `npm run tauri dev`.
+    debug = Path(__file__).resolve().parent.parent / "src-tauri/target/debug/pov-cli"
+    return str(debug) if debug.exists() else str(Path.home() / ".local/bin/pov")
+
+
+def log(message: str) -> None:
+    with LOG.open("a") as f:
+        f.write(f"{time.strftime('%H:%M:%S')} {message}\n")
+
+
+class Mcp:
+    """A `pov mcp` session: JSON-RPC, one message per line."""
+
+    def __init__(self) -> None:
+        self.proc = subprocess.Popen(
+            [pov_cli(), "mcp"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True
+        )
+        self.next_id = 0
+        self.request(
+            "initialize",
+            {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "fake-agent", "version": "0"},
+            },
+        )
+        self.send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+
+    def send(self, message: dict) -> None:
+        self.proc.stdin.write(json.dumps(message) + "\n")
+        self.proc.stdin.flush()
+
+    def request(self, method: str, params: dict) -> dict:
+        self.next_id += 1
+        self.send({"jsonrpc": "2.0", "id": self.next_id, "method": method, "params": params})
+        for line in self.proc.stdout:
+            message = json.loads(line)
+            if message.get("id") == self.next_id:
+                if "error" in message:
+                    raise RuntimeError(message["error"])
+                return message["result"]
+        raise RuntimeError("pov mcp closed its output")
+
+    def call(self, tool: str, **arguments) -> str:
+        result = self.request("tools/call", {"name": tool, "arguments": arguments})
+        text = result["content"][0]["text"]
+        if result.get("isError"):
+            raise RuntimeError(f"{tool}: {text}")
+        return text
+
+    def close(self) -> None:
+        self.proc.stdin.close()
+        self.proc.wait()
+
+
+def answer(task: dict) -> None:
+    time.sleep(DELAY)
+    mcp = Mcp()
+    try:
+        mcp.call("add_subtask", id=task["id"], text=f"Done: open the [Calculator]({CALCULATOR})")
+        mcp.call("add_links", id=task["id"], links=[{"label": "Calculator", "target": CALCULATOR}])
+        mcp.call("finish_task", id=task["id"])
+        log(f"answered #{task['id']} {task['text']!r}")
+    except Exception as e:  # noqa: BLE001 - a fake agent logs whatever went wrong
+        log(f"failed #{task['id']}: {e}")
+    finally:
+        mcp.close()
+
+
+class Agent(http.server.BaseHTTPRequestHandler):
+    def do_POST(self) -> None:
+        task = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        log(f"got #{task['id']} {task['text']!r} from {task['project_name']}: {json.dumps(task['data'])}")
+        # Take the task now, work on it after: pov waits for this answer.
+        self.send_response(202)
+        self.end_headers()
+        threading.Thread(target=answer, args=(task,), daemon=True).start()
+
+    def log_message(self, format: str, *args) -> None:
+        pass
+
+
+if __name__ == "__main__":
+    log(f"listening on http://127.0.0.1:{PORT}/tasks, answering through {pov_cli()}")
+    http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Agent).serve_forever()

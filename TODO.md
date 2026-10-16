@@ -612,6 +612,7 @@ See DECISIONS.md (2026-10-16, delegate sends the task to the agent).
 - [x] `delegate` Tauri command calls `tools::delegate`
 - [x] Tests: fake agent on a local port (sent JSON, refusal, unreachable, started by its command), end to end with the DB
 - [x] UI: the failure toast leaves the task as it was
+- [x] `scripts/fake-agent`: takes a task, adds a subtask and a link to the Calculator, finishes it
 
 ### Docs
 
