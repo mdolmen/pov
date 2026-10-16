@@ -93,9 +93,8 @@ export interface Project {
 /** A tool tasks can be delegated to, from `config.json`. */
 export interface ToolEntry {
   name: string;
-  /** Absolute paths: the app has no shell `PATH`. */
+  /** Absolute path: the app has no shell `PATH`. */
   command: string;
-  pidfile: string;
 }
 
 export interface NextUpEntry {

@@ -1,4 +1,4 @@
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { openLink } from "@/lib/openLink";
 
 // Emphasis requires non-space just inside the delimiters, so "a * b * c" stays literal.
 const TOKEN =
@@ -12,9 +12,7 @@ function MarkdownLink({ href, text }: { href: string; text: string }) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        openUrl(href).catch(() => {
-          // not in Tauri context (browser dev), or a scheme the opener rejects
-        });
+        openLink(href);
       }}
       onDoubleClick={(e) => e.stopPropagation()}
       className="hover:text-blue-600 transition-colors"

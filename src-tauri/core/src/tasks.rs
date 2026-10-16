@@ -2464,7 +2464,7 @@ Some plain text here.
         let defined: serde_json::Map<String, Value> = tools
             .iter()
             .map(|t| {
-                let tool = serde_json::json!({"command": "/bin/true", "pidfile": "/tmp/t.pid"});
+                let tool = serde_json::json!({"command": "/bin/true"});
                 (t.to_string(), tool)
             })
             .collect();

@@ -1,9 +1,7 @@
 //! Starting the tools tasks are delegated to, one instance per tool.
 
 use std::collections::HashMap;
-use std::fs;
 use std::os::unix::process::CommandExt;
-use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex, PoisonError};
 
@@ -15,16 +13,15 @@ use crate::{Error, Result};
 pub struct Launcher(Arc<Mutex<HashMap<String, Child>>>);
 
 impl Launcher {
-    /// Starts `tool` unless it's running: pov's child for it hasn't exited, or its pidfile names
-    /// a live process. The tool runs detached, without stdio, and is never waited on. Returns
-    /// `true` when it was started.
+    /// Starts `tool` unless the instance pov started is still running. The tool runs detached,
+    /// without stdio, and is never waited on. Returns `true` when it was started.
     pub fn ensure_running(&self, name: &str, tool: &Tool) -> Result<bool> {
         // Held through the start: two delegations at once start the tool once.
         let mut children = self.0.lock().unwrap_or_else(PoisonError::into_inner);
         let child_running = children
             .get_mut(name)
             .is_some_and(|child| matches!(child.try_wait(), Ok(None)));
-        if child_running || pidfile_alive(&tool.pidfile) {
+        if child_running {
             return Ok(false);
         }
         let child = Command::new(&tool.command)
@@ -39,27 +36,11 @@ impl Launcher {
     }
 }
 
-/// Whether `pidfile` holds the pid of a live process.
-fn pidfile_alive(pidfile: &Path) -> bool {
-    let Some(pid) = fs::read_to_string(pidfile)
-        .ok()
-        .and_then(|text| text.trim().parse::<u32>().ok())
-        .filter(|pid| *pid > 0)
-    else {
-        return false;
-    };
-    // Absolute: the app has no shell `PATH`.
-    Command::new("/bin/kill")
-        .args(["-0", &pid.to_string()])
-        .stderr(Stdio::null())
-        .status()
-        .is_ok_and(|status| status.success())
-}
-
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::os::unix::fs::PermissionsExt;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::thread;
     use std::time::Duration;
 
@@ -91,7 +72,6 @@ mod tests {
         let body = format!("echo x >> '{}'\nsleep 2", count.display());
         let tool = Tool {
             command: script(tmp.path(), &body),
-            pidfile: tmp.path().join("tool.pid"),
         };
         let launcher = Launcher::default();
 
@@ -107,7 +87,6 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let tool = Tool {
             command: script(tmp.path(), "exit 0"),
-            pidfile: tmp.path().join("tool.pid"),
         };
         let launcher = Launcher::default();
 
@@ -117,39 +96,10 @@ mod tests {
     }
 
     #[test]
-    fn a_live_pidfile_means_running() {
-        let tmp = tempfile::tempdir().unwrap();
-        let pidfile = tmp.path().join("tool.pid");
-        fs::write(&pidfile, format!("{}\n", std::process::id())).unwrap();
-        let tool = Tool {
-            command: tmp.path().join("missing"),
-            pidfile,
-        };
-
-        assert!(!Launcher::default().ensure_running("t", &tool).unwrap());
-    }
-
-    #[test]
-    fn a_dead_pidfile_means_stopped() {
-        let tmp = tempfile::tempdir().unwrap();
-        let mut gone = Command::new("/usr/bin/true").spawn().unwrap();
-        gone.wait().unwrap();
-        let pidfile = tmp.path().join("tool.pid");
-        fs::write(&pidfile, gone.id().to_string()).unwrap();
-        let tool = Tool {
-            command: script(tmp.path(), "exit 0"),
-            pidfile,
-        };
-
-        assert!(Launcher::default().ensure_running("t", &tool).unwrap());
-    }
-
-    #[test]
     fn a_missing_command_is_an_error() {
         let tmp = tempfile::tempdir().unwrap();
         let tool = Tool {
             command: tmp.path().join("missing"),
-            pidfile: tmp.path().join("tool.pid"),
         };
 
         let err = Launcher::default().ensure_running("t", &tool).unwrap_err();

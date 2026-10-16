@@ -53,8 +53,6 @@ pub struct Project {
 pub struct Tool {
     /// Absolute path: the app has no shell `PATH`.
     pub command: PathBuf,
-    /// Holds the pid of the running tool.
-    pub pidfile: PathBuf,
 }
 
 /// A project to start tracking.
@@ -350,7 +348,6 @@ pub fn tool(paths: &Paths, name: &str) -> Result<Tool> {
 pub struct ToolEntry {
     pub name: String,
     pub command: String,
-    pub pidfile: String,
 }
 
 /// The tools of `config.json`, by name.
@@ -361,25 +358,24 @@ pub fn list_tools(paths: &Paths) -> Result<Vec<ToolEntry>> {
         .map(|(name, tool)| ToolEntry {
             name,
             command: tool.command.to_string_lossy().into_owned(),
-            pidfile: tool.pidfile.to_string_lossy().into_owned(),
         })
         .collect();
     tools.sort_by_key(|t| t.name.to_lowercase());
     Ok(tools)
 }
 
-/// Defines tool `name` in `config.json`, replacing a tool of that name. The command and the
-/// pidfile are absolute paths: the app has no shell `PATH`.
-pub fn save_tool(paths: &Paths, name: &str, command: &str, pidfile: &str) -> Result<()> {
+/// Defines tool `name` in `config.json`, replacing a tool of that name. The command is an
+/// absolute path: the app has no shell `PATH`.
+pub fn save_tool(paths: &Paths, name: &str, command: &str) -> Result<()> {
     let name = name.trim();
     if name.is_empty() {
         return Err(Error::Invalid("a tool needs a name".to_string()));
     }
-    let (command, pidfile) = (command.trim(), pidfile.trim());
-    for (field, path) in [("command", command), ("pidfile", pidfile)] {
-        if !Path::new(path).is_absolute() {
-            return Err(Error::Invalid(format!("{field} must be an absolute path")));
-        }
+    let command = command.trim();
+    if !Path::new(command).is_absolute() {
+        return Err(Error::Invalid(
+            "command must be an absolute path".to_string(),
+        ));
     }
     let mut config = read_config(paths)?;
     let obj = config
@@ -389,7 +385,7 @@ pub fn save_tool(paths: &Paths, name: &str, command: &str, pidfile: &str) -> Res
     if !tools.is_object() {
         *tools = json!({});
     }
-    tools[name] = json!({"command": command, "pidfile": pidfile});
+    tools[name] = json!({"command": command});
     write_config(paths, &config)
 }
 
@@ -621,9 +617,9 @@ mod tests {
         fn link_tools(&self, id: &str, tools: Value) {
             let mut config = read_config(&self.paths).unwrap();
             config["tools"] = json!({
-                "a": {"command": "/bin/a", "pidfile": "/tmp/a.pid"},
-                "b": {"command": "/bin/b", "pidfile": "/tmp/b.pid"},
-                "bad": {"command": "/bin/bad"},
+                "a": {"command": "/bin/a"},
+                "b": {"command": "/bin/b"},
+                "bad": {"cmd": "/bin/bad"},
             });
             for p in config["projects"].as_array_mut().unwrap() {
                 if p["id"] == id {
@@ -692,8 +688,7 @@ mod tests {
         assert_eq!(
             tool(&env.paths, "a").unwrap(),
             Tool {
-                command: "/bin/a".into(),
-                pidfile: "/tmp/a.pid".into()
+                command: "/bin/a".into()
             }
         );
         assert!(matches!(
@@ -711,9 +706,9 @@ mod tests {
         let env = Env::new();
         let id = env.add("P", &env.todo, "project").unwrap();
 
-        save_tool(&env.paths, " writer ", "/bin/w", "/tmp/w.pid").unwrap();
-        save_tool(&env.paths, "Coder", "/bin/c", "/tmp/c.pid").unwrap();
-        save_tool(&env.paths, "writer", "/bin/w2", "/tmp/w.pid").unwrap();
+        save_tool(&env.paths, " writer ", "/bin/w").unwrap();
+        save_tool(&env.paths, "Coder", "/bin/c").unwrap();
+        save_tool(&env.paths, "writer", "/bin/w2").unwrap();
 
         let names: Vec<_> = list_tools(&env.paths).unwrap();
         assert_eq!(
@@ -722,12 +717,10 @@ mod tests {
                 ToolEntry {
                     name: "Coder".into(),
                     command: "/bin/c".into(),
-                    pidfile: "/tmp/c.pid".into()
                 },
                 ToolEntry {
                     name: "writer".into(),
                     command: "/bin/w2".into(),
-                    pidfile: "/tmp/w.pid".into()
                 },
             ]
         );
@@ -748,15 +741,11 @@ mod tests {
     }
 
     #[test]
-    fn save_tool_wants_a_name_and_absolute_paths() {
+    fn save_tool_wants_a_name_and_an_absolute_command() {
         let env = Env::new();
-        for (name, command, pidfile) in [
-            (" ", "/bin/w", "/tmp/w.pid"),
-            ("w", "w", "/tmp/w.pid"),
-            ("w", "/bin/w", "w.pid"),
-        ] {
+        for (name, command) in [(" ", "/bin/w"), ("w", "w")] {
             assert!(matches!(
-                save_tool(&env.paths, name, command, pidfile),
+                save_tool(&env.paths, name, command),
                 Err(Error::Invalid(_))
             ));
         }
@@ -767,7 +756,7 @@ mod tests {
     fn set_project_tools_refuses_unknown_tools_and_projects() {
         let env = Env::new();
         let id = env.add("P", &env.todo, "project").unwrap();
-        save_tool(&env.paths, "w", "/bin/w", "/tmp/w.pid").unwrap();
+        save_tool(&env.paths, "w", "/bin/w").unwrap();
 
         assert!(matches!(
             set_project_tools(&env.paths, &id, &["ghost".into()]),

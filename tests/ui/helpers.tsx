@@ -73,7 +73,7 @@ export async function addTask(projectId: string, text: string, meta: object = {}
 
 /** Defines a tool, as Settings does. */
 export async function saveTool(name: string) {
-  await bridge("save_tool", { name, command: "/usr/bin/true", pidfile: join(dataDir(), `${name}.pid`) });
+  await bridge("save_tool", { name, command: "/usr/bin/true" });
 }
 
 /** Defines `tools` and links a project to them, as Settings and Project settings do. */

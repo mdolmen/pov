@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { InfoIcon } from "lucide-react";
 import { AddTimeModal } from "@/components/AddTimeModal";
 import { InlineMarkdown } from "@/components/InlineMarkdown";
@@ -9,6 +8,7 @@ import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@/compone
 import { ProjectSettingsModal } from "@/components/ProjectSettingsModal";
 import { TimeHeatmap } from "@/components/TimeHeatmap";
 import { useTasks } from "@/hooks/useTasks";
+import { openLink } from "@/lib/openLink";
 import type { DeletedTask, HeadingItem, ListItem, Project, Subtask, Task, TaskMeta } from "@/types";
 
 /** How long a deleted task can be brought back. */
@@ -117,15 +117,6 @@ const onHover = "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 ";
 
 /** Stops a double-click in a popover from reaching the task row, through the portal. */
 const stopDoubleClick = (e: React.MouseEvent) => e.stopPropagation();
-
-/** Opens a link a tool attached: a URL in the browser, a path with its default app. */
-async function openLink(target: string) {
-  try {
-    await (/^https?:\/\//i.test(target) ? openUrl(target) : openPath(target));
-  } catch {
-    // not in Tauri context (browser dev), or nothing to open it with
-  }
-}
 
 /** The info icon of a task with metadata: its note and links. */
 function InfoButton({ meta }: { meta: TaskMeta }) {

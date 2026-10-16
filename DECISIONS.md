@@ -229,3 +229,13 @@
   - Command and pidfile are absolute paths; removing a tool unlinks it from every project.
 - **Plan:** TODO.md, Phase 15 › Delegate any task, Tools in Settings. Replaces "Delegate shows
   only on tasks with metadata" (2026-10-16, delegating tasks to external tools).
+
+## 2026-10-16 — No pidfile
+
+- **Decision:** a tool is only its command. pov starts it unless the instance it started is still
+  running; there is no pidfile.
+- **Why:** the pidfile was hard to explain and only covered a tool started outside pov or kept
+  running across an app restart.
+- **Constraints:** after an app restart, a delegation may start a second instance of a tool still
+  running; a tool that cares takes its own lock. Replaces the pidfile rules of 2026-10-16
+  (delegating tasks to external tools; tools in Settings).

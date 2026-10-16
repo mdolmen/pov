@@ -155,3 +155,16 @@ test("the info icon shows the note and opens the links", async () => {
   await user.click(within(taskRow("bare")).getByRole("button", { name: "Task details" }));
   expect(await screen.findByText("No note or links yet.")).toBeInTheDocument();
 });
+
+test("a file link in a subtask opens with its default app", async () => {
+  await addProject({ name: "P", content: "- [ ] task\n  - [x] Draft in [report.odt](/tmp/report.odt)\n" });
+  const { user, calls } = renderApp();
+  await openProject(user, "P");
+
+  await user.click(taskPane().getByRole("link", { name: "report.odt" }));
+
+  expect(calls).toContainEqual([
+    "plugin:opener|open_path",
+    expect.objectContaining({ path: "/tmp/report.odt" }),
+  ]);
+});

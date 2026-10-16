@@ -45,7 +45,6 @@ test("tools can be added, edited and removed", async () => {
 
   await user.type(await screen.findByLabelText("Tool name"), "writer");
   await user.type(screen.getByLabelText("Command"), "/bin/writer");
-  await user.type(screen.getByLabelText("Pidfile"), "/tmp/writer.pid");
   await user.click(screen.getByRole("button", { name: "Add tool" }));
 
   const list = () => within(screen.getByRole("list", { name: "Tools" }));
@@ -70,7 +69,6 @@ test("a tool's command must be an absolute path", async () => {
 
   await user.type(await screen.findByLabelText("Tool name"), "writer");
   await user.type(screen.getByLabelText("Command"), "writer");
-  await user.type(screen.getByLabelText("Pidfile"), "/tmp/writer.pid");
   await user.click(screen.getByRole("button", { name: "Add tool" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("command must be an absolute path");

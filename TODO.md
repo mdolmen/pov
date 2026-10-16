@@ -526,7 +526,7 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### Delegation (`pov-core`)
 
-- [x] `config.json` `tools`: `{ "<name>": { "command": "<abs path>", "pidfile": "<abs path>" } }`, edited by hand
+- [x] `config.json` `tools`: `{ "<name>": { "command": "<abs path>" } }` (no pidfile: DECISIONS.md), edited by hand
 - [x] `config.json` project entry: `tools: ["<name>"]`, edited by hand
 - [x] `Project.tools` read from config; unknown tool names ignored
 - [x] `delegated` stage in `selected_tasks` (no migration: free text column)
@@ -547,7 +547,7 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 ### Tool launch (app)
 
 - [x] `delegate` Tauri command: `tasks::delegate`, then starts the tool unless it's running
-- [x] Running: pov's child for that tool hasn't exited (`try_wait`), or the pidfile's process is alive (`kill -0`)
+- [x] Running: pov's child for that tool hasn't exited (`try_wait`)
 - [x] Start: `command` detached, stdio null, never waited on
 - [x] Start failure: error returned to the UI, task stays delegated (the next click retries)
 - [x] Test: fake tool script; two delegations while it runs start it once
@@ -592,17 +592,18 @@ See DECISIONS.md (2026-10-16, delegate any task, tools in Settings).
 ### Tools in Settings
 
 - [x] `projects::list_tools`, `save_tool`, `remove_tool`, `set_project_tools`, written to `config.json`
-- [x] `save_tool`: name not blank, command and pidfile absolute, else `Invalid`
+- [x] `save_tool`: name not blank, command absolute, else `Invalid`
 - [x] `remove_tool` unlinks it from every project; `set_project_tools` refuses unknown names
 - [x] `list_tools`, `save_tool`, `remove_tool`, `set_project_tools` in `api::dispatch`
 - [x] Settings: "Tools" section listing tools, with Edit / Remove, and an add / edit form
 - [x] Project settings: a checkbox per tool, saved with the other fields
 - [x] Tests: core functions; UI add / edit / remove a tool, bad path error, link a tool to a project
+- [x] Markdown links in task text: file paths open with their default app, like metadata links
 
 ### Docs
 
 - [ ] README + NOTES.md: `tools` in `config.json`, project `tools`
-- [ ] README + NOTES.md: tool contract (MCP calls, pidfile, absolute command path)
+- [ ] README + NOTES.md: tool contract (MCP calls, absolute command path)
 
 ## Maintenance
 

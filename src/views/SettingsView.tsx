@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listTools, removeTool, saveTool } from "@/lib/backend";
 import type { ToolEntry } from "@/types";
 
-const EMPTY_TOOL: ToolEntry = { name: "", command: "", pidfile: "" };
+const EMPTY_TOOL: ToolEntry = { name: "", command: "" };
 
 const field =
   "w-full rounded border border-stone-200 bg-white px-2 py-1 text-[12px] text-stone-800 outline-none focus:border-stone-400 disabled:text-stone-400";
@@ -61,7 +61,6 @@ function ToolsSection() {
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] text-stone-700">{t.name}</p>
                 <p className="text-[11px] font-mono text-stone-400 break-all select-text">{t.command}</p>
-                <p className="text-[11px] font-mono text-stone-400 break-all select-text">{t.pidfile}</p>
               </div>
               <button
                 onClick={() => { setForm(t); setEditing(t.name); setError(null); }}
@@ -84,7 +83,6 @@ function ToolsSection() {
       <form onSubmit={save} className="flex flex-col gap-2">
         <input aria-label="Tool name" placeholder="Name" value={form.name} onChange={set("name")} disabled={editing !== null} className={field} />
         <input aria-label="Command" placeholder="Command (absolute path)" value={form.command} onChange={set("command")} className={field + " font-mono"} />
-        <input aria-label="Pidfile" placeholder="Pidfile (absolute path)" value={form.pidfile} onChange={set("pidfile")} className={field + " font-mono"} />
         {error && <p role="alert" className="text-[11px] text-red-600">{error}</p>}
         <div className="flex justify-end gap-2">
           {editing && (
@@ -94,7 +92,7 @@ function ToolsSection() {
           )}
           <button
             type="submit"
-            disabled={!form.name.trim() || !form.command.trim() || !form.pidfile.trim()}
+            disabled={!form.name.trim() || !form.command.trim()}
             className="px-3 py-1.5 rounded text-[12px] font-medium bg-stone-800 text-stone-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {editing ? "Save tool" : "Add tool"}
