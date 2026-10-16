@@ -484,6 +484,106 @@ open it in a browser). Built on proposal D of `debug/ui/index.html`.
   click opens and scrolls, updates after select and toggle, empty state
 - [x] New `hide-done.test.tsx`: hides per project, survives a remount, all-done state
 
+## Phase 15 — Integration with other tools
+
+See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on a task hands it to one: the task moves to the `delegated` stage and pov starts the tool, unless it's running. The tool reads its tasks and writes back through `pov mcp` (subtasks, links), then sends the task back to the inbox.
+
+### Task done rule
+
+- [ ] `Task::is_done`: own checkbox only, subtasks ignored
+- [ ] `toggle_cascade`: checking a task checks its open subtasks
+- [ ] `toggle_cascade`: unchecking a task leaves its subtasks as they are
+- [ ] `toggle_cascade`: toggling a subtask never changes its parent
+- [ ] `task_count`, `next_up`, `cleanup_selected` follow the new rule
+- [ ] Tests: all subtasks checked, parent open → task open
+- [ ] Tests: check parent → open subtasks checked; uncheck parent → subtasks unchanged
+- [ ] Tests: subtask toggle leaves the parent line untouched
+- [ ] UI test: checking the last subtask leaves the task open
+
+### Reworded tasks
+
+- [ ] `remap`: a diff block replacing N checkbox lines with N at the same indentation pairs them in order
+- [ ] Blocks that change the line count still drop their marks
+- [ ] The same pairing moves `selected_tasks` and `task_meta` rows
+- [ ] Rename test `remap_pairs_toggled_lines_and_drops_reworded_ones`
+- [ ] Tests: reword a next task, an inbox task, a task with metadata
+- [ ] Tests: reword two neighbouring tasks; 2 lines → 1 drops both
+- [ ] Test: watcher picks up a reword made in an editor
+
+### Metadata (`pov-core`)
+
+- [ ] `db::init`: `task_meta` table:
+  - [ ] `id` INTEGER PRIMARY KEY: the stable task handle for tools
+  - [ ] `project_id` (FK → projects, ON DELETE CASCADE), `task_hash`, UNIQUE(project_id, task_hash)
+  - [ ] `tool` TEXT nullable: the tool the task is delegated to
+  - [ ] `data` JSON TEXT: `note?`, `links?: [{label, target}]`, `source?` (opaque to pov)
+- [ ] `tasks::add` takes optional metadata and stores the row
+- [ ] `TaskView.meta`: `id`, `note`, `links`, `has_source`; `TaskView.delegated_to`
+- [ ] Done tasks keep their metadata; `cleanup_selected` leaves `task_meta` alone
+- [ ] `sync_marks` drops `task_meta` rows whose task is gone, as for marks
+- [ ] `delete` returns the metadata in `Deleted`; `restore` puts it back
+- [ ] Tests: add with metadata, view fields, kept when done, delete / restore, project removal cascade
+
+### Delegation (`pov-core`)
+
+- [ ] `config.json` `tools`: `{ "<name>": { "command": "<abs path>", "pidfile": "<abs path>" } }`, edited by hand
+- [ ] `config.json` project entry: `tools: ["<name>"]`, edited by hand
+- [ ] `Project.tools` read from config; unknown tool names ignored
+- [ ] `delegated` stage in `selected_tasks` (no migration: free text column)
+- [ ] `Project.delegated_count`
+- [ ] `tasks::delegate(conn, project_id, hash, tool, note)`:
+  - [ ] `Error::Invalid` if the task has no metadata or the tool isn't linked to the project
+  - [ ] sets the stage to `delegated`, `task_meta.tool`, and `note` in `data`
+- [ ] `tasks::delegated(conn, paths, tool)`: `id`, project, text, subtasks, `data`
+- [ ] `tasks::add_subtask(conn, paths, id, text, checked)`:
+  - [ ] appends after the task's last subtask, with its indent (2 spaces when none)
+  - [ ] in place, CRLF kept, committed like `toggle`, marks moved by `remap_splice`
+- [ ] `tasks::add_links(conn, id, links)`: appends to `data.links`
+- [ ] `tasks::finish(conn, id)`: stage → `inbox`, `tool` cleared
+- [ ] Unknown `id` → `NotFound` everywhere
+- [ ] `delegate_task` in `api::dispatch`
+- [ ] Tests: each function, delegate refused without metadata / unlinked tool, finish lands in the inbox
+
+### Tool launch (app)
+
+- [ ] `delegate` Tauri command: `tasks::delegate`, then starts the tool unless it's running
+- [ ] Running: pov's child for that tool hasn't exited (`try_wait`), or the pidfile's process is alive (`kill -0`)
+- [ ] Start: `command` detached, stdio null, never waited on
+- [ ] Start failure: error returned to the UI, task stays delegated (the next click retries)
+- [ ] Test: fake tool script; two delegations while it runs start it once
+
+### MCP (`pov mcp`)
+
+- [ ] `add_task`: optional `metadata` object
+- [ ] Tool `list_delegated(tool)`
+- [ ] Tool `add_subtask(id, text, checked = true)`
+- [ ] Tool `add_links(id, links)`
+- [ ] Tool `finish_task(id)`
+- [ ] Test (`tests/cli.rs`): add with metadata, delegate, list, add a subtask and a link, finish; check file and DB
+
+### Frontend
+
+- [ ] `types.ts`: `Task.meta`, `Task.delegated_to`, `Project.tools`, `Project.delegated_count`
+- [ ] `backend.ts`: `delegateTask`
+- [ ] "Delegate" pill on hover, on tasks with metadata in projects with tools
+- [ ] Several tools: the pill opens a menu of them
+- [ ] Delegate opens a popover: optional note, "Delegate" confirms
+- [ ] Delegated tasks: band in a new colour (`--pov-delegated*` tokens), "<tool>" pill, no actions
+- [ ] Info icon on tasks with metadata → popover with the note and the links
+- [ ] Link click: `http(s)` → opener `openUrl`, else `openPath`
+- [ ] "Delegated" filter pill beside "Inbox"
+- [ ] Start failure → error toast
+- [ ] New `delegate.test.tsx`:
+  - [ ] pill shown only with metadata and tools; menu with several tools
+  - [ ] note sent, band and pill shown, no actions
+  - [ ] info popover lists links; clicks call the opener (`mockIPC`)
+  - [ ] filter; task back in the inbox after `finish_task`
+
+### Docs
+
+- [ ] README + NOTES.md: `tools` in `config.json`, project `tools`
+- [ ] README + NOTES.md: tool contract (MCP calls, pidfile, absolute command path)
+
 ## Maintenance
 
 - [x] Fix `pov add`, returns 128

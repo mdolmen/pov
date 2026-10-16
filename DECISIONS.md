@@ -166,3 +166,44 @@
 - **Why:** among projects without next tasks, the ones being worked on come first.
 - **Constraints:** the list fetches the 8-day counts of its tab's projects and passes them to
   the tiles; tiles may reorder once those counts arrive. Next up keeps its own order.
+
+## 2026-10-16 — A task is done by its own checkbox
+
+- **Decision:** a task is done when its own checkbox is checked, whatever its subtasks. Checking
+  a task checks its open subtasks; checking or unchecking a subtask never changes its parent.
+- **Why:** a tool that delegates work adds its subtasks already checked; the task must stay open
+  for review. Replaces "a task with subtasks is done when all of them are checked" (Phase 6).
+- **Constraints:** hand-edited files with an open parent over checked subtasks show that task
+  open again.
+- **Plan:** TODO.md, Phase 15 › Task done rule.
+
+## 2026-10-16 — Marks and metadata follow reworded tasks
+
+- **Decision:** when a diff block replaces N checkbox lines with N checkbox lines at the same
+  indentation, they are paired in order: marks and metadata move to the new lines. Tools refer
+  to a task by its metadata ID, never by its hash.
+- **Why:** rewording a task lost its next / inbox mark, and would lose a delegated task's link to
+  its tool.
+- **Constraints:** a block that changes the number of lines still drops them.
+- **Plan:** TODO.md, Phase 15 › Reworded tasks.
+
+## 2026-10-16 — Delegating tasks to external tools
+
+- **Decision:** a project lists tools in `config.json`. "Delegate" on a task moves it to a
+  `delegated` stage and starts the tool, unless it's already running. The tool reads its tasks
+  and writes back through `pov mcp`: subtasks, links in the task's metadata, then the task back to
+  the inbox. A tool that fails adds an open subtask with the reason and sends the task back too.
+- **Metadata:** optional JSON per task in SQLite, set by the tool that adds the task (triage-mail:
+  the source mail, saved as `.eml`), plus the note typed when delegating and the links tools add.
+  An info icon on the task shows the note and opens the links (URL in the browser, path with
+  the default app).
+- **Why:** pull, not push: pov stays without a server or network code, and nothing is lost when
+  the tool is down. A tool run once per delegation needs no daemon on an 8 GB laptop.
+- **Constraints:**
+  - One instance per tool: pov starts it only when its child has exited and the tool's pidfile
+    names no live process; the tool also takes that pidfile as a lock.
+  - No undelegate: a delegated task has no actions until the tool sends it back.
+  - "Delegate" shows only on tasks with metadata, in projects with tools; several tools give a
+    menu.
+  - Tool commands are absolute paths: the app has no shell `PATH`.
+- **Plan:** TODO.md, Phase 15. First tool: epc-os (local Ollama), drafts mails and documents.
