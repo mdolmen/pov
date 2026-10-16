@@ -22,6 +22,15 @@ struct TaskArgs {
 }
 
 #[derive(Deserialize)]
+struct DelegateTaskArgs {
+    project_id: String,
+    task_hash: String,
+    tool: String,
+    #[serde(default)]
+    note: Option<String>,
+}
+
+#[derive(Deserialize)]
 struct RestoreTaskArgs {
     project_id: String,
     line_number: usize,
@@ -138,6 +147,17 @@ pub fn dispatch(paths: &Paths, cmd: &str, args: Value) -> Result<Value> {
         "delete_task" => {
             let a: TaskArgs = parse(args)?;
             json(tasks::delete(&conn, paths, &a.project_id, &a.task_hash)?)
+        }
+        "delegate_task" => {
+            let a: DelegateTaskArgs = parse(args)?;
+            json(tasks::delegate(
+                &conn,
+                paths,
+                &a.project_id,
+                &a.task_hash,
+                &a.tool,
+                a.note.as_deref(),
+            )?)
         }
         "restore_task" => {
             let a: RestoreTaskArgs = parse(args)?;
@@ -361,6 +381,41 @@ mod tests {
         );
         assert_eq!(restored.unwrap(), Value::Null);
         assert_eq!(fs::read_to_string(&todo).unwrap(), "- [ ] one\n- [ ] two\n");
+    }
+
+    #[test]
+    fn delegate_a_task() {
+        let (tmp, paths) = paths();
+        let todo = tmp.path().join("TODO.md");
+        fs::write(&todo, "").unwrap();
+        let conn = db::open(&paths).unwrap();
+        conn.execute(
+            "INSERT INTO projects (id, name, file_path) VALUES ('p', 'P', ?)",
+            [todo.to_str().unwrap()],
+        )
+        .unwrap();
+        let meta = json!({"source": "m.eml"});
+        let hash = tasks::add(&conn, &paths, "p", "one", None, "inbox", Some(&meta)).unwrap();
+        fs::write(
+            &paths.config,
+            json!({
+                "projects": [{"id": "p", "tools": ["t"]}],
+                "tools": {"t": {"command": "/bin/true", "pidfile": "/tmp/t.pid"}},
+            })
+            .to_string(),
+        )
+        .unwrap();
+
+        let delegated = dispatch(
+            &paths,
+            "delegate_task",
+            json!({"project_id": "p", "task_hash": hash, "tool": "t", "note": "go"}),
+        );
+
+        assert_eq!(delegated.unwrap(), Value::Null);
+        let items = dispatch(&paths, "list_tasks", json!({"project_id": "p"})).unwrap();
+        assert_eq!(items[0]["delegated_to"], "t");
+        assert_eq!(items[0]["meta"]["note"], "go");
     }
 
     #[test]

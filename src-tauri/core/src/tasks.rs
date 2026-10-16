@@ -921,7 +921,7 @@ pub fn add(
     Ok(hash)
 }
 
-/// Marks a task `stage` (`next` or `inbox`), replacing its other mark.
+/// Marks a task `stage` (`next`, `inbox` or `delegated`), replacing its other mark.
 fn set_stage(conn: &Connection, project_id: &str, task_hash: &str, stage: &str) -> Result<()> {
     projects::file_and_type(conn, project_id)?;
     conn.execute(
@@ -961,6 +961,126 @@ pub fn unselect(conn: &Connection, project_id: &str, task_hash: &str) -> Result<
         "DELETE FROM selected_tasks WHERE project_id = ? AND task_hash = ?",
         [project_id, task_hash],
     )?;
+    Ok(())
+}
+
+/// The project, task hash and metadata of the task whose metadata is `id`.
+fn meta_by_id(conn: &Connection, id: i64) -> Result<(String, String, MetaRow)> {
+    conn.query_row(
+        "SELECT project_id, task_hash, tool, data FROM task_meta WHERE id = ?",
+        [id],
+        |r| {
+            Ok((
+                r.get(0)?,
+                r.get(1)?,
+                MetaRow {
+                    id,
+                    tool: r.get(2)?,
+                    data: r.get(3)?,
+                },
+            ))
+        },
+    )
+    .optional()?
+    .ok_or(Error::NotFound("task"))
+}
+
+/// A `task_meta.data`, as a JSON object.
+fn data_object(data: &str) -> serde_json::Map<String, Value> {
+    serde_json::from_str(data).unwrap_or_default()
+}
+
+/// Delegates a task to `tool`, one of the project's tools: it moves to the `delegated` stage
+/// until the tool [`finish`]es it. `note`, when given, replaces the task's note. Only a task
+/// with metadata can be delegated.
+pub fn delegate(
+    conn: &Connection,
+    paths: &Paths,
+    project_id: &str,
+    task_hash: &str,
+    tool: &str,
+    note: Option<&str>,
+) -> Result<()> {
+    projects::file_and_type(conn, project_id)?;
+    let row = meta_rows(conn, project_id)?
+        .remove(task_hash)
+        .ok_or_else(|| Error::Invalid("only a task with metadata can be delegated".to_string()))?;
+    if !projects::tools(paths, project_id)?
+        .iter()
+        .any(|t| t == tool)
+    {
+        return Err(Error::Invalid(format!(
+            "tool '{tool}' isn't linked to this project"
+        )));
+    }
+    let mut data = data_object(&row.data);
+    if let Some(note) = note {
+        data.insert("note".to_string(), note.into());
+    }
+    let tx = conn.unchecked_transaction()?;
+    set_stage(&tx, project_id, task_hash, "delegated")?;
+    tx.execute(
+        "UPDATE task_meta SET tool = ?, data = ? WHERE id = ?",
+        (tool, Value::Object(data).to_string(), row.id),
+    )?;
+    tx.commit()?;
+    Ok(())
+}
+
+/// A task delegated to a tool, as the tool sees it.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Delegated {
+    /// The task's metadata id: the handle the tool refers to it by.
+    pub id: i64,
+    pub project_id: String,
+    pub project_name: String,
+    pub text: String,
+    pub subtasks: Vec<Subtask>,
+    /// The task's metadata (`note`, `links`, `source`, ...).
+    pub data: Value,
+}
+
+/// The tasks delegated to `tool`, by project name, then in file order. Each project's marks are
+/// synced first, so edits made since the delegation don't hide its tasks.
+pub fn delegated(conn: &Connection, paths: &Paths, tool: &str) -> Result<Vec<Delegated>> {
+    let with_tool: HashSet<String> = conn
+        .prepare("SELECT project_id FROM task_meta WHERE tool = ?")?
+        .query_map([tool], |r| r.get(0))?
+        .collect::<rusqlite::Result<_>>()?;
+    let mut out = Vec::new();
+    for row in projects::list_by_name(conn)? {
+        if !with_tool.contains(&row.id) {
+            continue;
+        }
+        sync_marks(conn, paths, &row.id)?;
+        let meta = meta_rows(conn, &row.id)?;
+        for task in parse_tasks(&row.file_path) {
+            let Some(m) = meta
+                .get(&task.hash)
+                .filter(|m| m.tool.as_deref() == Some(tool))
+            else {
+                continue;
+            };
+            out.push(Delegated {
+                id: m.id,
+                project_id: row.id.clone(),
+                project_name: row.name.clone(),
+                text: task.text,
+                subtasks: task.subtasks,
+                data: Value::Object(data_object(&m.data)),
+            });
+        }
+    }
+    Ok(out)
+}
+
+/// Ends a delegation: the task goes back to the inbox, for review, and leaves its tool.
+pub fn finish(conn: &Connection, id: i64) -> Result<()> {
+    let (project_id, task_hash, _) = meta_by_id(conn, id)?;
+    let tx = conn.unchecked_transaction()?;
+    set_stage(&tx, &project_id, &task_hash, "inbox")?;
+    tx.execute("UPDATE task_meta SET tool = NULL WHERE id = ?", [id])?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -2247,5 +2367,137 @@ Some plain text here.
 
         assert_eq!(marks(&conn, &id, &h("- [ ] ab", 1)), (false, false));
         assert_eq!(marks(&conn, &id, &h("- [ ] c", 1)), (true, false));
+    }
+
+    /// Links project `id` to `tools` in `config.json`.
+    fn link_tools(paths: &Paths, id: &str, tools: &[&str]) {
+        let defined: serde_json::Map<String, Value> = tools
+            .iter()
+            .map(|t| {
+                let tool = serde_json::json!({"command": "/bin/true", "pidfile": "/tmp/t.pid"});
+                (t.to_string(), tool)
+            })
+            .collect();
+        let config = serde_json::json!({
+            "projects": [{"id": id, "name": "P", "path": "", "tools": tools}],
+            "tools": defined,
+        });
+        fs::write(&paths.config, config.to_string()).unwrap();
+    }
+
+    fn stage_of(conn: &Connection, hash: &str) -> Option<String> {
+        conn.query_row(
+            "SELECT stage FROM selected_tasks WHERE task_hash = ?",
+            [hash],
+            |r| r.get(0),
+        )
+        .optional()
+        .unwrap()
+    }
+
+    #[test]
+    fn delegate_sets_the_stage_the_tool_and_the_note() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        link_tools(&paths, &id, &["a", "b"]);
+        let noted = with_meta(&conn, &paths, &id, "Noted");
+        let kept = with_meta(&conn, &paths, &id, "Kept");
+
+        delegate(&conn, &paths, &id, &noted, "b", Some("Draft it")).unwrap();
+        delegate(&conn, &paths, &id, &kept, "a", None).unwrap();
+
+        let task = view_of(&conn, &id, &noted);
+        assert_eq!(task.delegated_to.as_deref(), Some("b"));
+        assert_eq!(task.meta.unwrap().note.as_deref(), Some("Draft it"));
+        assert!(!task.is_selected && !task.in_inbox);
+        assert_eq!(stage_of(&conn, &noted).as_deref(), Some("delegated"));
+        let task = view_of(&conn, &id, &kept);
+        assert_eq!(task.meta.unwrap().note.as_deref(), Some("n"));
+        let project = projects::get(&conn, &paths, &id).unwrap();
+        assert_eq!((project.delegated_count, project.inbox_count), (2, 0));
+    }
+
+    #[test]
+    fn delegate_needs_metadata_and_a_linked_tool() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        link_tools(&paths, &id, &["a"]);
+        let plain = add(&conn, &paths, &id, "Plain", None, "inbox", None).unwrap();
+        let meta = with_meta(&conn, &paths, &id, "Meta");
+
+        assert!(matches!(
+            delegate(&conn, &paths, &id, &plain, "a", None),
+            Err(Error::Invalid(_))
+        ));
+        assert!(matches!(
+            delegate(&conn, &paths, &id, &meta, "other", None),
+            Err(Error::Invalid(_))
+        ));
+        assert_eq!(view_of(&conn, &id, &meta).delegated_to, None);
+        assert_eq!(stage_of(&conn, &meta).as_deref(), Some("inbox"));
+    }
+
+    #[test]
+    fn delegated_lists_the_tasks_of_a_tool() {
+        let (_tmp, paths, conn, todo, id) = project();
+        link_tools(&paths, &id, &["a", "b"]);
+        let mine = with_meta(&conn, &paths, &id, "Mine");
+        let theirs = with_meta(&conn, &paths, &id, "Theirs");
+        delegate(&conn, &paths, &id, &mine, "a", None).unwrap();
+        delegate(&conn, &paths, &id, &theirs, "b", None).unwrap();
+        // A subtask added, then the task reworded, in an editor after the delegation.
+        let text = fs::read_to_string(&todo).unwrap();
+        fs::write(
+            &todo,
+            text.replace("- [ ] Mine\n", "- [ ] Mine\n  - [x] Sub\n"),
+        )
+        .unwrap();
+        sync_marks(&conn, &paths, &id).unwrap();
+        let text = fs::read_to_string(&todo).unwrap();
+        fs::write(
+            &todo,
+            text.replace("- [ ] Mine\n", "- [ ] Mine, reworded\n"),
+        )
+        .unwrap();
+
+        let tasks = delegated(&conn, &paths, "a").unwrap();
+
+        let meta_id = view_of(&conn, &id, &task_hash("- [ ] Mine, reworded", 1))
+            .meta
+            .unwrap()
+            .id;
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, meta_id);
+        assert_eq!(
+            (tasks[0].project_id.as_str(), tasks[0].project_name.as_str()),
+            ("p1", "P")
+        );
+        assert_eq!(tasks[0].text, "Mine, reworded");
+        assert_eq!(tasks[0].subtasks[0].text, "Sub");
+        assert_eq!(
+            tasks[0].data["source"],
+            serde_json::json!({"mail": "m.eml"})
+        );
+        assert!(delegated(&conn, &paths, "c").unwrap().is_empty());
+    }
+
+    #[test]
+    fn finish_sends_the_task_back_to_the_inbox() {
+        let (_tmp, paths, conn, _todo, id) = project();
+        link_tools(&paths, &id, &["a"]);
+        let hash = with_meta(&conn, &paths, &id, "Task");
+        delegate(&conn, &paths, &id, &hash, "a", None).unwrap();
+        let meta_id = delegated(&conn, &paths, "a").unwrap()[0].id;
+
+        finish(&conn, meta_id).unwrap();
+
+        let task = view_of(&conn, &id, &hash);
+        assert!(task.in_inbox);
+        assert_eq!(task.delegated_to, None);
+        assert!(delegated(&conn, &paths, "a").unwrap().is_empty());
+    }
+
+    #[test]
+    fn unknown_metadata_id_is_not_found() {
+        let (_tmp, _paths, conn, _todo, _id) = project();
+        assert!(matches!(finish(&conn, 999), Err(Error::NotFound("task"))));
     }
 }

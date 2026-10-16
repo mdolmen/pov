@@ -529,19 +529,19 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 - [x] `config.json` `tools`: `{ "<name>": { "command": "<abs path>", "pidfile": "<abs path>" } }`, edited by hand
 - [x] `config.json` project entry: `tools: ["<name>"]`, edited by hand
 - [x] `Project.tools` read from config; unknown tool names ignored
-- [ ] `delegated` stage in `selected_tasks` (no migration: free text column)
+- [x] `delegated` stage in `selected_tasks` (no migration: free text column)
 - [x] `Project.delegated_count`
-- [ ] `tasks::delegate(conn, project_id, hash, tool, note)`:
-  - [ ] `Error::Invalid` if the task has no metadata or the tool isn't linked to the project
-  - [ ] sets the stage to `delegated`, `task_meta.tool`, and `note` in `data`
-- [ ] `tasks::delegated(conn, paths, tool)`: `id`, project, text, subtasks, `data`
+- [x] `tasks::delegate(conn, paths, project_id, hash, tool, note)`:
+  - [x] `Error::Invalid` if the task has no metadata or the tool isn't linked to the project
+  - [x] sets the stage to `delegated`, `task_meta.tool`, and `note` in `data`
+- [x] `tasks::delegated(conn, paths, tool)`: `id`, project, text, subtasks, `data`
 - [ ] `tasks::add_subtask(conn, paths, id, text, checked)`:
   - [ ] appends after the task's last subtask, with its indent (2 spaces when none)
   - [ ] in place, CRLF kept, committed like `toggle`, marks moved by `remap_splice`
 - [ ] `tasks::add_links(conn, id, links)`: appends to `data.links`
-- [ ] `tasks::finish(conn, id)`: stage → `inbox`, `tool` cleared
+- [x] `tasks::finish(conn, id)`: stage → `inbox`, `tool` cleared
 - [ ] Unknown `id` → `NotFound` everywhere
-- [ ] `delegate_task` in `api::dispatch`
+- [x] `delegate_task` in `api::dispatch`
 - [ ] Tests: each function, delegate refused without metadata / unlinked tool, finish lands in the inbox
 
 ### Tool launch (app)
