@@ -1,7 +1,8 @@
 //! `pov mcp`: an MCP server on stdin / stdout, spawned by Claude Code or another MCP client.
 //!
 //! Its tools let a model find a project and add a task to it; the task lands in the inbox for
-//! the user to triage. Each call opens its own DB connection and runs the sync core on a
+//! the user to triage. Agents tasks are delegated to answer through it too: subtasks, links,
+//! then the task back to the inbox. Each call opens its own DB connection and runs the sync core on a
 //! blocking thread; the busy timeout waits out the app.
 
 use pov_core::{Paths, db, projects, tasks};
@@ -15,7 +16,9 @@ use serde::{Deserialize, Serialize};
 
 const INSTRUCTIONS: &str = "pov tracks the user's projects, each a TODO.md file of Markdown \
 checkboxes. Use add_task when the user asks to note, track or remember something to do for \
-one of these projects; it lands in the project's inbox for the user to triage.";
+one of these projects; it lands in the project's inbox for the user to triage. An agent a task \
+was delegated to reports with add_subtask and add_links, then hands the task back with \
+finish_task; list_delegated lists its tasks.";
 
 /// Serves until the client closes stdin.
 pub fn serve(paths: Paths) -> std::io::Result<()> {
@@ -73,6 +76,59 @@ struct AddTaskArgs {
     /// Defaults to inbox; only set it when the user asks.
     #[serde(default)]
     stage: Stage,
+    /// A JSON object stored with the task, e.g. `{"source": {...}}` for where it came from;
+    /// pov reads `note` and `links` (see add_links).
+    metadata: Option<serde_json::Map<String, serde_json::Value>>,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
+struct ListDelegatedArgs {
+    /// The agent's tool name, as in pov's Settings.
+    tool: String,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
+struct AddSubtaskArgs {
+    /// The task's id, as pov sent it or list_delegated gives it.
+    id: i64,
+    /// One line of text, without the checkbox; Markdown links (`[label](target)`) open on click.
+    text: String,
+    /// Defaults to checked: work done, for the user to review.
+    #[serde(default = "checked")]
+    checked: bool,
+}
+
+fn checked() -> bool {
+    true
+}
+
+/// A link shown in the task's details: a URL or an absolute file path.
+#[derive(Deserialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
+struct LinkArg {
+    label: String,
+    /// A URL or an absolute file path.
+    target: String,
+    /// The app to open it with (macOS app name, e.g. "LibreOffice"); the default app when
+    /// omitted.
+    app: Option<String>,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
+struct AddLinksArgs {
+    /// The task's id, as pov sent it or list_delegated gives it.
+    id: i64,
+    links: Vec<LinkArg>,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[schemars(crate = "rmcp::schemars")]
+struct TaskIdArgs {
+    /// The task's id, as pov sent it or list_delegated gives it.
+    id: i64,
 }
 
 #[derive(Serialize)]
@@ -171,11 +227,73 @@ impl Server {
                 &args.text,
                 args.section.as_deref(),
                 args.stage.as_str(),
-                None,
+                args.metadata.map(serde_json::Value::Object).as_ref(),
             )?;
             Ok(serde_json::json!({ "hash": hash, "project": row.name }))
         })
         .await
+    }
+
+    #[tool(
+        description = "List the tasks delegated to an agent: id, project, text, subtasks and \
+                          metadata (note, links, source)."
+    )]
+    async fn list_delegated(
+        &self,
+        Parameters(args): Parameters<ListDelegatedArgs>,
+    ) -> Result<String, String> {
+        self.run(move |conn, paths| tasks::delegated(conn, paths, &args.tool))
+            .await
+    }
+
+    #[tool(
+        description = "Add a subtask under a delegated task, after its last subtask; checked \
+                          by default. Returns the subtask's hash."
+    )]
+    async fn add_subtask(
+        &self,
+        Parameters(args): Parameters<AddSubtaskArgs>,
+    ) -> Result<String, String> {
+        self.run(move |conn, paths| {
+            let hash = tasks::add_subtask(conn, paths, args.id, &args.text, args.checked)?;
+            Ok(serde_json::json!({ "hash": hash }))
+        })
+        .await
+    }
+
+    #[tool(
+        description = "Attach links to a task's details: URLs or file paths the user opens \
+                          from pov, optionally with a given app."
+    )]
+    async fn add_links(
+        &self,
+        Parameters(args): Parameters<AddLinksArgs>,
+    ) -> Result<String, String> {
+        self.run(move |conn, _| {
+            let links: Vec<tasks::Link> = args
+                .links
+                .into_iter()
+                .map(|l| tasks::Link {
+                    label: l.label,
+                    target: l.target,
+                    app: l.app,
+                })
+                .collect();
+            tasks::add_links(conn, args.id, &links)
+        })
+        .await
+    }
+
+    #[tool(
+        description = "Hand a delegated task back to the user: it leaves the agent and lands \
+                          in the inbox for review. Call it once the work is done, or failed (add \
+                          an open subtask saying why first)."
+    )]
+    async fn finish_task(
+        &self,
+        Parameters(args): Parameters<TaskIdArgs>,
+    ) -> Result<String, String> {
+        self.run(move |conn, _| tasks::finish(conn, args.id)).await
     }
 }
 

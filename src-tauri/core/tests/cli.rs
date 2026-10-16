@@ -3,7 +3,7 @@
 
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::{Child, ChildStdout, Command, Output, Stdio};
 
 use rusqlite::Connection;
@@ -82,20 +82,18 @@ impl Env {
         self.files.path().join(name).to_string_lossy().into_owned()
     }
 
-    fn db(&self) -> Connection {
-        // Debug builds of the CLI use the dev data dir, like the app.
+    /// The data dir the CLI uses: debug builds use the dev one, like the app.
+    fn paths(&self) -> pov_core::Paths {
         let dir = if cfg!(debug_assertions) {
             "pov-dev"
         } else {
             "pov"
         };
-        let path: PathBuf = self
-            .home
-            .path()
-            .join(".local/share")
-            .join(dir)
-            .join("pov.db");
-        Connection::open(path).unwrap()
+        pov_core::Paths::new(self.home.path().join(".local/share").join(dir))
+    }
+
+    fn db(&self) -> Connection {
+        Connection::open(self.paths().db).unwrap()
     }
 
     fn time_entries(&self) -> i64 {
@@ -407,7 +405,18 @@ fn mcp_lists_tools_and_adds_a_task_to_the_inbox() {
         .map(|t| t["name"].as_str().unwrap())
         .collect();
     names.sort_unstable();
-    assert_eq!(names, ["add_task", "list_projects", "list_sections"]);
+    assert_eq!(
+        names,
+        [
+            "add_links",
+            "add_subtask",
+            "add_task",
+            "finish_task",
+            "list_delegated",
+            "list_projects",
+            "list_sections"
+        ]
+    );
     assert!(
         tools
             .to_string()
@@ -440,6 +449,81 @@ fn mcp_lists_tools_and_adds_a_task_to_the_inbox() {
     let missing = mcp.call(6, "add_task", json!({"project": "nope", "text": "x"}));
     assert_eq!(missing["isError"], true);
     assert_eq!(text(&missing), "no project 'nope'; projects: Demo");
+
+    assert_eq!(mcp.close(), 0);
+}
+
+#[test]
+fn mcp_lets_an_agent_answer_a_delegated_task() {
+    let env = Env::new();
+    let src = env.file("TODO.md", "- [ ] a\n");
+    assert_eq!(code(&env.run(&["add", &src, "--name", "Demo"])), 0);
+    let mut mcp = env.mcp();
+    let metadata = json!({"source": {"mail": "m.eml"}});
+    let added = mcp.call(
+        2,
+        "add_task",
+        json!({"project": "Demo", "text": "Reply", "metadata": metadata}),
+    );
+    assert_ne!(added["isError"], true, "{added}");
+    let hash = serde_json::from_str::<Value>(text(&added)).unwrap()["hash"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Delegated from the app.
+    let paths = env.paths();
+    let conn = pov_core::db::open(&paths).unwrap();
+    let project: String = conn
+        .query_row("SELECT id FROM projects", (), |r| r.get(0))
+        .unwrap();
+    pov_core::projects::save_tool(&paths, "agent", "http://127.0.0.1:9/tasks", None).unwrap();
+    pov_core::projects::set_project_tools(&paths, &project, &["agent".into()]).unwrap();
+    pov_core::tasks::delegate(&conn, &paths, &project, &hash, "agent", Some("Draft it")).unwrap();
+
+    let listed = mcp.call(3, "list_delegated", json!({"tool": "agent"}));
+    let listed: Value = serde_json::from_str(text(&listed)).unwrap();
+    assert_eq!(listed[0]["text"], "Reply");
+    assert_eq!(
+        listed[0]["data"],
+        json!({"source": {"mail": "m.eml"}, "note": "Draft it"})
+    );
+    let id = listed[0]["id"].as_i64().unwrap();
+
+    let sub = mcp.call(
+        4,
+        "add_subtask",
+        json!({"id": id, "text": "Drafted [report.odt](/tmp/report.odt)"}),
+    );
+    assert_ne!(sub["isError"], true, "{sub}");
+    let link = json!({"label": "Report", "target": "/tmp/report.odt", "app": "LibreOffice"});
+    let links = mcp.call(5, "add_links", json!({"id": id, "links": [link]}));
+    assert_ne!(links["isError"], true, "{links}");
+    let done = mcp.call(6, "finish_task", json!({"id": id}));
+    assert_ne!(done["isError"], true, "{done}");
+
+    assert_eq!(
+        fs::read_to_string(&src).unwrap(),
+        "- [ ] a\n- [ ] Reply\n  - [x] Drafted [report.odt](/tmp/report.odt)\n"
+    );
+    let (stage, tool, data): (String, Option<String>, String) = env
+        .db()
+        .query_row(
+            "SELECT s.stage, m.tool, m.data FROM task_meta m
+             JOIN selected_tasks s ON s.task_hash = m.task_hash",
+            (),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .unwrap();
+    assert_eq!((stage.as_str(), tool), ("inbox", None));
+    let data: Value = serde_json::from_str(&data).unwrap();
+    assert_eq!(data["links"], json!([link]));
+    let listed = mcp.call(7, "list_delegated", json!({"tool": "agent"}));
+    assert_eq!(text(&listed), "[]");
+
+    let missing = mcp.call(8, "finish_task", json!({"id": 999}));
+    assert_eq!(missing["isError"], true);
+    assert_eq!(text(&missing), "task not found");
 
     assert_eq!(mcp.close(), 0);
 }

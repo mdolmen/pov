@@ -554,12 +554,12 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
 
 ### MCP (`pov mcp`)
 
-- [ ] `add_task`: optional `metadata` object
-- [ ] Tool `list_delegated(tool)`
-- [ ] Tool `add_subtask(id, text, checked = true)`
-- [ ] Tool `add_links(id, links)`
-- [ ] Tool `finish_task(id)`
-- [ ] Test (`tests/cli.rs`): add with metadata, delegate, list, add a subtask and a link, finish; check file and DB
+- [x] `add_task`: optional `metadata` object
+- [x] Tool `list_delegated(tool)`
+- [x] Tool `add_subtask(id, text, checked = true)`
+- [x] Tool `add_links(id, links)`, links with an optional `app`
+- [x] Tool `finish_task(id)`
+- [x] Test (`tests/cli.rs`): add with metadata, delegate, list, add a subtask and a link, finish; check file and DB
 
 ### Frontend
 
