@@ -254,3 +254,11 @@
   external tools).
 - **Constraints:** plain `http://` only (local agents); a minimal HTTP client on `std`, no new
   dependency.
+
+## 2026-10-17 — Next and Delegated filters saved per project
+
+- **Decision:** the task pane's Next and Delegated filters are saved per project in
+  `localStorage` (`pov.only.<id>`), like Hide done; Inbox stays a quick look, never saved.
+- **Why:** a project followed through its next or delegated tasks opens that way again.
+- **Constraints:** a saved filter with nothing left to show turns off and is forgotten, checked
+  once the tasks have loaded.

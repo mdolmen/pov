@@ -47,6 +47,28 @@ function writeDoneHidden(projectId: string, hidden: boolean) {
   }
 }
 
+/** The filter on the task pane: only inbox, next or delegated tasks. */
+type Only = "inbox" | "next" | "delegated" | null;
+
+/** The Next or Delegated filter saved for a project; Inbox is a quick look, never saved. */
+function readOnly(projectId: string): Only {
+  try {
+    const v = localStorage.getItem(`pov.only.${projectId}`);
+    return v === "next" || v === "delegated" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeOnly(projectId: string, only: Only) {
+  try {
+    if (only === "next" || only === "delegated") localStorage.setItem(`pov.only.${projectId}`, only);
+    else localStorage.removeItem(`pov.only.${projectId}`);
+  } catch {
+    // localStorage might not exist (e.g. private mode); silently ignore.
+  }
+}
+
 /** Where to scroll: `m:<milestone>` or `t:<task hash>`; a new `nonce` scrolls again. */
 export interface Focus {
   key: string;
@@ -425,8 +447,8 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const [timeRefreshKey, setTimeRefreshKey] = useState(0);
   const [timeVisible, setTimeVisible] = useState<boolean>(() => readTimeVisible(project.id));
   const [doneHidden, setDoneHidden] = useState<boolean>(() => readDoneHidden(project.id));
-  // Not saved: a quick look at what's left to triage, or at what's next.
-  const [only, setOnly] = useState<"inbox" | "next" | "delegated" | null>(null);
+  // Next and Delegated are saved per project, like Hide done; Inbox, a quick look, isn't.
+  const [only, setOnly] = useState<Only>(() => readOnly(project.id));
   // The last deleted task, offered for undo for a few seconds.
   const [undo, setUndo] = useState<{ hash: string; text: string; deleted: DeletedTask } | null>(null);
   // Why the last delegation failed, shown for a few seconds.
@@ -475,6 +497,11 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
     writeTimeVisible(project.id, next);
   }
 
+  function chooseOnly(next: Only) {
+    setOnly(next);
+    writeOnly(project.id, next);
+  }
+
   function toggleDoneHidden() {
     setDoneHidden(!doneHidden);
     writeDoneHidden(project.id, !doneHidden);
@@ -492,16 +519,18 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
   const nextCount = tasks.filter((t) => t.is_selected && !t.is_done).length;
   const delegatedCount = tasks.filter((t) => t.delegated_to !== null && !t.is_done).length;
   // Triaging the last inbox task, finishing the last next one, or the last delegated task coming
-  // back, leaves the filter on with nothing to show: turn it off.
+  // back, leaves the filter on with nothing to show: turn it off. Not while loading: a saved
+  // filter would go before its tasks show.
   useEffect(() => {
+    if (loading) return;
     if (
       (only === "inbox" && inboxCount === 0) ||
       (only === "next" && nextCount === 0) ||
       (only === "delegated" && delegatedCount === 0)
     ) {
-      setOnly(null);
+      chooseOnly(null);
     }
-  }, [only, inboxCount, nextCount, delegatedCount]);
+  }, [loading, only, inboxCount, nextCount, delegatedCount]);
 
   const sections = sectionsOf(items, (t) =>
     only === "inbox"
@@ -536,7 +565,7 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
 
         {nextCount > 0 && (
           <button
-            onClick={() => setOnly(only === "next" ? null : "next")}
+            onClick={() => chooseOnly(only === "next" ? null : "next")}
             aria-pressed={only === "next"}
             title={only === "next" ? "Show all tasks" : `Show only the ${nextCount} next tasks`}
             className={
@@ -550,7 +579,7 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
 
         {inboxCount > 0 && (
           <button
-            onClick={() => setOnly(only === "inbox" ? null : "inbox")}
+            onClick={() => chooseOnly(only === "inbox" ? null : "inbox")}
             aria-pressed={only === "inbox"}
             title={only === "inbox" ? "Show all tasks" : `Show only the ${inboxCount} inbox tasks`}
             className={
@@ -564,7 +593,7 @@ export function TaskList({ project, onClose, onProjectUpdated, onChanged, focus 
 
         {delegatedCount > 0 && (
           <button
-            onClick={() => setOnly(only === "delegated" ? null : "delegated")}
+            onClick={() => chooseOnly(only === "delegated" ? null : "delegated")}
             aria-pressed={only === "delegated"}
             title={only === "delegated" ? "Show all tasks" : `Show only the ${delegatedCount} delegated tasks`}
             className={

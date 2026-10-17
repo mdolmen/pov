@@ -578,6 +578,7 @@ See DECISIONS.md (2026-10-16). A project links to external tools. "Delegate" on 
   - [x] note sent, band and pill shown, no actions
   - [x] info popover lists links; clicks call the opener (`mockIPC`)
   - [x] filter; task back in the inbox after `finish_task`
+- [x] Next and Delegated filters saved per project (`pov.only.<id>`), like Hide done; Inbox not saved
 
 ### Delegate any task
 
