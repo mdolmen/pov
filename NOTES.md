@@ -23,7 +23,7 @@ The backend started as a Python FastAPI sidecar and was ported to Rust (DECISION
 
 ```
 ~/.local/share/pov/    # pov-dev/ for dev builds (debug or POV_ENV=dev)
-  config.json          # list of projects (id, name, path)
+  config.json          # projects (id, name, path, tools) and tools (url, command)
   pov.db               # SQLite database
   projects/
     <project-id>.md    # hardlink → original TODO.md (same inode)
@@ -48,12 +48,14 @@ Tauri (.app, one process)
                 ├── tasks      list, toggle checkbox, select / unselect, cleanup
                 ├── projects   list, add, update, remove
                 ├── time       per-day totals, add entry, topics
-                └── activity   heatmap from the data repo's git log
+                ├── activity   heatmap from the data repo's git log
+                └── tools      send a delegated task to its agent (Tauri `delegate` command)
                 + watcher thread (notify) committing edits to the data repo
 ```
 
 The frontend calls a single `api` Tauri command; `pov_core::api::dispatch` maps the command name
-to a core function. No HTTP server, no port. Tauri itself handles:
+to a core function. No HTTP server, no port. One more command, `delegate`, sends a task to its
+agent (an HTTP POST, see Delegation) and holds the agents pov started. Tauri itself handles:
 - Regular app with Dock icon (standard macOS window, movable and resizable)
 - Native file browser dialog (to pick a TODO.md when adding a project)
 - Opening a TODO.md in the default text editor
@@ -78,7 +80,9 @@ same `pov.db`, config.json and hardlinks; the app doesn't need to be running.
 ### MCP server (`pov mcp`)
 
 Lets external tools add tasks to a tracked project (DECISIONS.md, 2026-10-13). Tools:
-`list_projects`, `list_sections`, `add_task` (stage `inbox` by default, or `backlog` / `next`).
+`list_projects`, `list_sections`, `add_task` (stage `inbox` by default, or `backlog` / `next`;
+optional `metadata` object). Agents answer delegated tasks with `list_delegated`, `add_subtask`,
+`add_links`, `finish_task`, by the task's metadata id.
 Built with `rmcp` + `tokio`, behind the `cli` feature: the app and `pov-core` stay sync. Each
 call opens its own connection and runs the core on a blocking thread.
 
@@ -183,6 +187,26 @@ Border color (Archived):
   inbox or neither (`selected_tasks.stage`). Triage: "Mark next", "Keep" (to backlog), red ×
   (deletes the task and its indented block from the file, Undo for 5 s). Next up ignores inbox
   tasks; the tile shows the inbox count as a badge; "Inbox" filters the task pane
+
+### Delegation
+
+DECISIONS.md, 2026-10-16 (delegating tasks, delegate any task, no pidfile, delegate sends the
+task). README has the agent contract.
+
+- A tool is an agent: `url` (`http://`) and optional start `command` (absolute path), in
+  `config.json` `tools`, edited in Settings; a project's `tools` list, in Project settings
+- `task_meta` (SQLite): per-task `id` (the agents' handle, kept across rewording and
+  delete / undo), `tool`, `data` JSON (`note`, `links: [{label, target, app?}]`, `source`)
+- Delegate: `tasks::delegation` builds the payload (creating the metadata row when missing),
+  `tools::send` POSTs it (starting the agent and retrying for 10 s when nothing answers),
+  `tasks::delegate` marks it: stage `delegated`, `task_meta.tool`. The agent not taking it
+  leaves the task as it was (`tasks::cancel`)
+- The tool makes a task delegated, not the stage: a leftover next / inbox mark is ignored
+- Delegated task: teal band, tool pill, no actions; "Delegated" filter. `finish` → inbox
+- Links (ⓘ popover and Markdown links in task text): URL → `openUrl`, path → `openPath`, with
+  `app` when given; never run as a command
+- One agent instance per tool while pov runs (`try_wait` on its child); no pidfile
+- HTTP client: plain `std::net`, `Connection: close`, no dependency
 
 ## Continuous Learning
 

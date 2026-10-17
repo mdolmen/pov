@@ -616,8 +616,8 @@ See DECISIONS.md (2026-10-16, delegate sends the task to the agent).
 
 ### Docs
 
-- [ ] README + NOTES.md: `tools` in `config.json`, project `tools`
-- [ ] README + NOTES.md: agent contract (POSTed JSON, 2xx, MCP calls back, absolute command path)
+- [x] README + NOTES.md: `tools` in `config.json`, project `tools`
+- [x] README + NOTES.md: agent contract (POSTed JSON, 2xx, MCP calls back, absolute command path)
 
 ## Maintenance
 
